@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/adityahimaone/switchyard-lite/internal/api"
+	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
 	"github.com/adityahimaone/switchyard-lite/internal/mcp"
 	"github.com/adityahimaone/switchyard-lite/internal/store"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -29,8 +30,15 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		a := api.New(s)
+		disp, err := dispatch.New(s, dispatch.ConfigFromEnv())
+		if err != nil {
+			log.Fatal(err)
+		}
+		api.UseDispatcher(a, disp)
+		go disp.Run(context.Background())
 		log.Printf("listening on %s", *addr)
-		log.Fatal(http.ListenAndServe(*addr, api.New(s).Handler()))
+		log.Fatal(http.ListenAndServe(*addr, a.Handler()))
 	case "mcp":
 		url, tok := os.Getenv("SWITCHYARD_URL"), os.Getenv("SWITCHYARD_TOKEN")
 		if url == "" || tok == "" {

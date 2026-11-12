@@ -12,6 +12,12 @@ import (
 //go:embed schema.sql
 var schema string
 
+//go:embed schema_dispatch.sql
+var schemaProjects string
+
+//go:embed schema_pipeline.sql
+var schemaPipeline string
+
 type Store struct{ DB *sql.DB }
 
 // Open opens (and migrates) the database at path. Use ":memory:" in tests.
@@ -27,8 +33,10 @@ func Open(path string) (*Store, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1) // serialises writers; keeps :memory: coherent
-	if _, err := db.Exec(schema); err != nil {
-		return nil, fmt.Errorf("migrate: %w", err)
+	for _, ddl := range []string{schema, schemaProjects, schemaPipeline} {
+		if _, err := db.Exec(ddl); err != nil {
+			return nil, fmt.Errorf("migrate: %w", err)
+		}
 	}
 	return &Store{DB: db}, nil
 }

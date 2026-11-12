@@ -1,0 +1,41 @@
+name: design-thinking
+description: Explore, cross-examine, synthesize, design, review, implement, commit.
+budget: { max_review_loops: 5, max_evolutions: 3 }
+stages:
+  - id: explore
+    fanout: { from: goal, min: 3 }
+    prompt: |
+      Break the goal into independent lines of investigation. List the topics.
+      Each topic is then researched on its own: read the code, note constraints, risks and open questions.
+  - id: cross_examine
+    per: explore
+    inputs: [explore]
+    verdict: true
+    prompt: |
+      Challenge the findings you were given. Look for gaps, wrong assumptions and missing evidence.
+      Say PASS if they hold up. Say FAIL if the research must be redone, and explain what is missing.
+  - id: synthesize
+    inputs: [cross_examine]
+    prompt: |
+      Merge the examined findings into one coherent picture: agreed facts, conflicts, decisions that still need making.
+  - id: design
+    inputs: [synthesize]
+    prompt: |
+      Propose a concrete design: components, interfaces, data flow, and a step list small enough to implement and test.
+  - id: review
+    inputs: [design]
+    verdict: true
+    back_arcs: { "FAIL:design": design, "FAIL:context": explore }
+    prompt: |
+      Review the design against the goal. PASS if sound.
+      FAIL:design if the design is flawed. FAIL:context if the research behind it is missing or wrong.
+  - id: impl
+    inputs: [design]
+    review_gate: true
+    gate_band: [behavior, runtime, security, docs]
+    prompt: |
+      Implement the design in the workspace with tests. Keep the change small and leave a clear diff.
+  - id: commit
+    inputs: [impl]
+    prompt: |
+      Commit the approved change with a clear message. Do not push.

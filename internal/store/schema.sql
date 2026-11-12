@@ -57,3 +57,12 @@ CREATE TABLE IF NOT EXISTS api_tokens (
   scope TEXT NOT NULL CHECK (scope IN ('read','write','admin')),
   created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS attachments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL DEFAULT 'application/octet-stream',
+  content BLOB NOT NULL,
+  created_at INTEGER NOT NULL
+);

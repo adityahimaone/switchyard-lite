@@ -71,7 +71,7 @@ type Task struct {
 
 type NewTask struct {
 	BoardID, ParentID, Title, Prompt, Acceptance, Workspace, Executor, Model, Effort string
-	BlockedBy                                                                       []string
+	BlockedBy                                                                        []string
 }
 
 type Service struct {
@@ -290,8 +290,17 @@ func (v *Service) Move(id, to, actor string) (Task, error) {
 	if err := tx.Commit(); err != nil {
 		return Task{}, err
 	}
-	return v.Get(id)
+	t, err := v.Get(id)
+	if err == nil && actor != "pipeline" && t.RunID != "" && OnTaskTerminal != nil {
+		if t.Status == Review || t.Status == Done || t.Status == Failed {
+			OnTaskTerminal(v.S, t)
+		}
+	}
+	return t, err
 }
+
+// OnTaskTerminal is an optional hook fired when a pipeline task reaches review, done, or failed.
+var OnTaskTerminal func(s *store.Store, t Task)
 
 // refreshBlocked flips a todo/blocked task according to its open dependencies.
 func refreshBlocked(tx *sql.Tx, id string) error {

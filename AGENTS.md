@@ -1,0 +1,26 @@
+# AGENTS.md — switchyard-lite
+
+## Overview
+
+`switchyard-lite` is a standalone Go + SQLite + React/Vite control plane for coding agents.
+
+## Package Map
+
+- `cmd/switchyard-lite` — CLI entrypoint (`serve`, `mcp`, `token create`).
+- `internal/store` — Single SQLite database (`modernc.org/sqlite`, WAL mode) + embedded schemas (`schema.sql`, `schema_dispatch.sql`, `schema_pipeline.sql`).
+- `internal/tasks` — Boards, tasks, comments, dependency DAG with cycle detection, status machine (`backlog`, `todo`, `blocked`, `in_progress`, `review`, `done`, `failed`), and append-only `events`.
+- `internal/dispatch` — Atomic task claims, lease renewal/reaping, per-task git worktrees (`sy/<task-id>`), and `node-agent` HTTP client (`POST /api/dispatch`, `GET /api/results/{id}`).
+- `internal/models` — Cached proxy for `node-agent` `GET /api/models?executor=`.
+- `internal/review` — Git worktree diff vs base SHA, approve (keeps branch; opt-in `auto_merge`), and reject (records feedback comment + requeues to `todo`).
+- `internal/pipeline` — Deterministic DAG coordinator and built-in `design-thinking.yaml` template.
+- `internal/mcp` — MCP server (stdio + `/mcp` streamable HTTP) with 20 tools.
+- `internal/api` — REST `/api/v1/*` handlers, token scope middleware (`read`, `write`, `admin`), admin password session login, and SPA static handler.
+- `internal/webui` + `web/` — Embedded React + Vite + TanStack Query UI.
+
+## Verification Commands
+
+```bash
+make test
+make lint
+make build
+```

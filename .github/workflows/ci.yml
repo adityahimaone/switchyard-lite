@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+      - name: Configure git identity for worktree tests
+        run: |
+          git config --global user.email "ci@switchyard.local"
+          git config --global user.name "Switchyard CI"
+      - name: Web install, test, and build
+        run: |
+          pnpm -C web install --frozen-lockfile
+          pnpm -C web test
+          pnpm -C web build
+      - name: Go vet, test, and build single binary
+        run: |
+          go vet ./...
+          go test -race ./...
+          go build -o bin/switchyard-lite ./cmd/switchyard-lite
