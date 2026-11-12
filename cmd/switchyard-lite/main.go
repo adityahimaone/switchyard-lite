@@ -36,7 +36,11 @@ func main() {
 			log.Fatal(err)
 		}
 		api.UseDispatcher(a, disp)
-		go disp.Run(context.Background())
+		// ponytail: dispatch is opt-in; without SWITCHYARD_DISPATCH=1 the loop never
+		// claims or runs tasks (prevents migrations/imports from auto-firing on workers).
+		if os.Getenv("SWITCHYARD_DISPATCH") == "1" {
+			go disp.Run(context.Background())
+		}
 		log.Printf("listening on %s", *addr)
 		log.Fatal(http.ListenAndServe(*addr, a.Handler()))
 	case "mcp":
