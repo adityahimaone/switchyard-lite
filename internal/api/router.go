@@ -160,5 +160,11 @@ func (a *API) Handler() http.Handler {
 		}
 		ok(w, e)
 	}))
+	for _, reg := range registrars {
+		reg(m, a)
+	}
 	return m
 }
+
+// registrars lets feature files add routes via init(): registrars = append(registrars, func(m *http.ServeMux, a *API){...}).
+var registrars []func(*http.ServeMux, *API)
