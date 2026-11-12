@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -8,7 +9,9 @@ import (
 	"os"
 
 	"github.com/adityahimaone/switchyard-lite/internal/api"
+	"github.com/adityahimaone/switchyard-lite/internal/mcp"
 	"github.com/adityahimaone/switchyard-lite/internal/store"
+	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func main() {
@@ -28,6 +31,14 @@ func main() {
 		}
 		log.Printf("listening on %s", *addr)
 		log.Fatal(http.ListenAndServe(*addr, api.New(s).Handler()))
+	case "mcp":
+		url, tok := os.Getenv("SWITCHYARD_URL"), os.Getenv("SWITCHYARD_TOKEN")
+		if url == "" || tok == "" {
+			log.Fatal("SWITCHYARD_URL and SWITCHYARD_TOKEN are required")
+		}
+		if err := mcp.NewServer(mcp.NewHTTPBackend(url, tok)).Run(context.Background(), &sdk.StdioTransport{}); err != nil {
+			log.Fatal(err)
+		}
 	case "token":
 		fs := flag.NewFlagSet("token", flag.ExitOnError)
 		db := fs.String("db", "switchyard-lite.db", "sqlite path")
