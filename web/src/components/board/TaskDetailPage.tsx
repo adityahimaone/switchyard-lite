@@ -87,7 +87,7 @@ export function TaskDetailPage({
   }));
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div className="-mx-6 -mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <TaskHeader
         id={id}
         task={t}

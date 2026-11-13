@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -22,7 +22,6 @@ import {
   ShieldAlert,
   Table2,
   Trash2,
-  X,
 } from "@/components/ui/icons";
 import {
   api,
@@ -231,6 +230,7 @@ export function BoardScreen({
   const [creating, setCreating] = useState<{ startMode: StartMode } | null>(null);
   const [boardModal, setBoardModal] = useState<"new" | "edit" | null>(null);
   const [q, setQ] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const [filters, setFilters] = useState<Filter[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -366,6 +366,21 @@ export function BoardScreen({
     });
   }, [allTasks, q, filters]);
 
+  // "/" focuses the board search, like the command palette's ⌘K.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) {
+        return;
+      }
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   function toggleSelect(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -414,7 +429,7 @@ export function BoardScreen({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0 }}>
-      <div className="page-header">
+      <div className="page-header page-header-stack">
         <div className="bar">
           <h2>
             <span>{activeBoard ? activeBoard.name : "Board"}</span>
@@ -500,24 +515,45 @@ export function BoardScreen({
 
         {/* Compact filter & search bar: one row of tokens, no status strip. */}
         <div className="flex flex-wrap items-center gap-1.5" role="search" aria-label="Filter tasks">
-          <div className="relative flex h-[32px] w-[260px] items-center rounded-full border border-line bg-surface pr-7 pl-3 shadow-[var(--lift-1),var(--lift-inset)]">
-            <Search className="size-3.5 shrink-0 text-ink-3" aria-hidden />
+          <div
+            className={cn(
+              "group relative flex h-9 w-[300px] items-center rounded-full border pr-2 pl-3 transition-[border-color,background-color,box-shadow] duration-150",
+              q
+                ? "border-accent/45 bg-surface shadow-[var(--lift-1)]"
+                : "border-line bg-well/55 hover:border-line-strong hover:bg-surface"
+            )}
+          >
+            <Search
+              className={cn("size-4 shrink-0 transition-colors", q ? "text-accent-text" : "text-ink-3")}
+              aria-hidden
+            />
             <input
+              ref={searchRef}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search tasks…"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setQ("");
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="Search tasks, prompts, IDs…"
               aria-label="Search tasks"
-              className="ml-1.5 w-full bg-transparent text-[11px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
+              className="ml-2 w-full bg-transparent text-[12px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
             />
-            {q && (
+            {q ? (
               <button
                 type="button"
                 onClick={() => setQ("")}
                 aria-label="Clear search"
-                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full p-0.5 text-ink-4 hover:bg-well hover:text-ink"
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-well hover:text-ink"
               >
-                <X className="size-3" />
+                <span aria-hidden className="text-[14px] leading-none">×</span>
               </button>
+            ) : (
+              <kbd className="hidden shrink-0 rounded-full border border-line bg-surface px-1.5 py-0.5 font-mono text-[9px] text-ink-4 sm:inline">
+                /
+              </kbd>
             )}
           </div>
 

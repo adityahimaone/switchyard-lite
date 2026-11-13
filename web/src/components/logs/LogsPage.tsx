@@ -95,39 +95,42 @@ export function LogsPage() {
 
   return (
     <div>
-      <div className="bar" style={{ flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <h2 style={{ margin: 0 }} className="inline-flex items-center gap-2">
-            <ScrollText className="size-4" /> Logs
-          </h2>
-          <span className="bar-sub">
+      <div className="page-header">
+        <div className="page-header-left">
+          <div className="page-title-row">
+            <h2 className="inline-flex items-center gap-2">
+              <ScrollText className="size-4" /> Logs
+            </h2>
+          </div>
+          <p className="page-subtitle">
             Live activity, service journal and agent runtime output — read-only.
-          </span>
+          </p>
         </div>
-        <div className="bar-spacer" />
-        <Button
-          type="button"
-          variant={live ? "default" : "outline"}
-          size="sm"
-          onClick={() => setLive((v) => !v)}
-          title="Auto-refresh every 5 seconds"
-        >
-          <Activity className={cn("size-3.5", live && "text-success-text")} />
-          {live ? "Live" : "Paused"}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            void logs.refetch();
-            void events.refetch();
-            void sources.refetch();
-          }}
-        >
-          <RefreshCw className="size-3.5" />
-          Refresh
-        </Button>
+        <div className="page-header-actions">
+          <Button
+            type="button"
+            variant={live ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLive((v) => !v)}
+            title="Auto-refresh every 5 seconds"
+          >
+            <Activity className={cn("size-3.5", live && "text-success-text")} />
+            {live ? "Live" : "Paused"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              void logs.refetch();
+              void events.refetch();
+              void sources.refetch();
+            }}
+          >
+            <RefreshCw className="size-3.5" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Live Activity Stream (moved from Overview) */}

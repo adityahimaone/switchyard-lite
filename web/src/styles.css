@@ -566,13 +566,63 @@ main.bleed {
    Page Header & Toolbar (Switchyard Board Pattern)
    ========================================================================== */
 .page-header {
-  padding: 16px 24px 12px;
+  padding: 18px 24px 15px;
   border-bottom: 1px solid var(--c-line);
-  background: var(--c-surface);
+  background: color-mix(in srgb, var(--c-surface) 94%, transparent);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* Non-board pages live inside a padded main. Pull the header to the stage
+   edges so it reads as part of the app shell instead of a floating block. */
+main:not(.bleed) .page-header {
+  margin: -20px -24px 16px;
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.page-header-left {
   display: flex;
   flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+.page-title-row {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.page-title-row h2 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-ink-3);
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .bar {
@@ -585,6 +635,8 @@ main.bleed {
 
 .page-header .bar {
   margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .bar h2 {
@@ -1828,4 +1880,16 @@ pre.diff {
 .btn.danger svg.kubai-icon,
 .btn.signal svg.kubai-icon {
   color: currentColor !important;
+}
+
+/* The board header owns a second row (search + filter tokens + actions). */
+.page-header.page-header-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.page-header.page-header-stack .bar {
+  flex: none;
+  width: 100%;
 }
