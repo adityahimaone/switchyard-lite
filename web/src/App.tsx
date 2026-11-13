@@ -15,7 +15,7 @@ import {
   Settings2,
   SunMoon,
   Workflow,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { api, getToken, type Board, type Task } from "./api";
 import { BoardDialog, BoardScreen, TaskDialog, useBoardId } from "./Board";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";

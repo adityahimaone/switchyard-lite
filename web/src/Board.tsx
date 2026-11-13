@@ -4,10 +4,12 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  CircleDot,
   Columns3,
   Copy,
   Cpu,
   ExternalLink,
+  FolderGit2,
   GitPullRequest,
   Inbox,
   LayoutGrid,
@@ -21,7 +23,7 @@ import {
   Table2,
   Trash2,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   api,
   apiOr,
@@ -45,7 +47,12 @@ import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
 import { relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FilterPill } from "@/components/ui/pill";
+import {
+  FilterBar,
+  type Filter,
+  type FilterFieldDef,
+  type FilterOption,
+} from "@/components/ui/filter-token-bar";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Dialog,
@@ -97,6 +104,40 @@ const QUICK_ADD: Partial<Record<Status, StartMode>> = {
   backlog: "manual",
   todo: "queue",
 };
+
+function taskFieldValue(t: Task, field: string): string {
+  switch (field) {
+    case "status":
+      return t.status;
+    case "executor":
+      return t.executor || "default";
+    case "workspace":
+      return t.workspace || "";
+    case "model":
+      return t.model || "default";
+    default:
+      return "";
+  }
+}
+
+function matchesFilter(t: Task, filter: Filter): boolean {
+  if (!filter.values.length) return true;
+  const value = taskFieldValue(t, filter.field);
+  switch (filter.operator) {
+    case "is_not":
+      return value !== filter.values[0];
+    case "is_any":
+      return filter.values.includes(value);
+    case "is_none":
+      return !filter.values.includes(value);
+    default:
+      return value === filter.values[0];
+  }
+}
+
+function matchesFilters(t: Task, filters: Filter[]): boolean {
+  return filters.every((f) => matchesFilter(t, f));
+}
 
 export const EFFORTS = ["", "low", "medium", "high"];
 
@@ -190,8 +231,7 @@ export function BoardScreen({
   const [creating, setCreating] = useState<{ startMode: StartMode } | null>(null);
   const [boardModal, setBoardModal] = useState<"new" | "edit" | null>(null);
   const [q, setQ] = useState("");
-  const [fExec, setFExec] = useState("");
-  const [fStatus, setFStatus] = useState<Status | "">("");
+  const [filters, setFilters] = useState<Filter[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -205,11 +245,117 @@ export function BoardScreen({
 
   const allTasks = tasks.data ?? [];
 
+  const executorsOnBoard = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of allTasks) s.add(t.executor || "default");
+    return Array.from(s);
+  }, [allTasks]);
+
+  const workspacesOnBoard = useMemo(() => {
+    const map = new Map<string, { path: string; label: string; count: number }>();
+    for (const t of allTasks) {
+      const path = t.workspace || "";
+      if (!path) continue;
+      const label = path.split(/[\\/]/).filter(Boolean).pop() || path;
+      const cur = map.get(path);
+      if (cur) cur.count += 1;
+      else map.set(path, { path, label, count: 1 });
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [allTasks]);
+
+  const modelsOnBoard = useMemo(() => {
+    const map = new Map<string, { value: string; label: string; count: number }>();
+    for (const t of allTasks) {
+      const m = t.model || "default";
+      const cur = map.get(m);
+      if (cur) cur.count += 1;
+      else map.set(m, { value: m, label: m === "default" ? "Default" : m, count: 1 });
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [allTasks]);
+
+  const filterFields = useMemo<FilterFieldDef[]>(() => {
+    const statusOptions: FilterOption[] = STATUSES.map((s) => ({
+      value: s,
+      label: LABEL[s] ?? s,
+      glyph: (
+        <span
+          aria-hidden
+          className="size-2 rounded-full"
+          style={{ background: statusColor(s) }}
+        />
+      ),
+      count: allTasks.filter((t) => t.status === s).length,
+    }));
+    const executorOptions: FilterOption[] = executorsOnBoard.map((ex) => ({
+      value: ex,
+      label: ex === "default" ? "Default" : ex,
+      glyph: <Cpu className="size-3" />,
+      count: allTasks.filter((t) => (t.executor || "default") === ex).length,
+    }));
+    const workspaceOptions: FilterOption[] = workspacesOnBoard.map((w) => ({
+      value: w.path,
+      label: w.label,
+      glyph: <FolderGit2 className="size-3" />,
+      count: w.count,
+    }));
+    const modelOptions: FilterOption[] = modelsOnBoard.map((m) => ({
+      value: m.value,
+      label: m.label,
+      glyph: <Cpu className="size-3" />,
+      count: m.count,
+    }));
+    const base = [
+      { value: "is", label: "is" },
+      { value: "is_not", label: "is not" },
+      { value: "is_any", label: "is any of", multi: true },
+      { value: "is_none", label: "is none of", multi: true },
+    ];
+    return [
+      {
+        id: "status",
+        label: "Status",
+        icon: <CircleDot className="size-3" />,
+        operators: base,
+        options: statusOptions,
+      },
+      {
+        id: "executor",
+        label: "Executor",
+        icon: <Cpu className="size-3" />,
+        operators: base,
+        options: executorOptions,
+      },
+      ...(workspaceOptions.length
+        ? [
+            {
+              id: "workspace",
+              label: "Workspace",
+              icon: <FolderGit2 className="size-3" />,
+              operators: base,
+              options: workspaceOptions,
+            },
+          ]
+        : []),
+      ...(modelOptions.length
+        ? [
+            {
+              id: "model",
+              label: "Model",
+              icon: <Cpu className="size-3" />,
+              operators: base,
+              options: modelOptions,
+            },
+          ]
+        : []),
+    ];
+  }, [allTasks, executorsOnBoard, workspacesOnBoard, modelsOnBoard]);
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return allTasks.filter((t) => {
-      if (fStatus && t.status !== fStatus) return false;
-      if (fExec && (t.executor || "default") !== fExec) return false;
+      if (!matchesFilters(t, filters)) return false;
       if (!needle) return true;
       return (
         t.title.toLowerCase().includes(needle) ||
@@ -218,13 +364,7 @@ export function BoardScreen({
         (t.workspace || "").toLowerCase().includes(needle)
       );
     });
-  }, [allTasks, q, fExec, fStatus]);
-
-  const executorsOnBoard = useMemo(() => {
-    const s = new Set<string>();
-    for (const t of allTasks) s.add(t.executor || "default");
-    return Array.from(s);
-  }, [allTasks]);
+  }, [allTasks, q, filters]);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -271,7 +411,6 @@ export function BoardScreen({
     );
   }
 
-  const activeFilterCount = (q.trim() !== "" ? 1 : 0) + (fExec !== "" ? 1 : 0) + (fStatus !== "" ? 1 : 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0 }}>
@@ -367,92 +506,42 @@ export function BoardScreen({
           </button>
         </div>
 
-        {/* Status Summary Pill Strip */}
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Status filters">
-          {STATUSES.map((s) => {
-            const count = allTasks.filter((t) => t.status === s).length;
-            const isActive = fStatus === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setFStatus(isActive ? "" : s)}
-                aria-pressed={isActive}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-[background-color,border-color,color,box-shadow]",
-                  isActive
-                    ? "border-accent bg-accent-tint text-accent-text shadow-[var(--lift-1)]"
-                    : "border-line bg-surface/85 text-ink-2 hover:border-line-strong hover:bg-surface"
-                )}
-              >
-                <span
-                  aria-hidden
-                  className="size-2 rounded-full"
-                  style={{ background: statusColor(s) }}
-                />
-                <span>{LABEL[s] ?? s}</span>
-                <span className="rounded-full bg-well px-1.5 font-mono text-[10px] font-semibold tabular text-ink-3">
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filter & search toolbar (Tactile Capsule Bar) */}
-        <div className="toolbar-row" role="search" aria-label="Filter tasks">
-          <div className="search-box">
-            <Search className="size-3.5" />
+        {/* Compact filter & search bar: one row of tokens, no status strip. */}
+        <div className="flex flex-wrap items-center gap-1.5" role="search" aria-label="Filter tasks">
+          <div className="relative flex h-[30px] w-[228px] items-center rounded-full border border-line bg-surface/90 pr-7 pl-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
+            <Search className="size-3 shrink-0 text-ink-4" aria-hidden />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search tasks, prompt, id…"
               aria-label="Search tasks"
+              className="ml-1.5 w-full bg-transparent text-[11px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
             />
             {q && (
               <button
                 type="button"
                 onClick={() => setQ("")}
                 aria-label="Clear search"
-                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full p-0.5 text-ink-4 hover:bg-raised hover:text-ink"
+                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full p-0.5 text-ink-4 hover:bg-well hover:text-ink"
               >
                 <X className="size-3" />
               </button>
             )}
           </div>
 
-          <FilterPill
-            count={activeFilterCount}
-            active={activeFilterCount > 0}
-            onClear={
-              activeFilterCount > 0
-                ? () => {
-                    setQ("");
-                    setFExec("");
-                    setFStatus("");
-                  }
-                : undefined
-            }
+          <FilterBar
+            fields={filterFields}
+            value={filters}
+            onChange={setFilters}
+            addLabel="Filter"
+            emptyLabel="Add filter"
+            aria-label="Task filters"
           />
 
-          <div className="chip-row">
-            {executorsOnBoard.map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                className={"chip" + (fExec === ex ? " active" : "")}
-                aria-pressed={fExec === ex}
-                onClick={() => setFExec(fExec === ex ? "" : ex)}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
-
-          <span className="muted tabular" style={{ fontSize: 12 }}>
+          <span className="ml-0.5 font-mono text-[10px] tabular-nums text-ink-4">
             {filtered.length === allTasks.length
               ? `${allTasks.length} ${allTasks.length === 1 ? "task" : "tasks"}`
-              : `${filtered.length} of ${allTasks.length} tasks`}
+              : `${filtered.length} of ${allTasks.length}`}
           </span>
 
           <div className="bar-spacer" />

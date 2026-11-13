@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, FolderGit2, GitPullRequest, X } from "lucide-react";
+import { Check, FolderGit2, GitPullRequest, X } from "@/components/ui/icons";
 import { api, ApiError, apiOr, LIVE_FALLBACK_MS, post, type Task } from "./api";
 import { ErrorBox, Lamp, Unavailable } from "./ui";
 import { useBoardId } from "./Board";

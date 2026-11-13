@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { ChevronsUpDown, Filter, Search, Sparkles, X } from "lucide-react";
+import { ChevronsUpDown, Filter, Search, Sparkles, X } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 /**

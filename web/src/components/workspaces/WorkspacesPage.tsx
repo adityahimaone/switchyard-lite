@@ -15,7 +15,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   apiOr,
   del,

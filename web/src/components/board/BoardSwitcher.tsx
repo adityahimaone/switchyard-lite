@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "@/components/ui/icons";
 import type { Board } from "@/api";
 import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 

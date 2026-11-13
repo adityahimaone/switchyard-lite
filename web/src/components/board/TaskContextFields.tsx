@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
   X,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   apiOr,
   type FileMatch,

@@ -9,7 +9,7 @@ import {
   KeyRound,
   Lock,
   ShieldCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { api, apiOr, post, setToken } from "./api";
 import { ErrorBox } from "./ui";
 import { BrandMark } from "@/components/ui/brand";

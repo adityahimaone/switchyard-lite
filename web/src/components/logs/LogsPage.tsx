@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, RefreshCw, ScrollText, Search, Terminal } from "lucide-react";
+import { Activity, RefreshCw, ScrollText, Search, Terminal } from "@/components/ui/icons";
 import {
   apiOr,
   LIVE_FALLBACK_MS,

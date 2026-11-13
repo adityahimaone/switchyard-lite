@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Maximize2 } from "lucide-react";
+import { Maximize2 } from "@/components/ui/icons";
 import { api, apiOr, LIVE_FALLBACK_MS, type Task, type Workspace } from "@/api";
 import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
 import { TaskHeader } from "@/components/board/taskDetailParts";

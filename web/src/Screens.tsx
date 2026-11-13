@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Activity, Check, Cpu, GitBranch, KeyRound, Layers, Lock, Palette, Play, Server, ShieldCheck, Sparkles } from "lucide-react";
+import { Activity, Check, Cpu, GitBranch, KeyRound, Layers, Lock, Palette, Play, Server, ShieldCheck, Sparkles } from "@/components/ui/icons";
 import { api, apiOr, del, LIVE_FALLBACK_MS, post, setToken, STATUSES, type FlowTask, type Task, type Worker } from "./api";
 import { ErrorBox, LABEL, Lamp, Panel, statusColor, Unavailable } from "./ui";
 import { useBoardId } from "./Board";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, X } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export type ToastTone = "success" | "error" | "info";

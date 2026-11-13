@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Cpu, GitBranch, Link2 } from "lucide-react";
+import { Cpu, GitBranch, Link2 } from "@/components/ui/icons";
 import { api, apiOr, del, LIVE_FALLBACK_MS, post, type Status, type Task, type Workspace, type WorktreeInfo } from "@/api";
 import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
 import {
