@@ -9,7 +9,6 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/adityahimaone/switchyard-lite/internal/review"
 	"github.com/adityahimaone/switchyard-lite/internal/skills"
 	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-lite/internal/worker"
 	"github.com/adityahimaone/switchyard-lite/internal/wsindex"
 )
 
@@ -32,6 +32,7 @@ type dispatchDeps struct {
 	c *catalog.Catalog
 	s *skills.Registry
 	x *wsindex.Index
+	w *worker.Client
 }
 
 var (
@@ -48,13 +49,17 @@ func UseDispatcher(a *API, d *dispatch.Dispatcher) {
 }
 
 func buildDeps(a *API, d *dispatch.Dispatcher, r *review.Service, cfg dispatch.Config) *dispatchDeps {
+	w := worker.New(cfg.NodeAgentURL, cfg.Token)
+	idx := wsindex.New()
+	idx.SetRemote(w)
+	r.SetRemote(w)
 	return &dispatchDeps{
 		d: d, r: r,
 		m: models.New(cfg.NodeAgentURL, cfg.Token),
 		n: nodes.New(cfg.NodeAgentURL, cfg.Token),
 		c: catalog.New(cfg.NodeAgentURL, cfg.Token),
 		s: skills.NewFromEnv(),
-		x: wsindex.New(),
+		x: idx, w: w,
 	}
 }
 
@@ -211,20 +216,17 @@ func init() {
 		}))
 		m.HandleFunc("GET /api/v1/workspaces/inspect", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			p := strings.TrimSpace(r.URL.Query().Get("path"))
-			isGit := dispatch.IsGit(p)
-			branches, current, warning := x.x.Branches(p)
-			if len(branches) == 0 && isGit {
-				if out, err := dispatch.Git(p, "branch", "--format=%(refname:short)"); err == nil && out != "" {
-					branches = append(branches, splitLines(out)...)
-				}
-			}
+			st, _ := x.x.State(r.Context(), p, r.URL.Query().Get("refresh") == "1")
 			var labelsRaw string
 			_ = a.S.DB.QueryRow(`SELECT labels FROM dispatch_workspaces WHERE path=? LIMIT 1`, p).Scan(&labelsRaw)
 			labels := splitLabels(labelsRaw)
 			ok(w, map[string]any{
-				"path": p, "is_git": isGit, "branches": branches,
-				"current": current, "warning": warning, "local": wsindex.Local(p),
-				"saas": dispatch.IsSAASWorkspace(p, labels),
+				"path": p, "is_git": st.IsGit, "branches": st.Branches,
+				"current": st.Current, "warning": st.Warning, "hint": st.Hint,
+				"local": st.Local, "source": st.Source,
+				"repo_root": st.Info.Root, "git_prefix": st.Info.Prefix,
+				"file_count": len(st.Files),
+				"saas":       dispatch.IsSAASWorkspace(p, labels),
 			})
 		}))
 		// Agent skills. The registry follows symlinks (npx skills add -g links
@@ -252,21 +254,51 @@ func init() {
 			}
 			ok(w, map[string]string{"name": name, "content": content})
 		}))
-		// Workspace file search powers the @ omnibox. Remote workspaces are not
-		// visible to this process, so the response carries a hint instead of an
-		// empty list and the composer still accepts a manually typed path.
+		// Workspace file search powers the @ omnibox. State resolves the list on
+		// this host or on the owning worker, so remote workspaces get real
+		// suggestions instead of the old "not indexed here" dead end.
 		m.HandleFunc("GET /api/v1/workspaces/files", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			p := strings.TrimSpace(r.URL.Query().Get("path"))
-			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-			files, hint := x.x.Files(p, r.URL.Query().Get("q"), limit)
-			ok(w, map[string]any{"path": p, "files": files, "hint": hint, "local": wsindex.Local(p)})
+			limit := worker.ParseLimit(r.URL.Query().Get("limit"), 20)
+			if r.URL.Query().Get("refresh") == "1" {
+				x.x.Invalidate(p)
+			}
+			files, hint, source, _ := x.x.FilesCtx(r.Context(), p, r.URL.Query().Get("q"), limit)
+			ok(w, map[string]any{
+				"path": p, "files": files, "hint": hint,
+				"local": source == "local", "source": source,
+			})
 		}))
 		m.HandleFunc("GET /api/v1/workspaces/branches", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			p := strings.TrimSpace(r.URL.Query().Get("path"))
-			branches, current, warning := x.x.Branches(p)
+			branches, current, warning, source, isGit, _ := x.x.BranchesCtx(r.Context(), p, r.URL.Query().Get("refresh") == "1")
 			ok(w, map[string]any{
 				"path": p, "branches": branches, "current": current,
-				"warning": warning, "local": wsindex.Local(p),
+				"warning": warning, "local": source == "local", "source": source,
+				"is_git": isGit,
+			})
+		}))
+		// Codegraph-style symbol suggestions for the @ omnibox, resolved on the
+		// owning node so remote workspaces behave like kanban-board's composer.
+		m.HandleFunc("GET /api/v1/workspaces/symbols", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			p := strings.TrimSpace(r.URL.Query().Get("path"))
+			limit := worker.ParseLimit(r.URL.Query().Get("limit"), 8)
+			symbols, err := x.x.SymbolsCtx(r.Context(), p, r.URL.Query().Get("q"), limit)
+			if err != nil {
+				fail(w, 502, err.Error())
+				return
+			}
+			ok(w, map[string]any{"symbols": symbols, "count": len(symbols)})
+		}))
+		// Marker-file inferred verify/gate defaults (kanban-board parity). The
+		// file list is already cached by State, so this needs no extra worker job.
+		m.HandleFunc("GET /api/v1/workspaces/defaults", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			p := strings.TrimSpace(r.URL.Query().Get("path"))
+			st, _ := x.x.State(r.Context(), p, false)
+			gate, profile, markers := workspaceDefaults(st.Files)
+			ok(w, map[string]any{
+				"path": p, "suggested_gate_command": gate,
+				"suggested_verify_profile": profile, "markers": markers,
 			})
 		}))
 		m.HandleFunc("POST /api/v1/skills/refresh", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
@@ -768,6 +800,43 @@ func pingWorkspaceRecord(ctx context.Context, a *API, reg *nodes.Registry, cat *
 	}
 	w.Status = "unknown"
 	return w
+}
+
+// workspaceDefaults infers the usual verify gate from marker files. It mirrors
+// kanban-board's /workspaces/{id}/defaults without needing a second index.
+func workspaceDefaults(files []string) (gate, profile string, markers []string) {
+	markers = []string{}
+	has := func(name string) bool {
+		for _, f := range files {
+			base := strings.ToLower(f[strings.LastIndexAny(f, "/\\")+1:])
+			if base == name {
+				return true
+			}
+		}
+		return false
+	}
+	checks := []struct{ file, gate, profile string }{
+		{"go.mod", "go test ./...", "go"},
+		{"package.json", "npm test", "node"},
+		{"pyproject.toml", "pytest", "python"},
+		{"requirements.txt", "pytest", "python"},
+		{"pom.xml", "mvn test", "java"},
+		{"cargo.toml", "cargo test", "rust"},
+		{"makefile", "make test", "make"},
+	}
+	for _, c := range checks {
+		if has(c.file) {
+			markers = append(markers, c.file)
+			if gate == "" {
+				gate, profile = c.gate, c.profile
+			}
+		}
+	}
+	if gate == "" {
+		gate = "manual review"
+		profile = "manual"
+	}
+	return gate, profile, markers
 }
 
 var _ = tasks.Todo

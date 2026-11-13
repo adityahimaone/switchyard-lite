@@ -19,6 +19,7 @@ import {
   apiOr,
   del,
   getToken,
+  LIVE_FALLBACK_MS,
   parseModelCatalog,
   patch,
   platformOfWorkspace,
@@ -128,7 +129,7 @@ export function TaskDetailPanels({
   const task = useQuery({
     queryKey: ["task", id],
     queryFn: () => api<Task>(`/api/v1/tasks/${id}`),
-    refetchInterval: 4000,
+    refetchInterval: LIVE_FALLBACK_MS,
   });
 
   const workspaces = useQuery({
@@ -145,12 +146,12 @@ export function TaskDetailPanels({
   const comments = useQuery({
     queryKey: ["comments", id],
     queryFn: () => api<Comment[]>(`/api/v1/tasks/${id}/comments`),
-    refetchInterval: tab === "discussion" ? 4000 : false,
+    refetchInterval: tab === "discussion" ? LIVE_FALLBACK_MS : false,
   });
 
   const events = useQuery({
     queryKey: ["events", id],
-    refetchInterval: 4000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () => api<TaskEvent[]>(`/api/v1/events?task_id=${id}`),
   });
 

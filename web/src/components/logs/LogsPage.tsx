@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, RefreshCw, ScrollText, Search, Terminal } from "lucide-react";
 import {
   apiOr,
+  LIVE_FALLBACK_MS,
   type LogSource,
   type LogTail,
   type TaskEvent,
@@ -66,7 +67,7 @@ export function LogsPage() {
 
   const logs = useQuery({
     queryKey: ["logs", file, tail, filter],
-    refetchInterval: live ? 5000 : false,
+    refetchInterval: live ? LIVE_FALLBACK_MS : false,
     queryFn: () => {
       const p = new URLSearchParams({ file, tail });
       if (filter.trim()) p.set("q", filter.trim());
@@ -84,7 +85,7 @@ export function LogsPage() {
   /** The Live Activity Stream, moved here from the Overview screen. */
   const events = useQuery({
     queryKey: ["logs", "activity-events"],
-    refetchInterval: 5000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () => apiOr<TaskEvent[]>("/api/v1/logs/events?limit=8", []),
   });
 

@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS task_worktrees (
   repo TEXT NOT NULL,
   path TEXT NOT NULL,
   branch TEXT NOT NULL,
-  base_sha TEXT NOT NULL
+  base_sha TEXT NOT NULL,
+  -- "local" (control plane can see the repo) or "worker" (node-agent owns it).
+  transport TEXT NOT NULL DEFAULT 'local'
 );
 CREATE TABLE IF NOT EXISTS dispatch_workers (
   id TEXT PRIMARY KEY,

@@ -27,6 +27,7 @@ import {
   apiOr,
   del,
   getSavedBoardId,
+  LIVE_FALLBACK_MS,
   NEXT,
   parseModelCatalog,
   patch,
@@ -143,7 +144,7 @@ export function BoardScreen({
   const tasks = useQuery({
     queryKey: ["tasks", boardId],
     enabled: !!boardId,
-    refetchInterval: 4000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () => api<Task[]>(`/api/v1/boards/${boardId}/tasks`),
   });
 
@@ -154,12 +155,25 @@ export function BoardScreen({
 
   const move = useMutation({
     mutationFn: ({ id, to }: { id: string; to: Status }) => post(`/api/v1/tasks/${id}/move`, { status: to }),
+    // Show the card in the target column immediately; roll back if the
+    // server rejects the transition (status machine / dependency block).
+    onMutate: async ({ id, to }) => {
+      await qc.cancelQueries({ queryKey: ["tasks", boardId] });
+      const previous = qc.getQueryData<Task[]>(["tasks", boardId]);
+      qc.setQueryData<Task[]>(["tasks", boardId], (list = []) =>
+        list.map((t) => (t.id === id ? { ...t, status: to, updated_at: Date.now() / 1000 } : t))
+      );
+      return { previous };
+    },
+    onError: (e, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["tasks", boardId], ctx.previous);
+      toastError(e, "Could not move task");
+    },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["overview"] });
       toast(`Moved to ${LABEL[vars.to] ?? vars.to}`, { tone: "success" });
     },
-    onError: (e) => toastError(e, "Could not move task"),
   });
 
   const dispatch = useMutation({

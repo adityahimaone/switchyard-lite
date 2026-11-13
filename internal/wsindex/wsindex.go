@@ -11,10 +11,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/adityahimaone/switchyard-lite/internal/worker"
 )
 
 // FileMatch mirrors kanban-board's /files/search result.
@@ -35,12 +36,17 @@ type Index struct {
 	TTL time.Duration
 	Now func() time.Time
 
-	mu    sync.Mutex
-	cache map[string]fileEntry
+	mu          sync.Mutex
+	cache       map[string]fileEntry
+	remote      *worker.Client
+	remoteCache map[string]remoteEntry
 }
 
 func New() *Index {
-	return &Index{TTL: 60 * time.Second, Now: time.Now, cache: map[string]fileEntry{}}
+	return &Index{
+		TTL: 60 * time.Second, Now: time.Now,
+		cache: map[string]fileEntry{}, remoteCache: map[string]remoteEntry{},
+	}
 }
 
 // Local reports whether root is a directory visible to this process.
@@ -49,60 +55,12 @@ func Local(root string) bool {
 	return err == nil && st.IsDir()
 }
 
-// Files returns scored relative paths matching query.
+// Files returns scored relative paths matching query. Remote workspaces are
+// resolved on their owning node by State; see FilesCtx for the context-aware
+// version used by the HTTP handlers.
 func (x *Index) Files(root, query string, limit int) ([]FileMatch, string) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	if !Local(root) {
-		return []FileMatch{}, "This workspace lives on a worker node, so its files are not indexed here. Type a relative path to attach it manually."
-	}
-	files, hint := x.fileList(root)
-	if hint != "" && len(files) == 0 {
-		return []FileMatch{}, hint
-	}
-	q := strings.ToLower(strings.TrimSpace(query))
-	matches := make([]FileMatch, 0, limit)
-	for _, rel := range files {
-		base := filepath.Base(rel)
-		score := 0
-		if q == "" {
-			score = 1
-		} else {
-			lb, lp := strings.ToLower(base), strings.ToLower(rel)
-			switch {
-			case lb == q:
-				score = 100
-			case strings.HasPrefix(lb, q):
-				score = 80
-			case strings.Contains(lb, q):
-				score = 60
-			case strings.Contains(lp, q):
-				score = 40
-			}
-		}
-		if score == 0 {
-			continue
-		}
-		dir := filepath.ToSlash(filepath.Dir(rel))
-		if dir == "." {
-			dir = ""
-		}
-		matches = append(matches, FileMatch{Path: rel, Basename: base, Directory: dir, Score: score})
-	}
-	sort.SliceStable(matches, func(i, j int) bool {
-		if matches[i].Score != matches[j].Score {
-			return matches[i].Score > matches[j].Score
-		}
-		if len(matches[i].Path) != len(matches[j].Path) {
-			return len(matches[i].Path) < len(matches[j].Path)
-		}
-		return matches[i].Path < matches[j].Path
-	})
-	if len(matches) > limit {
-		matches = matches[:limit]
-	}
-	return matches, hint
+	files, hint, _, _ := x.FilesCtx(context.Background(), root, query, limit)
+	return files, hint
 }
 
 func (x *Index) fileList(root string) ([]string, string) {
@@ -171,33 +129,8 @@ func walkFiles(root string) []string {
 
 // Branches lists local and origin branches plus the checked-out branch.
 func (x *Index) Branches(root string) (branches []string, current, warning string) {
-	branches = []string{}
-	if !Local(root) {
-		return branches, "", "Branches are resolved on the worker node at dispatch time. Type a branch to use as the worktree base."
-	}
-	if !isGitDir(root) {
-		return branches, "", "Not a git repository on this host. Type a branch name to use as the worktree base."
-	}
-	current, _ = gitOutput(root, "rev-parse", "--abbrev-ref", "HEAD")
-	out, err := gitOutput(root, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes/origin")
-	if err != nil {
-		return branches, current, "Could not read branches: " + firstLine(err.Error())
-	}
-	seen := map[string]bool{}
-	for _, raw := range strings.Split(out, "\n") {
-		b := strings.TrimSpace(raw)
-		if b == "" || b == "origin/HEAD" || strings.HasPrefix(b, "switchyard/") || strings.HasPrefix(b, "sy/") {
-			continue
-		}
-		b = strings.TrimPrefix(b, "origin/")
-		if b == "HEAD" || seen[b] {
-			continue
-		}
-		seen[b] = true
-		branches = append(branches, b)
-	}
-	sort.Strings(branches)
-	return branches, current, ""
+	branches, current, warning, _, _, _ = x.BranchesCtx(context.Background(), root, false)
+	return branches, current, warning
 }
 
 func isGitDir(root string) bool {

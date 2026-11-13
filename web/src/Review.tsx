@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, FolderGit2, GitPullRequest, X } from "lucide-react";
-import { api, ApiError, apiOr, post, type Task } from "./api";
+import { api, ApiError, apiOr, LIVE_FALLBACK_MS, post, type Task } from "./api";
 import { ErrorBox, Lamp, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
@@ -51,7 +51,7 @@ export function ReviewScreen({ taskId, pick }: { taskId?: string; pick: (id: str
   const queue = useQuery({
     queryKey: ["tasks", boardId, "review"],
     enabled: !!boardId,
-    refetchInterval: 5000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () => api<Task[]>(`/api/v1/boards/${boardId}/tasks?status=review`),
   });
 

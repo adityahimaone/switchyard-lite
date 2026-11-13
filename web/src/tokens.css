@@ -103,6 +103,11 @@
   --bg-sky-radial:
     radial-gradient(ellipse 80% 55% at 50% -10%, rgb(47 91 255 / 0.11) 0%, transparent 68%),
     radial-gradient(ellipse 55% 45% at 92% 8%, rgb(217 102 255 / 0.08) 0%, transparent 62%);
+  /* Daytime cloud photograph (1600px WebP, ~11 KB) behind the porcelain stage. */
+  --bg-cloud-image: url("/clouds/clouds-light.webp");
+  --cloud-layer-opacity: 0.7;
+  --cloud-layer-filter: saturate(1.05);
+  --cloud-blend: multiply;
   --grid-hairline: rgb(47 91 255 / 0.038);
   --dialog-bloom: rgb(47 91 255 / 0.18);
 
@@ -220,6 +225,12 @@
   --bg-sky-radial:
     radial-gradient(ellipse 80% 55% at 50% -10%, rgb(102 136 255 / 0.14) 0%, transparent 68%),
     radial-gradient(ellipse 55% 45% at 92% 8%, rgb(217 102 255 / 0.10) 0%, transparent 62%);
+  /* Night cloud photograph for the dark palette. It sits close to the well's
+     own value, so the decorative layer lifts it with a filter. */
+  --bg-cloud-image: url("/clouds/clouds-dark.webp");
+  --cloud-layer-opacity: 0.55;
+  --cloud-layer-filter: brightness(1.25) saturate(1.1);
+  --cloud-blend: screen;
   --grid-hairline: rgb(102 136 255 / 0.045);
   --dialog-bloom: rgb(102 136 255 / 0.22);
 

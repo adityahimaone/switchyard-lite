@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Activity, Check, Cpu, GitBranch, KeyRound, Layers, Palette, Play, Server, Sparkles } from "lucide-react";
-import { api, apiOr, del, post, setToken, STATUSES, type Task, type Worker } from "./api";
+import { Activity, Check, Cpu, GitBranch, KeyRound, Layers, Lock, Palette, Play, Server, ShieldCheck, Sparkles } from "lucide-react";
+import { api, apiOr, del, LIVE_FALLBACK_MS, post, setToken, STATUSES, type FlowTask, type Task, type Worker } from "./api";
 import { ErrorBox, LABEL, Lamp, Panel, statusColor, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
@@ -30,7 +30,7 @@ export function OverviewScreen() {
 
   const q = useQuery({
     queryKey: ["overview", scopeBoard ? boardId : "all"],
-    refetchInterval: 5000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () =>
       api<Overview>(
         `/api/v1/overview${scopeBoard && boardId ? `?board_id=${encodeURIComponent(boardId)}` : ""}`
@@ -209,7 +209,7 @@ export function WorkersScreen() {
 
   const q = useQuery({
     queryKey: ["workers"],
-    refetchInterval: 4000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () => apiOr<Worker[] | null>("/api/v1/workers", null),
   });
 
@@ -440,7 +440,7 @@ export function PipelineScreen() {
 
   const q = useQuery({
     queryKey: ["pipelines"],
-    refetchInterval: 3000,
+    refetchInterval: LIVE_FALLBACK_MS,
     queryFn: () => apiOr<Run[] | null>("/api/v1/pipelines", null),
   });
 
@@ -564,25 +564,32 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
   const { boardId, activeBoard, boards, setBoardId } = useBoardId();
   const [showAll, setShowAll] = useState(false);
 
+  // Live worker/task mapping from the append-only event state, like
+  // kanban-board's /api/flow/active. One query powers both the DAG and the
+  // live strip; SSE invalidation keeps it fresh without a 1s poll.
   const q = useQuery({
-    queryKey: ["tasks", boardId],
+    queryKey: ["flow", boardId],
     enabled: !!boardId,
-    refetchInterval: 5000,
-    queryFn: () => api<Task[]>(`/api/v1/boards/${boardId}/tasks`),
+    refetchInterval: LIVE_FALLBACK_MS,
+    queryFn: () =>
+      api<{ tasks: FlowTask[]; retention_seconds: number }>(
+        `/api/v1/flow/active?board_id=${encodeURIComponent(boardId)}`
+      ),
   });
 
-  const all = q.data ?? [];
+  const all = q.data?.tasks ?? [];
   const connected = all.filter(
-    (t) => t.blocked_by.length || all.some((o) => o.blocked_by.includes(t.id))
+    (t) => (t.blocked_by?.length ?? 0) > 0 || all.some((o) => (o.blocked_by ?? []).includes(t.task_id))
   );
   const source = showAll ? all : connected;
 
   const stages: Stage[] = source.map((t) => ({
-    id: t.id,
+    id: t.task_id,
     name: t.title.slice(0, 22),
-    status: t.status,
-    depends_on: t.blocked_by,
+    status: t.stage === "running" ? "in_progress" : t.status ?? "todo",
+    depends_on: t.blocked_by ?? [],
   }));
+  const live = all.filter((t) => ["running", "dispatched", "review"].includes(t.stage));
 
   return (
     <div className="space-y-4">
@@ -591,9 +598,10 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
           <div className="page-title-row">
             <h2>Flow map</h2>
             <span className="pill-count tabular-nums">{stages.length} nodes</span>
+            <span className="pill-count tabular-nums">{live.length} live</span>
           </div>
           <p className="page-subtitle">
-            Interactive dependency graph {activeBoard ? `for ${activeBoard.name}` : "across tasks"}. Click any node to open it.
+            Live worker mapping and dependency graph {activeBoard ? `for ${activeBoard.name}` : "across tasks"}. Click any node to open it.
           </p>
         </div>
 
@@ -612,6 +620,28 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
       </div>
 
       <ErrorBox error={q.error} />
+
+      {live.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-[18px] border border-line bg-surface/70 p-3 shadow-[var(--lift-1)]">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-3">
+            <Activity className="size-3" /> Live on workers
+          </span>
+          {live.map((t) => (
+            <button
+              key={t.task_id}
+              type="button"
+              onClick={() => open(t.task_id)}
+              title={`${t.stage} · ${t.node_id || "unassigned"} · ${t.executor || "auto"}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/70 px-2.5 py-1 text-[10px] text-ink-2 transition-colors hover:border-accent/50 hover:text-accent-text"
+            >
+              <span className="size-1.5 shrink-0 rounded-full" style={{ background: statusColor(t.status ?? "todo") }} />
+              <span className="max-w-[150px] truncate font-medium">{t.title}</span>
+              <span className="font-mono text-[9px] text-ink-4">{t.node_id || t.stage}</span>
+              {t.executor && <span className="font-mono text-[9px] text-ink-4">{t.executor}</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {stages.length ? (
         <div
@@ -660,6 +690,29 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
   const revoke = useMutation({
     mutationFn: (id: number) => del(`/api/v1/tokens/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tokens"] }),
+  });
+
+  const session = useQuery({
+    queryKey: ["session-info"],
+    queryFn: () =>
+      apiOr<{ login_enabled: boolean; password_source?: string }>("/api/v1/session", {
+        login_enabled: false,
+      }),
+  });
+  const passwordSource = session.data?.password_source ?? "none";
+  const [curPw, setCurPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const pwMismatch = confirmPw.length > 0 && newPw !== confirmPw;
+  const changePw = useMutation({
+    mutationFn: () =>
+      post("/api/v1/session/password", { current_password: curPw, new_password: newPw }),
+    onSuccess: () => {
+      setCurPw("");
+      setNewPw("");
+      setConfirmPw("");
+      qc.invalidateQueries({ queryKey: ["session-info"] });
+    },
   });
 
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
@@ -767,6 +820,93 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
               </button>
             );
           })}
+        </div>
+      </Panel>
+
+      <Panel
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            <Lock className="size-3.5 text-ink-3" />
+            <span>Password &amp; access</span>
+          </span>
+        }
+      >
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] leading-relaxed text-ink-3">
+            <ShieldCheck className="size-3.5 text-ink-3" />
+            <span>Sign-in source</span>
+            <span className="badge mono">{passwordSource}</span>
+            <span className="text-ink-4">
+              {passwordSource === "stored"
+                ? "Stored as a PBKDF2-SHA256 hash in this database."
+                : passwordSource === "env"
+                  ? "From SWITCHYARD_ADMIN_PASSWORD on the server."
+                  : "No password set yet — setting one enables password login."}
+            </span>
+          </div>
+
+          <ErrorBox error={changePw.error} />
+          {changePw.isSuccess && (
+            <p className="m-0 rounded-[12px] border border-success/35 bg-success-tint/60 px-3 py-2 text-[11px] text-success-text">
+              Password updated. Use the new one the next time you sign in.
+            </p>
+          )}
+
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <label className="f mb-0">
+              <span className="text-[11px] font-medium text-ink-2">
+                Current password{passwordSource === "none" ? " (not set)" : ""}
+              </span>
+              <input
+                type="password"
+                value={curPw}
+                onChange={(e) => setCurPw(e.target.value)}
+                autoComplete="current-password"
+                disabled={passwordSource === "none"}
+                placeholder={passwordSource === "none" ? "No current password" : "Current password"}
+              />
+            </label>
+            <label className="f mb-0">
+              <span className="text-[11px] font-medium text-ink-2">New password</span>
+              <input
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+              />
+            </label>
+            <label className="f mb-0">
+              <span className="text-[11px] font-medium text-ink-2">Confirm new password</span>
+              <input
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Repeat the new password"
+                aria-invalid={pwMismatch}
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              className="btn primary"
+              disabled={
+                changePw.isPending ||
+                newPw.length < 8 ||
+                pwMismatch ||
+                (passwordSource !== "none" && curPw.length === 0)
+              }
+              onClick={() => changePw.mutate()}
+            >
+              {changePw.isPending ? "Updating…" : "Update password"}
+            </button>
+            <span className="text-[10px] text-ink-4">
+              Changing the password does not revoke existing API tokens.
+            </span>
+          </div>
+          {pwMismatch && <p className="m-0 text-[11px] text-danger-text">Passwords do not match.</p>}
         </div>
       </Panel>
 

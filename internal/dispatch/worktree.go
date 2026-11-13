@@ -50,7 +50,9 @@ func EnsureWorktreeFrom(repo, taskID, baseBranch string) (Worktree, error) {
 	if err != nil {
 		return Worktree{}, err
 	}
-	if b := strings.TrimSpace(baseBranch); b != "" && b != "__head" {
+	// The composer used "__head__" while the REST/MCP contract used "__head";
+	// accept both so no client silently loses its explicit Current HEAD choice.
+	if b := strings.TrimSpace(baseBranch); b != "" && b != "__head" && b != "__head__" {
 		b = strings.TrimPrefix(b, "refs/heads/")
 		for _, candidate := range []string{b, "origin/" + b, "refs/remotes/origin/" + b} {
 			if sha, e := Git(repo, "rev-parse", "--verify", candidate+"^{commit}"); e == nil && sha != "" {

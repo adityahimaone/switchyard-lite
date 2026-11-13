@@ -48,6 +48,7 @@ func Open(path string) (*Store, error) {
 		`ALTER TABLE dispatch_workspaces ADD COLUMN kind TEXT NOT NULL DEFAULT 'dir'`,
 		`ALTER TABLE dispatch_workspaces ADD COLUMN labels TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE dispatch_workspaces ADD COLUMN note TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE task_worktrees ADD COLUMN transport TEXT NOT NULL DEFAULT 'local'`,
 	} {
 		if _, err := db.Exec(col); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
 			return nil, fmt.Errorf("migrate column: %w", err)

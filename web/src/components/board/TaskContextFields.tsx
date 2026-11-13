@@ -6,8 +6,10 @@ import {
   FileCode2,
   FileSearch,
   GitBranch,
+  Hash,
   Info,
   Link2,
+  Loader2,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -18,8 +20,11 @@ import {
   apiOr,
   type FileMatch,
   type SkillMeta,
+  type SymbolMatch,
+  type Task,
   type WorkspaceBranchResult,
   type WorkspaceFileResult,
+  type WorkspaceInspect,
 } from "@/api";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -87,12 +92,24 @@ interface OmniboxProps {
   skills: string[];
   onSkillsChange: (v: string[]) => void;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  /** Board tasks become #card matches, like kanban-board's @ omnibox. */
+  boardTasks?: Task[];
   rows?: number;
   placeholder?: string;
   className?: string;
 }
 
-type Suggestion = { key: string; label: string; sublabel?: string; badge?: string };
+type SuggestionKind = "file" | "skill" | "symbol" | "card";
+type Suggestion = {
+  kind: SuggestionKind;
+  key: string;
+  insert: string;
+  label: string;
+  sublabel?: string;
+  badge?: string;
+  /** Attached to the task's @paths when a file/symbol is chosen. */
+  path?: string;
+};
 
 export function PromptOmnibox({
   id,
@@ -104,6 +121,7 @@ export function PromptOmnibox({
   skills,
   onSkillsChange,
   inputRef,
+  boardTasks = [],
   rows = 7,
   placeholder,
   className,
@@ -115,10 +133,24 @@ export function PromptOmnibox({
   const fileQuery = useQuery({
     queryKey: ["ws-files", workspace, token?.kind === "file" ? token.query : ""],
     enabled: token?.kind === "file" && !!workspace.trim(),
+    staleTime: 30_000,
     queryFn: () =>
       apiOr<WorkspaceFileResult>(
         `/api/v1/workspaces/files?path=${encodeURIComponent(workspace)}&q=${encodeURIComponent(token?.query ?? "")}&limit=10`,
         { path: workspace, files: [], local: false }
+      ),
+  });
+
+  // Symbol matches are resolved on the owning worker; only fire for a query
+  // long enough to be useful so a keystroke doesn't spawn a shell job.
+  const symbolQuery = useQuery({
+    queryKey: ["ws-symbols", workspace, token?.kind === "file" ? token.query : ""],
+    enabled: token?.kind === "file" && (token.query?.length ?? 0) >= 3 && !!workspace.trim(),
+    staleTime: 30_000,
+    queryFn: () =>
+      apiOr<{ symbols: SymbolMatch[] }>(
+        `/api/v1/workspaces/symbols?path=${encodeURIComponent(workspace)}&q=${encodeURIComponent(token?.query ?? "")}&limit=6`,
+        { symbols: [] }
       ),
   });
 
@@ -131,21 +163,42 @@ export function PromptOmnibox({
 
   const suggestions = useMemo<Suggestion[]>(() => {
     if (!token) return [];
+    const out: Suggestion[] = [];
     if (token.kind === "file") {
-      return (fileQuery.data?.files ?? []).map((f) => ({
-        key: f.path,
-        label: f.path,
-        sublabel: f.directory || undefined,
-        badge: "file",
-      }));
+      for (const f of fileQuery.data?.files ?? []) {
+        out.push({
+          kind: "file", key: `file:${f.path}`, insert: f.path, path: f.path,
+          label: f.path, sublabel: f.directory || undefined, badge: "file",
+        });
+      }
+      for (const s of symbolQuery.data?.symbols ?? []) {
+        out.push({
+          kind: "symbol", key: `symbol:${s.file_path}:${s.line}`, insert: s.name, path: s.file_path,
+          label: s.name, sublabel: `${s.file_path}:${s.line}`, badge: "symbol",
+        });
+      }
+      const q = token.query.toLowerCase().replace(/^#/, "");
+      if (q.length >= 2) {
+        for (const c of boardTasks.filter(
+          (t) => t.id.toLowerCase().includes(q) || t.title.toLowerCase().includes(q)
+        ).slice(0, 4)) {
+          out.push({
+            kind: "card", key: `card:${c.id}`, insert: c.id,
+            label: c.title, sublabel: c.id, badge: "card",
+          });
+        }
+      }
+    } else {
+      for (const s of (skillQuery.data?.skills ?? []).slice(0, 10)) {
+        out.push({
+          kind: "skill", key: `skill:${s.name}`, insert: s.name,
+          label: s.name, sublabel: s.description,
+          badge: s.linked || s.npx ? "npx" : s.origin,
+        });
+      }
     }
-    return (skillQuery.data?.skills ?? []).slice(0, 10).map((s) => ({
-      key: s.name,
-      label: s.name,
-      sublabel: s.description,
-      badge: s.linked || s.npx ? "npx" : s.origin,
-    }));
-  }, [token, fileQuery.data, skillQuery.data]);
+    return out.slice(0, 24);
+  }, [token, fileQuery.data, symbolQuery.data, skillQuery.data, boardTasks]);
 
   useEffect(() => setIndex(0), [token?.kind, token?.query]);
 
@@ -162,15 +215,15 @@ export function PromptOmnibox({
     const el = inputRef.current;
     const current = el?.value ?? value;
     const caret = el?.selectionStart ?? current.length;
-    const sigil = token.kind === "file" ? "@" : "$";
-    const next = current.slice(0, token.start) + sigil + s.key + " " + current.slice(caret);
+    const sigil = s.kind === "skill" ? "$" : s.kind === "card" ? "#" : "@";
+    const next = current.slice(0, token.start) + sigil + s.insert + " " + current.slice(caret);
     onChange(next);
-    if (token.kind === "file") onPathsChange(uniq([...paths, s.key]));
-    else onSkillsChange(uniq([...skills, s.key]));
+    if (s.path) onPathsChange(uniq([...paths, s.path]));
+    if (s.kind === "skill") onSkillsChange(uniq([...skills, s.insert]));
     setToken(null);
     requestAnimationFrame(() => {
       el?.focus();
-      const p = token.start + s.key.length + 2;
+      const p = token.start + s.insert.length + 2;
       el?.setSelectionRange(p, p);
     });
   };
@@ -178,7 +231,9 @@ export function PromptOmnibox({
   // Keep the box open while a token is active even when there is no workspace
   // (the file query is disabled there): the manual-path hint is still useful.
   const open = token !== null;
-  const busy = token?.kind === "file" ? fileQuery.isFetching : skillQuery.isFetching;
+  const busy = token?.kind === "file"
+    ? fileQuery.isFetching || symbolQuery.isFetching
+    : skillQuery.isFetching;
   const hint = token?.kind === "file" ? fileQuery.data?.hint : undefined;
 
   return (
@@ -224,7 +279,7 @@ export function PromptOmnibox({
           <div className="flex items-center justify-between gap-2 border-b border-line bg-well/45 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-ink-3 uppercase">
             <span className="inline-flex items-center gap-1.5">
               {token?.kind === "file" ? <FileSearch className="size-3" /> : <Sparkles className="size-3" />}
-              {token?.kind === "file" ? "Workspace files" : "Agent Skills"}
+              {token?.kind === "file" ? "Files · symbols · cards" : "Agent Skills"}
             </span>
             <span className="font-mono text-[9px] font-normal normal-case text-ink-4">↑↓ · ↵ to insert · esc</span>
           </div>
@@ -243,8 +298,12 @@ export function PromptOmnibox({
                   i === index ? "bg-accent-tint text-accent-text" : "text-ink-2 hover:bg-well"
                 )}
               >
-                {token?.kind === "file" ? (
+                {s.kind === "file" ? (
                   <FileCode2 className="size-3 shrink-0 text-ink-3" />
+                ) : s.kind === "symbol" ? (
+                  <Hash className="size-3 shrink-0 text-ink-3" />
+                ) : s.kind === "card" ? (
+                  <Link2 className="size-3 shrink-0 text-ink-3" />
                 ) : (
                   <AtSign className="size-3 shrink-0 text-ink-3" />
                 )}
@@ -526,7 +585,8 @@ function Chip({
 /* Base-branch picker                                                          */
 /* -------------------------------------------------------------------------- */
 
-export const HEAD_SENTINEL = "__head__";
+/** Matches the backend's "__head" sentinel (REST/MCP contract). */
+export const HEAD_SENTINEL = "__head";
 
 export function BranchField({
   workspace,
@@ -534,17 +594,23 @@ export function BranchField({
   inspect,
   value,
   onChange,
+  loading = false,
+  onRefresh,
 }: {
   workspace: string;
   isGit: boolean;
-  inspect?: { branches?: string[]; current?: string; warning?: string; local?: boolean } | null;
+  inspect?: WorkspaceInspect | null;
   value: string;
   onChange: (v: string) => void;
+  loading?: boolean;
+  onRefresh?: () => void;
 }) {
   const [custom, setCustom] = useState(false);
   const branches = inspect?.branches ?? [];
   const current = inspect?.current ?? "";
   const remote = inspect?.local === false;
+  const source = inspect?.source ?? (remote ? "none" : "local");
+  const hasList = branches.length > 0;
 
   const options = useMemo<SearchSelectOption[]>(() => {
     const list: SearchSelectOption[] = [
@@ -570,24 +636,45 @@ export function BranchField({
     return list;
   }, [branches, current]);
 
-  if (!isGit && !remote && !value) return null;
-
+  // Always render: hiding the field for non-git/remote workspaces was the
+  // reason "cannot select branch" was reported. Remote workspaces now get a
+  // real list from the owning node; a typed fallback is always available.
   return (
     <div className="space-y-1.5 pt-1">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="task-branch" className="text-[11px] font-medium text-ink-2">
           <GitBranch className="size-3 text-ink-3" />
           Base branch
+          {loading && <Loader2 className="size-3 animate-spin text-ink-4" />}
+          {!loading && inspect && (
+            <Badge variant="secondary" className="px-1.5 py-0 text-[9px] font-mono">
+              {source === "worker" ? `worker · ${branches.length}` : source === "local" ? `local · ${branches.length}` : "unavailable"}
+            </Badge>
+          )}
         </Label>
-        <button
-          type="button"
-          onClick={() => setCustom((v) => !v)}
-          className="text-[10px] text-ink-4 underline-offset-2 hover:text-ink-2 hover:underline"
-        >
-          {custom ? "Pick" : "Type"}
-        </button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading || !workspace.trim()}
+              className="inline-flex items-center gap-1 text-[10px] text-ink-4 underline-offset-2 hover:text-ink-2 hover:underline disabled:opacity-50"
+              aria-label="Refresh branch list"
+            >
+              <RefreshCw className="size-2.5" />
+              Refresh
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setCustom((v) => !v)}
+            className="text-[10px] text-ink-4 underline-offset-2 hover:text-ink-2 hover:underline"
+          >
+            {custom ? "Pick" : "Type"}
+          </button>
+        </div>
       </div>
-      {custom || (branches.length === 0 && (remote || !!inspect?.warning)) ? (
+      {custom || !hasList ? (
         <Input
           id="task-branch"
           value={value === HEAD_SENTINEL ? "" : value}
@@ -609,6 +696,9 @@ export function BranchField({
           size="sm"
         />
       )}
+      {loading && !inspect && (
+        <p className="m-0 text-[10px] text-ink-4">Reading branches on the owning node…</p>
+      )}
       {inspect?.warning && (
         <p className="m-0 flex items-start gap-1 text-[10px] leading-relaxed text-ink-4">
           <Info className="mt-px size-2.5 shrink-0" />
@@ -617,19 +707,21 @@ export function BranchField({
       )}
       <p className="m-0 flex items-start gap-1 text-[10px] leading-relaxed text-ink-4">
         <Link2 className="mt-px size-2.5 shrink-0" />
-        An isolated <code className="font-mono">sy/&lt;task-id&gt;</code> worktree is created from this base.
+        An isolated <code className="font-mono">sy/&lt;task-id&gt;</code> worktree is created from this base on the owning node.
+        {isGit ? "" : " This workspace has no git repository; the value is kept for a future checkout."}
       </p>
     </div>
   );
 }
 
-export function useBranchInfo(workspace: string) {
+export function useBranchInfo(workspace: string, refresh = false) {
   return useQuery({
-    queryKey: ["ws-branches", workspace],
+    queryKey: ["ws-branches", workspace, refresh],
     enabled: workspace.trim().length > 1,
+    staleTime: 30_000,
     queryFn: () =>
       apiOr<WorkspaceBranchResult>(
-        `/api/v1/workspaces/branches?path=${encodeURIComponent(workspace.trim())}`,
+        `/api/v1/workspaces/branches?path=${encodeURIComponent(workspace.trim())}${refresh ? "&refresh=1" : ""}`,
         { path: workspace, branches: [], local: false }
       ),
   });

@@ -92,6 +92,8 @@ export interface WorkspaceFileResult {
   files: FileMatch[];
   hint?: string;
   local: boolean;
+  /** "local" (control plane) | "worker" (node-agent) | "none". */
+  source?: string;
 }
 
 export interface WorkspaceBranchResult {
@@ -100,7 +102,58 @@ export interface WorkspaceBranchResult {
   current?: string;
   warning?: string;
   local: boolean;
+  source?: string;
+  is_git?: boolean;
 }
+
+export interface WorkspaceInspect {
+  path: string;
+  is_git: boolean;
+  branches: string[];
+  current?: string;
+  warning?: string;
+  hint?: string;
+  local: boolean;
+  source?: string;
+  repo_root?: string;
+  git_prefix?: string;
+  file_count?: number;
+  saas?: boolean;
+}
+
+/** Codegraph-style suggestion returned by /workspaces/symbols. */
+export interface SymbolMatch {
+  name: string;
+  kind: string;
+  file_path: string;
+  line: number;
+  text?: string;
+}
+
+export interface WorkspaceDefaults {
+  path: string;
+  suggested_gate_command?: string;
+  suggested_verify_profile?: string;
+  markers?: string[];
+}
+
+export interface FlowTask {
+  task_id: string;
+  title: string;
+  board: string;
+  board_id?: string;
+  node_id: string;
+  executor: string;
+  transport?: string;
+  stage: "dispatched" | "running" | "review" | "done" | "failed" | "queued" | "blocked";
+  status?: Status;
+  workspace?: string;
+  blocked_by?: string[];
+  updated_at: number;
+}
+
+/** Slow safety-net polling; live updates come from the SSE event stream. */
+export const LIVE_FALLBACK_MS = 30_000;
 
 export interface LogSource {
   key: string;

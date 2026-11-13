@@ -167,9 +167,11 @@ code, pre, .mono {
   padding: 12px;
   overflow: hidden;
   background-color: var(--c-canvas);
-  background-image: var(--bg-sky-radial);
+  /* Photographic cloud sky, with the existing radial wash on top. */
+  background-image: var(--bg-cloud-image), var(--bg-sky-radial);
   background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background-size: cover, 100% 100%;
+  background-position: center center, center top;
   transition: grid-template-columns 220ms var(--ease-out-expo);
 }
 
@@ -179,7 +181,9 @@ code, pre, .mono {
 
 /* Floating Left Sidebar Dock */
 nav.side {
-  background: var(--c-well);
+  background: color-mix(in srgb, var(--c-well) 84%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--c-line-strong);
   border-radius: 26px;
   padding: 8px;
@@ -409,13 +413,42 @@ nav.side a[aria-current="page"] {
   min-height: 0;
   border-radius: 26px;
   border: 1px solid var(--c-line-strong);
-  background: var(--c-well);
+  /* Slightly translucent porcelain: the cloud sky stays visible behind the
+     stage without touching the opacity of the cards themselves. */
+  background: color-mix(in srgb, var(--c-well) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
   padding: 7px;
   box-shadow: var(--lift-2), var(--well-inset);
   overflow: hidden;
+  position: relative;
+}
+
+/* A lifted, masked copy of the cloud photograph. The raw image is nearly the
+   same value as the dark well, so brightness() is what makes the texture read
+   while the mask keeps the lower content area clean. */
+.shell-inset::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg-cloud-image) center top / cover no-repeat;
+  opacity: var(--cloud-layer-opacity);
+  filter: var(--cloud-layer-filter);
+  mix-blend-mode: var(--cloud-blend);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 94%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 94%);
+  pointer-events: none;
+}
+
+/* Keep the stage content above the decorative cloud layer. */
+.shell-inset > main {
+  position: relative;
+  z-index: 1;
 }
 
 header.top-header {
+  position: relative;
+  overflow: hidden;
   height: 48px;
   flex-shrink: 0;
   display: flex;
@@ -428,6 +461,23 @@ header.top-header {
   border: 1px solid var(--c-line);
   border-bottom: 1px solid var(--c-line);
   z-index: 15;
+}
+
+/* A soft cloud band behind the stage ribbon, faded out toward the content. */
+header.top-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg-cloud-image) center 32% / cover no-repeat;
+  opacity: 0.2;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  pointer-events: none;
+}
+
+header.top-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .header-left, .header-right {
@@ -497,7 +547,11 @@ main {
   display: flex;
   flex-direction: column;
   border-radius: 0 0 19px 19px;
-  background: var(--c-surface);
+  /* Soft glass over the cloud sky. Cards remain opaque, so copy stays crisp
+     while the atmosphere reads through the page surface. */
+  background: color-mix(in srgb, var(--c-surface) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
   border: 1px solid var(--c-line);
   border-top: 0;
   box-shadow: var(--lift-inset);
@@ -1635,5 +1689,127 @@ pre.diff {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Login / landing stage                                                      */
+/* ------------------------------------------------------------------------- */
+
+.login-stage {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow: hidden;
+  background-color: var(--c-canvas);
+  background-image: var(--bg-cloud-image);
+  background-size: cover;
+  background-position: center center;
+}
+
+/* Soft accent bloom at the top, then a wash that keeps the form readable. */
+.login-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% -5%, color-mix(in srgb, var(--c-accent) 16%, transparent), transparent 70%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--c-canvas) 10%, transparent) 0%,
+      color-mix(in srgb, var(--c-canvas) 58%, transparent) 100%
+    );
+  pointer-events: none;
+}
+
+.login-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 62% 52% at 50% 48%,
+    transparent 38%,
+    color-mix(in srgb, var(--c-canvas) 52%, transparent) 100%
+  );
+  pointer-events: none;
+}
+
+.login-frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+
+@media (min-width: 900px) {
+  .login-frame {
+    grid-template-columns: minmax(0, 1fr) 424px;
+    align-items: center;
+  }
+}
+
+.login-hero {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .login-hero {
+    display: block;
+    padding: 8px 10px;
+  }
+}
+
+.login-glass {
+  background: color-mix(in srgb, var(--c-surface) 86%, transparent);
+  backdrop-filter: blur(26px) saturate(1.25);
+  -webkit-backdrop-filter: blur(26px) saturate(1.25);
+  border: 1px solid color-mix(in srgb, var(--c-line-strong) 80%, transparent);
+  box-shadow: var(--lift-3), var(--lift-inset);
+}
+
+.login-tab {
+  position: relative;
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-ink-3);
+  transition: color 150ms var(--ease-out-quint), background-color 150ms var(--ease-out-quint);
+}
+
+.login-tab[aria-selected="true"] {
+  background: var(--c-surface);
+  color: var(--c-ink);
+  box-shadow: var(--lift-1), var(--lift-inset);
+}
+
+.login-tab:hover[aria-selected="false"] {
+  color: var(--c-ink-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login-rise {
+    animation: login-rise 520ms var(--ease-out-expo) both;
+  }
+  @keyframes login-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 }

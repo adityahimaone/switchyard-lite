@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Cpu, GitBranch, Link2 } from "lucide-react";
-import { api, apiOr, del, post, type Status, type Task, type Workspace, type WorktreeInfo } from "@/api";
+import { api, apiOr, del, LIVE_FALLBACK_MS, post, type Status, type Task, type Workspace, type WorktreeInfo } from "@/api";
 import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
 import {
   Field,
@@ -32,7 +32,7 @@ export function TaskDetailPage({
   const task = useQuery({
     queryKey: ["task", id],
     queryFn: () => api<Task>(`/api/v1/tasks/${id}`),
-    refetchInterval: 4000,
+    refetchInterval: LIVE_FALLBACK_MS,
   });
 
   const workspaces = useQuery({

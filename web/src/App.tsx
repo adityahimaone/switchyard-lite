@@ -22,6 +22,7 @@ import { TaskDetailPage } from "@/components/board/TaskDetailPage";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskDrawer } from "./Drawer";
 import { Login } from "./Login";
+import { useLiveEvents } from "@/lib/live";
 import { ReviewScreen } from "./Review";
 import { Kbd } from "@/components/ui/kbd";
 import { Toaster } from "@/components/ui/toast";
@@ -96,6 +97,9 @@ export function App() {
     addEventListener("switchyard:unauth", f);
     return () => removeEventListener("switchyard:unauth", f);
   }, []);
+
+  // Single live stream drives all task/detail/overview refreshes.
+  useLiveEvents(authed);
 
   // Global Cmd+K / Ctrl+K shortcut for Command Palette
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Maximize2 } from "lucide-react";
-import { api, apiOr, type Task, type Workspace } from "@/api";
+import { api, apiOr, LIVE_FALLBACK_MS, type Task, type Workspace } from "@/api";
 import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
 import { TaskHeader } from "@/components/board/taskDetailParts";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export function TaskDrawer({
   const task = useQuery({
     queryKey: ["task", id],
     queryFn: () => api<Task>(`/api/v1/tasks/${id}`),
-    refetchInterval: 4000,
+    refetchInterval: LIVE_FALLBACK_MS,
   });
 
   const workspaces = useQuery({

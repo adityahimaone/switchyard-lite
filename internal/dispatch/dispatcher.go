@@ -13,6 +13,7 @@ import (
 
 	"github.com/adityahimaone/switchyard-lite/internal/store"
 	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-lite/internal/worker"
 )
 
 // Config tunes the dispatcher.
@@ -60,6 +61,7 @@ type Dispatcher struct {
 	Tasks  *tasks.Service
 	Cfg    Config
 	Client *Client
+	Remote *worker.Client
 	Now    func() time.Time
 
 	wake    chan struct{}
@@ -75,6 +77,7 @@ func New(s *store.Store, cfg Config) (*Dispatcher, error) {
 	cfg.defaults()
 	return &Dispatcher{S: s, Tasks: tasks.New(s), Cfg: cfg,
 		Client:  &Client{BaseURL: cfg.NodeAgentURL, Token: cfg.Token},
+		Remote:  worker.New(cfg.NodeAgentURL, cfg.Token),
 		Now:     time.Now,
 		wake:    make(chan struct{}, 1),
 		running: map[string]bool{}}, nil
@@ -235,13 +238,31 @@ func (d *Dispatcher) Start(ctx context.Context, taskID string) (string, error) {
 
 func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 	workspace := t.Workspace
-	if IsGit(workspace) {
-		wt, err := EnsureWorktreeFrom(workspace, t.ID, t.Branch)
-		if err != nil {
-			d.fail(t, runID, "worktree: "+err.Error())
-			return
+	// Preparing a remote worktree can take several node-agent round-trips;
+	// keep the claim alive so a slow worker is not reaped mid-setup.
+	stopRenew := make(chan struct{})
+	go func() {
+		tick := time.NewTicker(20 * time.Second)
+		defer tick.Stop()
+		for {
+			select {
+			case <-stopRenew:
+				return
+			case <-tick.C:
+				if !d.renew(t.ID, runID) {
+					return
+				}
+			}
 		}
-		d.saveWorktree(t.ID, wt)
+	}()
+	wt, transport, err := d.prepareWorktree(ctx, t)
+	close(stopRenew)
+	if err != nil {
+		d.fail(t, runID, "worktree: "+err.Error())
+		return
+	}
+	if wt != nil {
+		d.saveWorktree(t.ID, *wt, transport)
 		workspace = wt.Path
 	}
 	var boardName string
@@ -289,9 +310,10 @@ func (d *Dispatcher) workspaceLabels(path string) []string {
 	return out
 }
 
-func (d *Dispatcher) saveWorktree(id string, wt Worktree) {
-	_, _ = d.S.DB.Exec(`INSERT INTO task_worktrees(task_id,repo,path,branch,base_sha) VALUES(?,?,?,?,?)
-		ON CONFLICT(task_id) DO UPDATE SET path=excluded.path`, id, wt.Repo, wt.Path, wt.Branch, wt.BaseSHA)
+func (d *Dispatcher) saveWorktree(id string, wt Worktree, transport string) {
+	_, _ = d.S.DB.Exec(`INSERT INTO task_worktrees(task_id,repo,path,branch,base_sha,transport) VALUES(?,?,?,?,?,?)
+		ON CONFLICT(task_id) DO UPDATE SET path=excluded.path, base_sha=excluded.base_sha, transport=excluded.transport`,
+		id, wt.Repo, wt.Path, wt.Branch, wt.BaseSHA, transport)
 }
 
 // owns checks the lease is still ours before mutating the task.

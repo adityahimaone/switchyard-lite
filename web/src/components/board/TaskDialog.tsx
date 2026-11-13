@@ -27,6 +27,8 @@ import {
   type PlatformKey,
   type Task,
   type Workspace,
+  type WorkspaceDefaults,
+  type WorkspaceInspect,
 } from "@/api";
 import { cn } from "@/lib/utils";
 import { fmtBytes } from "@/lib/time";
@@ -208,6 +210,7 @@ export function TaskDialog({
   const [workspace, setWorkspace] = useState("");
   const [wsUserEdited, setWsUserEdited] = useState(false);
   const [branch, setBranch] = useState("");
+  const [branchRefresh, setBranchRefresh] = useState(0);
   const [executor, setExecutor] = useState("");
   const [model, setModel] = useState("");
   const [effort, setEffort] = useState("");
@@ -259,20 +262,33 @@ export function TaskDialog({
   const modelHint = models.data?.detail ?? "";
 
   const wsInspect = useQuery({
-    queryKey: ["ws", workspace],
+    queryKey: ["ws", workspace, branchRefresh],
     enabled: workspace.trim().length > 1,
+    staleTime: 30_000,
     queryFn: () =>
-      apiOr<{
-        is_git?: boolean;
-        branches?: string[];
-        current?: string;
-        warning?: string;
-        local?: boolean;
-        saas?: boolean;
-      }>(`/api/v1/workspaces/inspect?path=${encodeURIComponent(workspace.trim())}`, {}),
+      apiOr<WorkspaceInspect>(
+        `/api/v1/workspaces/inspect?path=${encodeURIComponent(workspace.trim())}${branchRefresh ? "&refresh=1" : ""}`,
+        { path: workspace, is_git: false, branches: [], local: false, source: "none" }
+      ),
+  });
+
+  const wsDefaults = useQuery({
+    queryKey: ["ws-defaults", workspace],
+    enabled: workspace.trim().length > 1,
+    staleTime: 60_000,
+    queryFn: () =>
+      apiOr<WorkspaceDefaults>(`/api/v1/workspaces/defaults?path=${encodeURIComponent(workspace.trim())}`, {
+        path: workspace,
+      }),
   });
 
   const isGit = wsInspect.data?.is_git === true;
+
+  const applyDefaultGate = () => {
+    const gate = wsDefaults.data?.suggested_gate_command;
+    if (!gate || gate === "manual review") return;
+    setAcceptance((v) => (v.includes(gate) ? v : `${v.trim()}${v.trim() ? "\n" : ""}Verify: ${gate}`.trim()));
+  };
 
   const selectedWsObj = useMemo(
     () => (savedWorkspaces.data ?? []).find((w) => w.path === workspace),
@@ -368,7 +384,7 @@ export function TaskDialog({
         executor,
         model: model.trim(),
         effort,
-        branch: isGit || branch ? branch : "",
+        branch: branch.trim(),
         paths: paths.length ? paths : undefined,
         skills: skills.length ? skills : undefined,
         blocked_by: blockedBy.length ? blockedBy : undefined,
@@ -567,6 +583,7 @@ export function TaskDialog({
                     onPathsChange={setPaths}
                     skills={skills}
                     onSkillsChange={setSkills}
+                    boardTasks={candidates}
                     placeholder="Detailed instructions for the agent — context, constraints, files to touch…"
                     className="min-h-[168px]"
                   />
@@ -646,9 +663,23 @@ export function TaskDialog({
                     <Label htmlFor="task-acceptance" className="text-[12px] font-semibold text-ink-2">
                       Acceptance criteria
                     </Label>
-                    <span className="font-mono text-[10px] tabular-nums text-ink-4">
-                      {acceptance.length} chars
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {wsDefaults.data?.suggested_gate_command &&
+                        wsDefaults.data.suggested_gate_command !== "manual review" && (
+                          <button
+                            type="button"
+                            onClick={applyDefaultGate}
+                            className="inline-flex items-center gap-1 rounded-full border border-accent/35 bg-accent-tint px-2 py-0.5 font-mono text-[9px] text-accent-text hover:border-accent"
+                            title="Inferred from marker files in this workspace"
+                          >
+                            <Sparkles className="size-2.5" />
+                            {wsDefaults.data.suggested_gate_command}
+                          </button>
+                        )}
+                      <span className="font-mono text-[10px] tabular-nums text-ink-4">
+                        {acceptance.length} chars
+                      </span>
+                    </div>
                   </div>
                   <Textarea
                     id="task-acceptance"
@@ -712,6 +743,12 @@ export function TaskDialog({
                       inspect={wsInspect.data}
                       value={branch}
                       onChange={setBranch}
+                      loading={wsInspect.isFetching}
+                      onRefresh={() => {
+                        setBranchRefresh((n) => n + 1);
+                        qc.invalidateQueries({ queryKey: ["ws-files", workspace.trim()] });
+                        qc.invalidateQueries({ queryKey: ["ws-symbols", workspace.trim()] });
+                      }}
                     />
                   </RailGroup>
                 </div>
