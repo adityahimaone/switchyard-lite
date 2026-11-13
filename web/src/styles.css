@@ -1,3 +1,5 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Switchyard Tactile Capsule · states: 8 · contrast: pass · v2.0.0 */
+/* Critique: Floating double-framed porcelain left sidebar dock + double-framed porcelain stage over soft cloud sky. */
 @import "tailwindcss";
 @import "./tokens.css";
 
@@ -113,6 +115,10 @@
     border-color: var(--c-line);
   }
 
+  html, body {
+    overflow-x: clip;
+  }
+
   html, body, #root {
     height: 100%;
     margin: 0;
@@ -151,47 +157,60 @@ code, pre, .mono {
 }
 
 /* ==========================================================================
-   App Shell (Switchyard Lite Atmospheric Sky + Tactile Capsule Stage)
+   App Shell (Floating Left Capsule Sidebar Dock + Double-Framed Stage)
    ========================================================================== */
 .shell {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 12px;
   height: 100vh;
+  padding: 12px;
   overflow: hidden;
   background-color: var(--c-canvas);
-  background-image:
-    var(--bg-sky-radial),
-    linear-gradient(to right, var(--grid-hairline) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-hairline) 1px, transparent 1px);
-  background-size: 100% 100%, 32px 32px, 32px 32px;
-  transition: grid-template-columns 180ms var(--ease-out-expo);
+  background-image: var(--bg-sky-radial);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  transition: grid-template-columns 220ms var(--ease-out-expo);
 }
 
 .shell.collapsed {
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: 68px minmax(0, 1fr);
 }
 
-/* Sidebar Navigation */
+/* Floating Left Sidebar Dock */
 nav.side {
-  background: var(--glass-tint);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  border-right: 1px solid var(--c-line);
-  padding: 12px 10px;
+  background: var(--c-well);
+  border: 1px solid var(--c-line-strong);
+  border-radius: 26px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  gap: 8px;
+  box-shadow: var(--lift-2), var(--well-inset);
+  min-height: 0;
+  overflow: hidden;
   z-index: 20;
+}
+
+.side-top-pod {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 18px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--lift-1), var(--lift-inset);
+  flex-shrink: 0;
 }
 
 .side-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 38px;
-  padding: 0 6px;
+  gap: 9px;
+  min-height: 32px;
+  padding: 2px 4px;
+  flex-shrink: 0;
 }
 
 .brand-mark-tile {
@@ -220,7 +239,7 @@ nav.side {
 
 nav.side h1 {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   letter-spacing: -0.025em;
   margin: 0;
@@ -242,64 +261,90 @@ nav.side h1 {
   letter-spacing: 0.06em;
 }
 
+.nav-deck-track {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.nav-deck-track::-webkit-scrollbar {
+  display: none;
+}
+
 .nav-group {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  background: color-mix(in srgb, var(--c-surface) 55%, var(--c-well));
+  padding: 6px;
+  border-radius: 18px;
+  border: 1px solid var(--c-line);
+  flex-shrink: 0;
 }
 
 .nav-group-label {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   color: var(--c-ink-4);
-  padding: 4px 10px 2px;
+  padding: 2px 8px 4px;
   white-space: nowrap;
 }
 
-.shell.collapsed .nav-group-label,
-.shell.collapsed .nav-label,
-.shell.collapsed .side-brand h1,
-.shell.collapsed .side-board-box,
-.shell.collapsed .nav-badge {
+.shell.collapsed nav.side .nav-label,
+.shell.collapsed nav.side .side-brand h1,
+.shell.collapsed nav.side .side-board-box,
+.shell.collapsed nav.side .nav-group-label,
+.shell.collapsed nav.side .nav-badge,
+.shell.collapsed nav.side .side-footer-status {
   display: none;
 }
 
-.shell.collapsed nav.side {
-  padding: 12px 8px;
+.shell.collapsed nav.side .side-top-pod,
+.shell.collapsed nav.side .nav-group,
+.shell.collapsed nav.side .side-footer {
+  padding: 6px;
+  align-items: center;
 }
 
-.shell.collapsed .side-brand {
+.shell.collapsed nav.side .side-brand {
   justify-content: center;
+  padding: 0;
+}
+
+.shell.collapsed nav.side a {
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   padding: 0;
 }
 
 nav.side a {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
+  gap: 9px;
+  padding: 7px 11px;
   border-radius: 999px;
   border: 1px solid transparent;
   color: var(--c-ink-2);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   white-space: nowrap;
   transition: background-color 140ms, border-color 140ms, box-shadow 140ms, color 140ms, transform 120ms var(--ease-out);
 }
 
-.shell.collapsed nav.side a {
-  justify-content: center;
-  padding: 8px 0;
-  width: 100%;
-}
-
 @media (hover: hover) and (pointer: fine) {
   nav.side a:hover {
-    background: var(--c-well);
+    background: var(--c-surface);
+    border-color: var(--c-line);
     color: var(--c-ink);
   }
 }
@@ -310,7 +355,7 @@ nav.side a:active {
 
 nav.side a[aria-current="page"] {
   background: var(--c-surface);
-  border-color: var(--c-line);
+  border-color: var(--c-line-strong);
   color: var(--c-accent-text);
   font-weight: 600;
   box-shadow: var(--lift-1), var(--lift-inset);
@@ -324,8 +369,8 @@ nav.side a[aria-current="page"] {
 }
 
 .nav-icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   opacity: 0.85;
 }
@@ -335,7 +380,7 @@ nav.side a[aria-current="page"] {
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 700;
-  padding: 1px 7px;
+  padding: 1px 6px;
   border-radius: 999px;
   background: var(--c-accent-tint);
   border: 1px solid color-mix(in srgb, var(--c-accent) 25%, transparent);
@@ -347,31 +392,40 @@ nav.side a[aria-current="page"] {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--c-line);
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 18px;
+  padding: 8px;
+  box-shadow: var(--lift-1), var(--lift-inset);
+  flex-shrink: 0;
 }
 
-/* Main Content Area & Sticky Top Header */
+/* Double-Framed Porcelain Workspace Stage */
 .shell-inset {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   min-height: 0;
-  height: 100vh;
+  border-radius: 26px;
+  border: 1px solid var(--c-line-strong);
+  background: var(--c-well);
+  padding: 7px;
+  box-shadow: var(--lift-2), var(--well-inset);
   overflow: hidden;
 }
 
 header.top-header {
-  height: 52px;
+  height: 48px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 20px;
-  background: var(--glass-tint);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  padding: 0 18px;
+  border-radius: 19px 19px 0 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
   border-bottom: 1px solid var(--c-line);
   z-index: 15;
 }
@@ -402,9 +456,9 @@ header.top-header {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  min-width: 220px;
-  padding: 0 12px;
+  height: 30px;
+  min-width: 190px;
+  padding: 0 10px;
   border-radius: 999px;
   border: 1px solid var(--c-line);
   background: var(--c-well);
@@ -442,6 +496,11 @@ main {
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
+  border-radius: 0 0 19px 19px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-top: 0;
+  box-shadow: var(--lift-inset);
 }
 
 main.bleed {
@@ -455,7 +514,7 @@ main.bleed {
 .page-header {
   padding: 16px 24px 12px;
   border-bottom: 1px solid var(--c-line);
-  background: color-mix(in srgb, var(--c-surface) 55%, transparent);
+  background: var(--c-surface);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -552,7 +611,7 @@ main.bleed {
   font-size: 11px;
   font-weight: 600;
   box-shadow: var(--lift-1), var(--lift-inset);
-  transition: all 120ms;
+  transition: background-color 120ms, border-color 120ms, color 120ms, box-shadow 120ms;
 }
 
 .chip:hover {
@@ -588,10 +647,47 @@ main.bleed {
 
 @media (hover: hover) and (pointer: fine) {
   .btn:hover:not(:disabled) {
-    background: var(--c-raised);
+    background: var(--c-well);
     border-color: var(--c-line-strong);
+    color: var(--c-ink);
     transform: translateY(-1px);
     box-shadow: var(--lift-2), var(--lift-inset);
+  }
+
+  .btn.primary:hover:not(:disabled) {
+    background: var(--spec-sheen), var(--grad-prism);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.38);
+    box-shadow: var(--glow-brand), var(--lift-2), var(--lift-inset);
+    filter: brightness(1.06);
+  }
+
+  .btn.obsidian:hover:not(:disabled) {
+    background: var(--grad-obsidian);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: var(--glow-obsidian), var(--lift-2);
+    filter: brightness(1.08);
+  }
+
+  .btn.dashed:hover:not(:disabled) {
+    background: var(--c-accent-tint);
+    border-color: var(--c-accent);
+    color: var(--c-accent-text);
+    box-shadow: var(--lift-1);
+  }
+
+  .btn.danger:hover:not(:disabled) {
+    background: var(--c-danger-tint);
+    border-color: color-mix(in srgb, var(--c-danger) 50%, var(--c-line));
+    color: var(--c-danger-text);
+  }
+
+  .btn.ghost:hover:not(:disabled) {
+    background: var(--c-well);
+    border-color: transparent;
+    color: var(--c-ink);
+    box-shadow: none;
   }
 }
 
@@ -605,10 +701,6 @@ main.bleed {
   border-color: rgba(255, 255, 255, 0.25);
   font-weight: 600;
   box-shadow: var(--glow-brand), var(--lift-inset);
-}
-
-.btn.primary:hover:not(:disabled) {
-  filter: brightness(1.04);
 }
 
 .btn.obsidian {
@@ -630,20 +722,10 @@ main.bleed {
   border-color: color-mix(in srgb, var(--c-danger) 35%, var(--c-line));
 }
 
-.btn.danger:hover:not(:disabled) {
-  background: var(--c-danger-tint);
-}
-
 .btn.ghost {
   background: transparent;
   border-color: transparent;
   color: var(--c-ink-2);
-  box-shadow: none;
-}
-
-.btn.ghost:hover:not(:disabled) {
-  background: var(--c-well);
-  color: var(--c-ink);
   box-shadow: none;
 }
 
@@ -1117,19 +1199,22 @@ label.f {
   z-index: 50;
   display: flex;
   justify-content: flex-end;
+  padding: 12px;
   animation: fade-in 160ms var(--ease-out);
 }
 
 .drawer-panel {
   display: flex;
   height: 100%;
-  width: min(680px, 100vw);
+  width: min(700px, 100%);
   flex-direction: column;
-  border-left: 1px solid var(--c-line-strong);
+  border-radius: 26px;
+  border: 1px solid var(--c-line-strong);
   background: var(--glass-tint-dialog);
   backdrop-filter: blur(28px) saturate(1.6);
   -webkit-backdrop-filter: blur(28px) saturate(1.6);
-  box-shadow: -16px 0 48px rgb(0 0 0 / 0.28);
+  box-shadow: var(--glass-lift-dialog);
+  overflow: hidden;
   animation: drawer-slide-in 240ms var(--ease-drawer);
 }
 
@@ -1345,8 +1430,8 @@ pre.diff {
 
 .dot-canvas {
   background-color: var(--c-well);
-  background-image: radial-gradient(circle at center, var(--c-line-strong) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-image: radial-gradient(circle at center, color-mix(in srgb, var(--c-line-strong) 55%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
   border: 1px solid var(--c-line);
   border-radius: var(--radius-card);
   padding: 16px;
@@ -1513,33 +1598,34 @@ pre.diff {
   -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
 }
 
-@media (max-width: 820px) {
+@media (max-width: 900px) {
   .shell, .shell.collapsed {
     grid-template-columns: 1fr;
     height: auto;
     min-height: 100vh;
+    padding: 8px;
     overflow: visible;
   }
   .shell-inset {
-    height: auto;
     overflow: visible;
   }
   nav.side {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    border-right: none;
-    border-bottom: 1px solid var(--c-line);
+    border-radius: 22px;
+    padding: 8px;
   }
-  .nav-group {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .nav-group-label, .side-footer {
-    display: none;
+  .nav-deck-track {
+    overflow: visible;
   }
   .review-split {
     grid-template-columns: 1fr;
+  }
+  .drawer-backdrop {
+    padding: 0;
+  }
+  .drawer-panel {
+    border-radius: 0;
+    border: none;
+    border-left: 1px solid var(--c-line-strong);
   }
 }
 

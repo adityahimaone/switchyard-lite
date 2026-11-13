@@ -36,7 +36,7 @@ function SelectTrigger({
         "flex w-full items-center justify-between gap-2 whitespace-nowrap overflow-hidden rounded-full px-3.5 py-2 text-[13px] font-medium text-ink tracking-[-0.01em] outline-none",
         "transition-[border-color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)]",
         variant === "plate" &&
-          "border border-line bg-surface shadow-[var(--lift-1),var(--lift-inset)] hover:border-line-strong hover:bg-raised hover:shadow-[var(--lift-2),var(--lift-inset)]",
+          "border border-line bg-surface shadow-[var(--lift-1),var(--lift-inset)] hover:border-accent/45 hover:bg-well/55 hover:shadow-[var(--lift-2),var(--lift-inset)]",
         variant === "well" &&
           "border border-line/80 bg-well text-ink-2 shadow-[var(--well-inset)] hover:border-line-strong hover:bg-surface hover:text-ink",
         variant === "ghost" &&

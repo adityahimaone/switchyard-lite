@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Activity, Check, Cpu, GitBranch, KeyRound, Layers, Palette, Play, Server, Sparkles } from "lucide-react";
 import { api, apiOr, del, post, setToken, STATUSES, type Task, type Worker } from "./api";
-import { ErrorBox, Lamp, Panel, statusColor, Unavailable } from "./ui";
+import { ErrorBox, LABEL, Lamp, Panel, statusColor, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { SearchSelect } from "@/components/ui/search-select";
@@ -36,102 +37,164 @@ export function OverviewScreen() {
       ),
   });
 
+  const summaryCards = q.data
+    ? [
+        { label: "Total tasks", value: q.data.total, icon: Layers, accent: true },
+        { label: "Boards", value: q.data.boards, icon: GitBranch, accent: false },
+        ...(q.data.workspaces !== undefined
+          ? [{ label: "Workspaces", value: q.data.workspaces, icon: Server, accent: false }]
+          : []),
+        ...(q.data.workers !== undefined
+          ? [{ label: "Workers", value: q.data.workers, icon: Cpu, accent: false }]
+          : []),
+      ]
+    : [];
+
   return (
-    <div>
-      <div className="bar">
-        <h2>Overview</h2>
-        <a href="#/logs" className="chip inline-flex items-center gap-1" title="Open the Logs page">
-          Live Activity Stream → Logs
-        </a>
-        {(boards.data?.length ?? 0) > 0 && (
-          <button
-            type="button"
-            className={"chip" + (scopeBoard ? " active" : "")}
-            onClick={() => setScopeBoard((v) => !v)}
-          >
-            {scopeBoard && activeBoard ? `Board: ${activeBoard.name}` : "All boards"}
-          </button>
-        )}
-        {(boards.data?.length ?? 0) > 1 && scopeBoard && (
-          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-        )}
-        {q.data && (
-          <span
-            className="lamp"
-            style={{
-              ["--lamp" as string]:
-                q.data.health.status === "ok" ? "var(--c-success)" : "var(--c-danger)",
-            }}
-          >
-            <span className="lamp-dot pulse" />
-            Health: {q.data.health.status}
-          </span>
-        )}
+    <div className="space-y-4">
+      <div className="page-header">
+        <div className="page-header-left">
+          <div className="page-title-row">
+            <h2>Overview</h2>
+            <span className="pill-count">telemetry</span>
+          </div>
+          <p className="page-subtitle">
+            Control-plane health, queue depth, and execution status across boards and agents.
+          </p>
+        </div>
+
+        <div className="page-header-actions">
+          {(boards.data?.length ?? 0) > 0 && (
+            <button
+              type="button"
+              className={"chip" + (scopeBoard ? " active" : "")}
+              onClick={() => setScopeBoard((v) => !v)}
+            >
+              {scopeBoard && activeBoard ? `Board: ${activeBoard.name}` : "All boards"}
+            </button>
+          )}
+          {(boards.data?.length ?? 0) > 1 && scopeBoard && (
+            <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
+          )}
+          <a href="#/logs" className="chip inline-flex items-center gap-1.5" title="Open the Logs page">
+            <Activity className="size-3.5" />
+            <span>Live Activity Stream → Logs</span>
+          </a>
+          {q.data && (
+            <span
+              className="lamp rounded-full border border-line bg-surface px-3 py-1.5 text-xs shadow-[var(--lift-1)]"
+              style={{
+                ["--lamp" as string]:
+                  q.data.health.status === "ok" ? "var(--c-success)" : "var(--c-danger)",
+              }}
+            >
+              <span className="lamp-dot pulse" />
+              Health: {q.data.health.status}
+            </span>
+          )}
+        </div>
       </div>
 
       <ErrorBox error={q.error} />
 
       {q.data && (
         <>
-          <div className="stat-grid">
-            <div className="stat">
-              <b>{q.data.total}</b>
-              <span>Total tasks</span>
-            </div>
-            <div className="stat">
-              <b>{q.data.boards}</b>
-              <span>Boards</span>
-            </div>
-            {q.data.workspaces !== undefined && (
-              <div className="stat">
-                <b>{q.data.workspaces}</b>
-                <span>Workspaces</span>
-              </div>
-            )}
-            {q.data.workers !== undefined && (
-              <div className="stat">
-                <b>{q.data.workers}</b>
-                <span>Workers</span>
-              </div>
-            )}
-            {STATUSES.map((s) => (
-              <div key={s} className="stat">
-                <b>{q.data!.counts[s] ?? 0}</b>
-                <Lamp status={s} />
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {summaryCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.label}
+                  className="rounded-[22px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10.5px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+                      {card.label}
+                    </span>
+                    <span
+                      className={
+                        card.accent
+                          ? "inline-flex size-7 items-center justify-center rounded-full bg-accent-tint text-accent-text"
+                          : "inline-flex size-7 items-center justify-center rounded-full bg-well text-ink-3"
+                      }
+                    >
+                      <Icon className="size-3.5" />
+                    </span>
+                  </div>
+                  <div className="mt-2 font-[var(--font-display)] text-[28px] font-extrabold leading-none tracking-[-0.03em] tabular-nums text-ink">
+                    {card.value}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          <Panel title="Status Station Matrix">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+              {STATUSES.map((s) => {
+                const count = q.data!.counts[s] ?? 0;
+                const pct = q.data!.total > 0 ? Math.round((count / q.data!.total) * 100) : 0;
+                return (
+                  <div
+                    key={s}
+                    className="flex flex-col justify-between gap-2 rounded-[18px] border border-line bg-well/55 p-3 shadow-[var(--well-inset)]"
+                  >
+                    <Lamp status={s} />
+                    <div className="flex items-baseline justify-between gap-2">
+                      <b className="font-[var(--font-display)] text-2xl font-extrabold leading-none tabular-nums text-ink">
+                        {count}
+                      </b>
+                      <span className="font-mono text-[10.5px] tabular-nums text-ink-4">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Panel>
 
           {q.data.total > 0 && (
             <Panel title="Task Distribution">
-              <div
-                style={{
-                  display: "flex",
-                  height: 12,
-                  borderRadius: 999,
-                  overflow: "hidden",
-                  background: "var(--c-well)",
-                  gap: 2,
-                }}
-              >
-                {STATUSES.map((s) => {
-                  const n = q.data!.counts[s] ?? 0;
-                  if (!n) return null;
-                  const pct = (n / q.data!.total) * 100;
-                  return (
-                    <div
-                      key={s}
-                      title={`${s}: ${n} (${Math.round(pct)}%)`}
-                      style={{ width: `${pct}%`, background: statusColor(s) }}
-                    />
-                  );
-                })}
+              <div className="space-y-3">
+                <div className="flex h-3.5 overflow-hidden rounded-full bg-well p-0.5 shadow-[var(--well-inset)] gap-0.5">
+                  {STATUSES.map((s) => {
+                    const n = q.data!.counts[s] ?? 0;
+                    if (!n) return null;
+                    const pct = (n / q.data!.total) * 100;
+                    return (
+                      <div
+                        key={s}
+                        title={`${s}: ${n} (${Math.round(pct)}%)`}
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, background: statusColor(s) }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {STATUSES.map((s) => {
+                    const n = q.data!.counts[s] ?? 0;
+                    if (!n) return null;
+                    return (
+                      <span
+                        key={s}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/60 px-2.5 py-1 text-[11px] font-medium text-ink-2"
+                      >
+                        <span
+                          className="size-2 rounded-full"
+                          style={{ background: statusColor(s) }}
+                          aria-hidden
+                        />
+                        <span>{LABEL[s] ?? s}</span>
+                        <span className="font-mono tabular-nums text-ink-3">{n}</span>
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             </Panel>
           )}
         </>
       )}
-
     </div>
   );
 }
@@ -169,23 +232,32 @@ export function WorkersScreen() {
   });
 
   return (
-    <div>
-      <div className="bar">
-        <h2>Workers</h2>
-        <span className="bar-sub">Node-agent endpoints executing claimed tasks.</span>
+    <div className="space-y-4">
+      <div className="page-header">
+        <div className="page-header-left">
+          <div className="page-title-row">
+            <h2>Workers</h2>
+            {q.data && <span className="pill-count tabular-nums">{q.data.length} online</span>}
+          </div>
+          <p className="page-subtitle">Node-agent endpoints executing claimed tasks across workspaces.</p>
+        </div>
       </div>
+
       <ErrorBox error={q.error ?? add.error ?? remove.error} />
 
       <form
-        className="panel"
+        className="rounded-[22px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)] space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (name.trim()) add.mutate();
         }}
       >
-        <h3>Register worker</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="m-0 text-sm font-bold tracking-[-0.015em] text-ink">Register worker</h3>
+          <span className="font-mono text-[10px] tracking-[0.08em] text-ink-4 uppercase">Endpoint registry</span>
+        </div>
         <div className="form-grid">
-          <label className="f">
+          <label className="f m-0">
             Worker name
             <input
               required
@@ -194,7 +266,7 @@ export function WorkersScreen() {
               placeholder="e.g. mac-node-agent"
             />
           </label>
-          <label className="f">
+          <label className="f m-0">
             Node-Agent URL
             <input
               value={url}
@@ -212,9 +284,11 @@ export function WorkersScreen() {
       {q.data === null && <Unavailable what="Workers" />}
       {q.data &&
         (q.data.length === 0 ? (
-          <p className="muted">No workers registered.</p>
+          <div className="rounded-[22px] border border-dashed border-line-strong bg-surface/75 p-6 text-center">
+            <p className="muted m-0 text-xs">No workers registered.</p>
+          </div>
         ) : (
-          <div className="panel">
+          <div className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-[var(--lift-1),var(--lift-inset)]">
             <table>
               <thead>
                 <tr>
@@ -237,8 +311,8 @@ export function WorkersScreen() {
                     <td>
                       <Lamp status={w.status ?? "running"} />
                     </td>
-                    <td>{w.task_id ?? "—"}</td>
-                    <td style={{ textAlign: "right" }}>
+                    <td className="font-mono text-xs">{w.task_id ?? "—"}</td>
+                    <td className="text-right">
                       <button
                         type="button"
                         className="btn sm danger"
@@ -385,23 +459,37 @@ export function PipelineScreen() {
   });
 
   return (
-    <div>
-      <div className="bar">
-        <h2>Pipeline runs</h2>
-        {(boards.data?.length ?? 0) > 1 && (
-          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-        )}
+    <div className="space-y-4">
+      <div className="page-header">
+        <div className="page-header-left">
+          <div className="page-title-row">
+            <h2>Pipeline runs</h2>
+            {q.data && <span className="pill-count tabular-nums">{q.data.length} runs</span>}
+          </div>
+          <p className="page-subtitle">Deterministic multi-stage DAG orchestrations executed on the active board.</p>
+        </div>
+        <div className="page-header-actions">
+          {(boards.data?.length ?? 0) > 1 && (
+            <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
+          )}
+        </div>
       </div>
+
       <ErrorBox error={q.error ?? start.error ?? cancel.error} />
+
       {boardId && (
         <form
-          className="panel"
+          className="rounded-[22px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]"
           onSubmit={(e) => {
             e.preventDefault();
             if (goal.trim()) start.mutate();
           }}
         >
-          <div className="bar" style={{ marginBottom: 0 }}>
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-ink-2">
+            <Sparkles className="size-3.5 text-accent-text" />
+            <span>Launch pipeline {activeBoard ? `on ${activeBoard.name}` : ""}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             {(templates.data?.length ?? 0) > 0 && (
               <Select value={template} onValueChange={setTemplate}>
                 <SelectTrigger className="w-[180px]" aria-label="Pipeline template" size="default">
@@ -420,24 +508,30 @@ export function PipelineScreen() {
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="Start design-thinking pipeline goal…"
-              style={{ flex: 1 }}
+              className="min-w-[220px] flex-1"
             />
             <button className="btn primary" disabled={start.isPending || !goal.trim()}>
-              Start pipeline
+              <Play className="size-3.5 fill-current" />
+              <span>Start pipeline</span>
             </button>
           </div>
         </form>
       )}
+
       {q.data === null && <Unavailable what="Pipelines" />}
-      {q.data?.length === 0 && <p className="muted">No pipeline runs.</p>}
+      {q.data?.length === 0 && (
+        <div className="rounded-[22px] border border-dashed border-line-strong bg-surface/75 p-6 text-center">
+          <p className="muted m-0 text-xs">No pipeline runs.</p>
+        </div>
+      )}
       {q.data?.map((r) => (
         <Panel
           key={r.id}
           title={
-            <span>
-              {r.name ?? r.id}
-              {r.status ? ` — ${r.status}` : ""}
-              {r.goal ? <span className="muted"> · {r.goal}</span> : null}
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <span>{r.name ?? r.id}</span>
+              {r.status && <span className="badge mono">{r.status}</span>}
+              {r.goal ? <span className="text-xs font-normal text-ink-3">· {r.goal}</span> : null}
             </span>
           }
           actions={
@@ -458,7 +552,7 @@ export function PipelineScreen() {
               <Dag stages={r.stages} />
             </div>
           ) : (
-            <p className="muted">No stages.</p>
+            <p className="muted m-0 text-xs">No stages.</p>
           )}
         </Panel>
       ))}
@@ -491,24 +585,37 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
   }));
 
   return (
-    <div>
-      <div className="bar">
-        <h2>Flow map</h2>
-        <button
-          type="button"
-          className={"chip" + (showAll ? " active" : "")}
-          onClick={() => setShowAll((v) => !v)}
-        >
-          {showAll ? "Showing all board tasks" : "Dependencies only"}
-        </button>
-        {(boards.data?.length ?? 0) > 1 && (
-          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-        )}
+    <div className="space-y-4">
+      <div className="page-header">
+        <div className="page-header-left">
+          <div className="page-title-row">
+            <h2>Flow map</h2>
+            <span className="pill-count tabular-nums">{stages.length} nodes</span>
+          </div>
+          <p className="page-subtitle">
+            Interactive dependency graph {activeBoard ? `for ${activeBoard.name}` : "across tasks"}. Click any node to open it.
+          </p>
+        </div>
+
+        <div className="page-header-actions">
+          <button
+            type="button"
+            className={"chip" + (showAll ? " active" : "")}
+            onClick={() => setShowAll((v) => !v)}
+          >
+            {showAll ? "Showing all board tasks" : "Dependencies only"}
+          </button>
+          {(boards.data?.length ?? 0) > 1 && (
+            <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
+          )}
+        </div>
       </div>
+
       <ErrorBox error={q.error} />
+
       {stages.length ? (
         <div
-          className="dot-canvas"
+          className="dot-canvas shadow-[var(--lift-1)]"
           onClick={(e) => {
             const g = (e.target as Element).closest("g");
             const i = g && [...g.parentElement!.querySelectorAll("g")].indexOf(g);
@@ -518,8 +625,8 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
           <Dag stages={stages} />
         </div>
       ) : (
-        <div className="panel">
-          <p className="muted" style={{ margin: 0 }}>
+        <div className="rounded-[22px] border border-dashed border-line-strong bg-surface/75 p-6 text-center">
+          <p className="muted m-0 text-xs">
             No task dependencies yet. Toggle &ldquo;Showing all board tasks&rdquo; above or link tasks via Dependencies.
           </p>
         </div>
@@ -529,10 +636,10 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
 }
 
 const PALETTES = [
-  { id: "", label: "Royal Switch Cobalt (Default)" },
-  { id: "prism", label: "Prism Orchid" },
-  { id: "emerald", label: "Signal Emerald" },
-  { id: "obsidian", label: "Obsidian Ink" },
+  { id: "", label: "Royal Switch Cobalt (Default)", swatch: "#3760f5", tag: "Cobalt" },
+  { id: "prism", label: "Prism Orchid", swatch: "#6b5bff", tag: "Spectrum" },
+  { id: "emerald", label: "Signal Emerald", swatch: "#13794b", tag: "Signal" },
+  { id: "obsidian", label: "Obsidian Ink", swatch: "#1e293b", tag: "Monochrome" },
 ] as const;
 
 export function SettingsScreen({ logout }: { logout: () => void }) {
@@ -586,17 +693,29 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
   }
 
   return (
-    <div>
-      <div className="bar">
-        <h2>Settings</h2>
+    <div className="space-y-4">
+      <div className="page-header">
+        <div className="page-header-left">
+          <div className="page-title-row">
+            <h2>Settings</h2>
+          </div>
+          <p className="page-subtitle">Workspace appearance tokens, scoped API credentials, and session control.</p>
+        </div>
       </div>
 
-      <Panel title="Appearance & Theme Palette">
-        <div className="bar" style={{ marginBottom: 12 }}>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <Panel
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            <Palette className="size-3.5 text-ink-3" />
+            <span>Appearance &amp; Theme Palette</span>
+          </span>
+        }
+      >
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-well/65 px-3.5 py-1.5 text-xs font-medium text-ink-2">
             <input
               type="checkbox"
-              style={{ width: "auto" }}
+              className="w-auto"
               checked={dark}
               onChange={(e) => {
                 setDark(e.target.checked);
@@ -604,48 +723,74 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
                 localStorage.setItem("switchyard.dark", e.target.checked ? "1" : "");
               }}
             />
-            Dark mode
+            <span>Dark mode</span>
           </label>
 
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, marginLeft: 16 }}>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-well/65 px-3.5 py-1.5 text-xs font-medium text-ink-2">
             <input
               type="checkbox"
-              style={{ width: "auto" }}
+              className="w-auto"
               checked={compact}
               onChange={(e) => applyCompact(e.target.checked)}
             />
-            Compact card density
+            <span>Compact card density</span>
           </label>
         </div>
 
-        <div className="chip-row">
-          {PALETTES.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={"chip" + (palette === p.id ? " active" : "")}
-              onClick={() => applyPalette(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          {PALETTES.map((p) => {
+            const active = palette === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPalette(p.id)}
+                className={
+                  active
+                    ? "flex items-center justify-between gap-2 rounded-[18px] border border-accent/50 bg-accent-tint/70 px-3.5 py-3 text-left text-ink shadow-[var(--lift-1)]"
+                    : "flex items-center justify-between gap-2 rounded-[18px] border border-line bg-well/55 px-3.5 py-3 text-left text-ink-2 transition-colors hover:border-line-strong hover:bg-surface"
+                }
+                aria-pressed={active}
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className="size-4 shrink-0 rounded-full border border-white/40 shadow-[var(--lift-1)]"
+                    style={{ background: p.swatch }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold">{p.label}</span>
+                    <span className="block font-mono text-[10px] text-ink-4">{p.tag}</span>
+                  </span>
+                </span>
+                {active && <Check className="size-3.5 shrink-0 text-accent-text" />}
+              </button>
+            );
+          })}
         </div>
       </Panel>
 
-      <Panel title="API tokens">
+      <Panel
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            <KeyRound className="size-3.5 text-ink-3" />
+            <span>API tokens</span>
+          </span>
+        }
+      >
         {list.data === null ? (
-          <p className="muted">
+          <p className="muted m-0 text-xs">
             Token management API is not available; create tokens with{" "}
             <code>switchyard-lite token create</code>.
           </p>
         ) : (
-          <>
+          <div className="space-y-3">
             <ErrorBox error={create.error ?? revoke.error} />
-            <div className="bar">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                style={{ width: 160 }}
+                className="w-[170px]"
                 aria-label="Token name"
               />
               <SearchSelect
@@ -653,7 +798,7 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
                 onValueChange={setScope}
                 ariaLabel="Scope"
                 size="default"
-                className="w-[130px]"
+                className="w-[140px]"
                 options={[
                   { value: "read", label: "read", sublabel: "read-only access" },
                   { value: "write", label: "write", sublabel: "read + mutate tasks" },
@@ -666,39 +811,41 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
               </button>
             </div>
             {create.data && (
-              <p>
-                New token (copy now): <code>{create.data.token}</code>
+              <p className="m-0 rounded-[14px] border border-accent/35 bg-accent-tint/50 px-3 py-2 text-xs text-ink">
+                New token (copy now): <code className="font-mono font-semibold">{create.data.token}</code>
               </p>
             )}
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Scope</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {list.data?.map((t) => (
-                  <tr key={t.id}>
-                    <td>{t.name}</td>
-                    <td>
-                      <span className="badge mono">{t.scope}</span>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <button
-                        type="button"
-                        className="btn sm danger"
-                        onClick={() => revoke.mutate(t.id)}
-                      >
-                        Revoke
-                      </button>
-                    </td>
+            <div className="overflow-hidden rounded-[16px] border border-line">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Scope</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
+                </thead>
+                <tbody>
+                  {list.data?.map((t) => (
+                    <tr key={t.id}>
+                      <td className="font-medium">{t.name}</td>
+                      <td>
+                        <span className="badge mono">{t.scope}</span>
+                      </td>
+                      <td className="text-right">
+                        <button
+                          type="button"
+                          className="btn sm danger"
+                          onClick={() => revoke.mutate(t.id)}
+                        >
+                          Revoke
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </Panel>
 

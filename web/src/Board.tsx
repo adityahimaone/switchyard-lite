@@ -4,11 +4,13 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  Columns3,
   Copy,
   Cpu,
   ExternalLink,
   GitPullRequest,
   Inbox,
+  LayoutGrid,
   ListTodo,
   MoreHorizontal,
   Play,
@@ -16,6 +18,7 @@ import {
   Search,
   Settings2,
   ShieldAlert,
+  Table2,
   Trash2,
   X,
 } from "lucide-react";
@@ -35,12 +38,14 @@ import {
   type Task,
   type Workspace,
 } from "./api";
-import { OsIcon } from "@/components/board/taskDetailParts";
+import { OsIcon, StatusBadge } from "@/components/board/taskDetailParts";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
 import { relativeTime } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FilterPill } from "@/components/ui/pill";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Dialog,
   DialogBody,
@@ -167,6 +172,7 @@ export function BoardScreen({
   });
 
   const [over, setOver] = useState("");
+  const [viewMode, setViewMode] = useState<"board" | "table" | "lanes">("board");
   const [creating, setCreating] = useState<{ startMode: StartMode } | null>(null);
   const [boardModal, setBoardModal] = useState<"new" | "edit" | null>(null);
   const [q, setQ] = useState("");
@@ -278,6 +284,41 @@ export function BoardScreen({
             />
           )}
 
+          <Segmented
+            label="Board view mode"
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              {
+                value: "board",
+                label: (
+                  <>
+                    <Columns3 className="size-3" />
+                    Board
+                  </>
+                ),
+              },
+              {
+                value: "table",
+                label: (
+                  <>
+                    <Table2 className="size-3" />
+                    Table
+                  </>
+                ),
+              },
+              {
+                value: "lanes",
+                label: (
+                  <>
+                    <LayoutGrid className="size-3" />
+                    Lanes
+                  </>
+                ),
+              },
+            ]}
+          />
+
           <Tip label="Create a new board">
             <button
               type="button"
@@ -312,7 +353,39 @@ export function BoardScreen({
           </button>
         </div>
 
-        {/* Filter & search toolbar (Concept 1 Tactile Capsule Bar) */}
+        {/* Status Summary Pill Strip */}
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Status filters">
+          {STATUSES.map((s) => {
+            const count = allTasks.filter((t) => t.status === s).length;
+            const isActive = fStatus === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setFStatus(isActive ? "" : s)}
+                aria-pressed={isActive}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-[background-color,border-color,color,box-shadow]",
+                  isActive
+                    ? "border-accent bg-accent-tint text-accent-text shadow-[var(--lift-1)]"
+                    : "border-line bg-surface/85 text-ink-2 hover:border-line-strong hover:bg-surface"
+                )}
+              >
+                <span
+                  aria-hidden
+                  className="size-2 rounded-full"
+                  style={{ background: statusColor(s) }}
+                />
+                <span>{LABEL[s] ?? s}</span>
+                <span className="rounded-full bg-well px-1.5 font-mono text-[10px] font-semibold tabular text-ink-3">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filter & search toolbar (Tactile Capsule Bar) */}
         <div className="toolbar-row" role="search" aria-label="Filter tasks">
           <div className="search-box">
             <Search className="size-3.5" />
@@ -450,207 +523,352 @@ export function BoardScreen({
         />
       )}
 
-      <div className="board-scroller">
-        <div className="board">
-          {STATUSES.map((s) => {
-            const colTasks = filtered.filter((t) => t.status === s);
-            const copy = EMPTY_COPY[s];
-            const quickAdd = QUICK_ADD[s];
-            return (
-              <div
-                key={s}
-                className={"col" + (over === s ? " over" : "")}
-                style={{ ["--lamp" as string]: statusColor(s) }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setOver(s);
-                }}
-                onDragLeave={() => setOver("")}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setOver("");
-                  const id = e.dataTransfer.getData("text/plain");
-                  if (id) move.mutate({ id, to: s });
-                }}
-              >
-                <div className="col-header">
-                  <h3>
-                    <Lamp status={s} />
-                    <span className="col-count">{colTasks.length}</span>
-                    {quickAdd && (
-                      <Tip label={`Add task to ${LABEL[s]}`}>
-                        <button
-                          type="button"
-                          onClick={() => setCreating({ startMode: quickAdd })}
-                          aria-label={`Add task to ${LABEL[s]}`}
-                          className="ml-1 inline-flex size-5 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-raised hover:text-ink"
-                        >
-                          <Plus className="size-3.5" />
-                        </button>
-                      </Tip>
-                    )}
-                  </h3>
-                  <div className="track-line" />
-                </div>
-
-                <div className="col-well">
-                  {colTasks.length === 0 ? (
-                    <div className="col-empty">
-                      {(() => {
-                        const Icon = EMPTY_ICONS[s];
-                        return <Icon className="size-5 mb-1 opacity-40 text-[var(--lamp)]" />;
-                      })()}
-                      <strong>{copy.title}</strong>
-                      <span>{copy.hint}</span>
+      {viewMode === "board" && (
+        <div className="board-scroller">
+          <div className="board">
+            {STATUSES.map((s) => {
+              const colTasks = filtered.filter((t) => t.status === s);
+              const copy = EMPTY_COPY[s];
+              const quickAdd = QUICK_ADD[s];
+              return (
+                <div
+                  key={s}
+                  className={"col" + (over === s ? " over" : "")}
+                  style={{ ["--lamp" as string]: statusColor(s) }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setOver(s);
+                  }}
+                  onDragLeave={() => setOver("")}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setOver("");
+                    const id = e.dataTransfer.getData("text/plain");
+                    if (id) move.mutate({ id, to: s });
+                  }}
+                >
+                  <div className="col-header">
+                    <h3>
+                      <Lamp status={s} />
+                      <span className="col-count">{colTasks.length}</span>
                       {quickAdd && (
-                        <button
-                          type="button"
-                          onClick={() => setCreating({ startMode: quickAdd })}
-                          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-semibold text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
-                        >
-                          <Plus className="size-3" />
-                          Add task
-                        </button>
+                        <Tip label={`Add task to ${LABEL[s]}`}>
+                          <button
+                            type="button"
+                            onClick={() => setCreating({ startMode: quickAdd })}
+                            aria-label={`Add task to ${LABEL[s]}`}
+                            className="ml-1 inline-flex size-5 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-raised hover:text-ink"
+                          >
+                            <Plus className="size-3.5" />
+                          </button>
+                        </Tip>
                       )}
-                    </div>
-                  ) : (
-                    colTasks.map((t) => {
-                      const isSel = selected.has(t.id);
-                      const firstLine = (t.prompt || "").split("\n").find((l) => l.trim())?.trim() ?? "";
-                      return (
-                        <div
-                          key={t.id}
-                          className="card group"
-                          data-status={t.status}
-                          data-selected={isSel || undefined}
-                          style={{ ["--lamp" as string]: statusColor(t.status) }}
-                          draggable
-                          onDragStart={(e) => e.dataTransfer.setData("text/plain", t.id)}
-                          onClick={() => (bulkMode ? toggleSelect(t.id) : open(t.id))}
-                        >
-                          <span aria-hidden className="card-coupler" />
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                            {bulkMode && (
-                              <input
-                                type="checkbox"
-                                checked={isSel}
-                                onChange={() => toggleSelect(t.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ width: 14, height: 14, marginTop: 2 }}
-                                aria-label={`Select ${t.title}`}
-                              />
-                            )}
-                            <div className="card-title" style={{ flex: 1 }}>
-                              {t.title}
+                    </h3>
+                    <div className="track-line" />
+                  </div>
+
+                  <div className="col-well">
+                    {colTasks.length === 0 ? (
+                      <div className="col-empty">
+                        {(() => {
+                          const Icon = EMPTY_ICONS[s];
+                          return <Icon className="size-5 mb-1 opacity-40 text-[var(--lamp)]" />;
+                        })()}
+                        <strong>{copy.title}</strong>
+                        <span>{copy.hint}</span>
+                        {quickAdd && (
+                          <button
+                            type="button"
+                            onClick={() => setCreating({ startMode: quickAdd })}
+                            className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-semibold text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
+                          >
+                            <Plus className="size-3" />
+                            Add task
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      colTasks.map((t) => {
+                        const isSel = selected.has(t.id);
+                        const firstLine = (t.prompt || "").split("\n").find((l) => l.trim())?.trim() ?? "";
+                        return (
+                          <div
+                            key={t.id}
+                            className="card group"
+                            data-status={t.status}
+                            data-selected={isSel || undefined}
+                            style={{ ["--lamp" as string]: statusColor(t.status) }}
+                            draggable
+                            onDragStart={(e) => e.dataTransfer.setData("text/plain", t.id)}
+                            onClick={() => (bulkMode ? toggleSelect(t.id) : open(t.id))}
+                          >
+                            <span aria-hidden className="card-coupler" />
+
+                            {/* Card top telemetry bar */}
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                {bulkMode && (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSel}
+                                    onChange={() => toggleSelect(t.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ width: 14, height: 14 }}
+                                    aria-label={`Select ${t.title}`}
+                                  />
+                                )}
+                                <span className="truncate font-mono text-[10px] font-medium text-ink-4">
+                                  {t.id}
+                                </span>
+                                {t.run_id && <span className="badge review">pipeline</span>}
+                              </div>
+
+                              {!bulkMode && (
+                                <Menu
+                                  label={`Actions for ${t.title}`}
+                                  trigger={
+                                    <button
+                                      type="button"
+                                      aria-label={`Actions for ${t.title}`}
+                                      className="-mt-0.5 -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-well hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
+                                    >
+                                      <MoreHorizontal className="size-3.5" />
+                                    </button>
+                                  }
+                                >
+                                  <MenuLabel>Task</MenuLabel>
+                                  <MenuItem icon={ExternalLink} onSelect={() => open(t.id)}>
+                                    Open details
+                                  </MenuItem>
+                                  <MenuItem
+                                    icon={Copy}
+                                    onSelect={() => {
+                                      void navigator.clipboard?.writeText(t.id);
+                                      toast("Task id copied", { tone: "info", description: t.id });
+                                    }}
+                                  >
+                                    Copy id
+                                  </MenuItem>
+                                  {t.status === "todo" && (
+                                    <MenuItem icon={Play} onSelect={() => dispatch.mutate(t.id)}>
+                                      Dispatch now
+                                    </MenuItem>
+                                  )}
+                                  {NEXT[t.status].length > 0 && (
+                                    <>
+                                      <MenuSeparator />
+                                      <MenuLabel>Move to</MenuLabel>
+                                      {NEXT[t.status].map((n) => (
+                                        <MenuItem key={n} icon={ArrowRight} onSelect={() => move.mutate({ id: t.id, to: n })}>
+                                          {LABEL[n] ?? n}
+                                        </MenuItem>
+                                      ))}
+                                    </>
+                                  )}
+                                </Menu>
+                              )}
                             </div>
 
-                            {!bulkMode && (
-                              <Menu
-                                label={`Actions for ${t.title}`}
-                                trigger={
-                                  <button
-                                    type="button"
-                                    aria-label={`Actions for ${t.title}`}
-                                    className="-mt-0.5 -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-well hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
-                                  >
-                                    <MoreHorizontal className="size-3.5" />
-                                  </button>
-                                }
-                              >
-                                <MenuLabel>Task</MenuLabel>
-                                <MenuItem icon={ExternalLink} onSelect={() => open(t.id)}>
-                                  Open details
-                                </MenuItem>
-                                <MenuItem
-                                  icon={Copy}
-                                  onSelect={() => {
-                                    void navigator.clipboard?.writeText(t.id);
-                                    toast("Task id copied", { tone: "info", description: t.id });
+                            <div className="card-title">{t.title}</div>
+
+                            {firstLine && <div className="card-snippet">{firstLine}</div>}
+
+                            <div className="meta">
+                              <span className="badge accent">
+                                {t.executor || "default"}
+                                {t.model ? ` · ${t.model}` : ""}
+                              </span>
+                              {t.effort && <span className="badge">{t.effort}</span>}
+                              {t.workspace && (
+                                <span className="badge inline-flex items-center gap-1" title={t.workspace}>
+                                  <OsIcon
+                                    ws={(workspaces.data ?? []).find((w) => w.path === t.workspace)}
+                                    path={t.workspace}
+                                    className="size-3"
+                                  />
+                                  {t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace}
+                                </span>
+                              )}
+                              {t.blocked_by?.length > 0 && (
+                                <span className="badge warn" title={`Blocked by: ${t.blocked_by.join(", ")}`}>
+                                  {t.blocked_by.length} dep{t.blocked_by.length === 1 ? "" : "s"}
+                                </span>
+                              )}
+                              {t.retry_count > 0 && <span className="badge warn">retry {t.retry_count}</span>}
+                            </div>
+
+                            <div className="mt-2.5 flex items-center gap-1.5 border-t border-line/60 pt-2">
+                              <span className="font-mono text-[10px] text-ink-4" title="Last updated">
+                                {relativeTime(t.updated_at)}
+                              </span>
+                              <div className="flex-1" />
+                              {t.status === "todo" ? (
+                                <button
+                                  className="btn primary sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    dispatch.mutate(t.id);
                                   }}
+                                  disabled={dispatch.isPending}
                                 >
-                                  Copy id
-                                </MenuItem>
-                                {t.status === "todo" && (
-                                  <MenuItem icon={Play} onSelect={() => dispatch.mutate(t.id)}>
-                                    Dispatch now
-                                  </MenuItem>
-                                )}
-                                {NEXT[t.status].length > 0 && (
-                                  <>
-                                    <MenuSeparator />
-                                    <MenuLabel>Move to</MenuLabel>
-                                    {NEXT[t.status].map((n) => (
-                                      <MenuItem key={n} icon={ArrowRight} onSelect={() => move.mutate({ id: t.id, to: n })}>
-                                        {LABEL[n] ?? n}
-                                      </MenuItem>
-                                    ))}
-                                  </>
-                                )}
-                              </Menu>
-                            )}
+                                  <Play className="size-2.5 fill-current" />
+                                  <span>Dispatch</span>
+                                </button>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
+                                  Open
+                                  <ArrowRight className="size-2.5" />
+                                </span>
+                              )}
+                            </div>
                           </div>
-
-                          {firstLine && <div className="card-snippet">{firstLine}</div>}
-
-                          <div className="meta">
-                            <span className="badge">
-                              {t.executor || "default"}
-                              {t.model ? ` · ${t.model}` : ""}
-                            </span>
-                            {t.effort && <span className="badge">{t.effort}</span>}
-                            {t.workspace && (
-                              <span className="badge inline-flex items-center gap-1" title={t.workspace}>
-                                <OsIcon
-                                  ws={(workspaces.data ?? []).find((w) => w.path === t.workspace)}
-                                  path={t.workspace}
-                                  className="size-3"
-                                />
-                                {t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace}
-                              </span>
-                            )}
-                            {t.blocked_by?.length > 0 && (
-                              <span className="badge warn" title={`Blocked by: ${t.blocked_by.join(", ")}`}>
-                                ⛓ {t.blocked_by.length} dep{t.blocked_by.length === 1 ? "" : "s"}
-                              </span>
-                            )}
-                            {t.retry_count > 0 && <span className="badge warn">retry {t.retry_count}</span>}
-                            {t.run_id && <span className="badge review">pipeline</span>}
-                          </div>
-
-                          <div className="mt-2 flex items-center gap-1.5 border-t border-line/60 pt-1.5">
-                            <span className="font-mono text-[10px] text-ink-4" title="Last updated">
-                              {relativeTime(t.updated_at)}
-                            </span>
-                            <div className="flex-1" />
-                            {t.status === "todo" ? (
-                              <button
-                                className="btn primary sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  dispatch.mutate(t.id);
-                                }}
-                                disabled={dispatch.isPending}
-                              >
-                                <Play className="size-2.5 fill-current" />
-                                <span>Dispatch</span>
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
-                                Open
-                                <ArrowRight className="size-2.5" />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
+
+      {viewMode === "table" && (
+        <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
+          <div className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-[var(--glass-lift-card)]">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-12 text-center">
+                <ListTodo className="size-6 text-ink-3" />
+                <strong className="text-sm text-ink">No matching tasks</strong>
+                <p className="m-0 text-xs text-ink-3">Clear active filters or create a new task to populate the ledger.</p>
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Task</th>
+                    <th>Status</th>
+                    <th>Workspace</th>
+                    <th>Agent</th>
+                    <th>Deps</th>
+                    <th>Updated</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((t) => {
+                    const matchedWs = (workspaces.data ?? []).find((w) => w.path === t.workspace);
+                    return (
+                      <tr key={t.id} onClick={() => open(t.id)} className="cursor-pointer">
+                        <td className="font-mono text-[11px] text-ink-3">{t.id}</td>
+                        <td>
+                          <div className="font-semibold text-ink">{t.title}</div>
+                          {t.prompt && (
+                            <div className="max-w-[38ch] truncate font-mono text-[11px] text-ink-3">
+                              {t.prompt}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <StatusBadge status={t.status} />
+                        </td>
+                        <td>
+                          {t.workspace ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs text-ink-2">
+                              <OsIcon ws={matchedWs} path={t.workspace} className="size-3.5" />
+                              {matchedWs?.name ?? (t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-ink-4">scratch</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="badge accent">
+                            {t.executor || "default"}
+                            {t.model ? ` · ${t.model}` : ""}
+                          </span>
+                        </td>
+                        <td className="font-mono text-xs tabular text-ink-3">
+                          {t.blocked_by?.length ? `${t.blocked_by.length} blocked` : "—"}
+                        </td>
+                        <td className="font-mono text-[11px] tabular text-ink-3">{relativeTime(t.updated_at)}</td>
+                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                          {t.status === "todo" ? (
+                            <button
+                              type="button"
+                              className="btn primary sm"
+                              onClick={() => dispatch.mutate(t.id)}
+                              disabled={dispatch.isPending}
+                            >
+                              <Play className="size-2.5 fill-current" />
+                              Dispatch
+                            </button>
+                          ) : (
+                            <button type="button" className="btn sm" onClick={() => open(t.id)}>
+                              Open
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "lanes" && (
+        <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {(executorsOnBoard.length ? executorsOnBoard : ["default"]).map((exec) => {
+              const laneTasks = filtered.filter((t) => (t.executor || "default") === exec);
+              return (
+                <section
+                  key={exec}
+                  className="flex flex-col gap-2.5 rounded-[22px] border border-line bg-well/65 p-3.5 shadow-[var(--well-inset)]"
+                >
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="size-3.5 text-accent-text" />
+                      <h3 className="m-0 font-[var(--font-display)] text-sm font-bold text-ink">{exec}</h3>
+                    </div>
+                    <span className="badge tabular">{laneTasks.length} tasks</span>
+                  </div>
+                  {laneTasks.length === 0 ? (
+                    <div className="rounded-[14px] border border-dashed border-line-strong/70 bg-surface/50 py-6 text-center text-xs text-ink-4">
+                      No matching tasks
+                    </div>
+                  ) : (
+                    laneTasks.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => open(t.id)}
+                        className="card group"
+                        data-status={t.status}
+                        style={{ ["--lamp" as string]: statusColor(t.status) }}
+                      >
+                        <span aria-hidden className="card-coupler" />
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[10px] text-ink-4">{t.id}</span>
+                          <StatusBadge status={t.status} />
+                        </div>
+                        <div className="card-title mt-1.5">{t.title}</div>
+                        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink-3">
+                          <span className="truncate font-mono">{t.model || "default model"}</span>
+                          <span className="tabular">{relativeTime(t.updated_at)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

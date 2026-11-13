@@ -43,12 +43,16 @@ export function Login({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col justify-center px-4 py-12">
-      <div className="rounded-[28px] border border-line bg-well/70 p-2 shadow-[var(--lift-3)]">
-        <div className="rounded-[20px] border border-line bg-surface p-6 shadow-[var(--lift-1),var(--lift-inset)]">
-          <div className="mb-5 flex flex-col items-center gap-2 text-center">
-            <BrandLockup size={34} />
-            <p className="m-0 text-xs text-ink-3">
+    <main className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-4 py-12">
+      <div className="rounded-[30px] border border-line bg-well/75 p-2.5 shadow-[var(--lift-3)]">
+        <div className="rounded-[22px] border border-line bg-surface p-6 shadow-[var(--lift-1),var(--lift-inset)] sm:p-7">
+          <div className="mb-5 flex flex-col items-center gap-2.5 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/80 px-2.5 py-1 font-mono text-[10px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+              <span className="size-1.5 rounded-full bg-accent" aria-hidden />
+              Control plane access
+            </span>
+            <BrandLockup size={36} />
+            <p className="m-0 max-w-[34ch] text-xs leading-relaxed text-ink-3">
               Autonomous coding agent dispatch, worktree isolation &amp; diff review gate.
             </p>
           </div>
@@ -56,7 +60,7 @@ export function Login({ onDone }: { onDone: () => void }) {
           <ErrorBox error={err} />
 
           {enabled === false && (
-            <p className="muted mb-4 rounded-[12px] border border-line bg-well/60 px-3 py-2 text-center text-xs leading-relaxed">
+            <p className="muted mb-4 rounded-[14px] border border-line bg-well/65 px-3.5 py-2.5 text-center text-xs leading-relaxed">
               Password login is disabled. Set <code>SWITCHYARD_ADMIN_PASSWORD</code> and restart the server, or paste an API token below.
             </p>
           )}

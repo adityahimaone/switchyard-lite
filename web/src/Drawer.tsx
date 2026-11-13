@@ -72,6 +72,11 @@ export function TaskDrawer({
         onClick={(e) => e.stopPropagation()}
         className="drawer-panel outline-none"
       >
+        <div className="flex shrink-0 items-center justify-between border-b border-line/70 bg-well/55 px-5 py-2 text-[10.5px] font-mono tracking-[0.08em] text-ink-4 uppercase">
+          <span>Task inspector</span>
+          <span>Live telemetry</span>
+        </div>
+
         <TaskHeader
           id={id}
           task={t}
@@ -83,7 +88,7 @@ export function TaskDrawer({
           onOpenPage={openFullPage}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-canvas/35 px-5 py-4">
           <TaskDetailPanels
             id={id}
             variant="drawer"
@@ -97,7 +102,7 @@ export function TaskDrawer({
           />
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface/60 px-5 py-2.5">
+        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface/85 px-5 py-3 backdrop-blur-md">
           <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-4">
             <Kbd>esc</Kbd>
             <span>to close</span>

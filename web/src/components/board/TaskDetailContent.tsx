@@ -439,10 +439,12 @@ export function TaskDetailPanels({
   return (
     <Tabs value={tab} onValueChange={setTab} className="gap-0">
       <TabsList
-        variant="line"
+        variant="default"
         className={cn(
-          "w-full justify-start overflow-x-auto px-1",
-          variant === "page" && "sticky top-0 z-10 bg-canvas/85 backdrop-blur"
+          "h-auto w-full justify-start overflow-x-auto rounded-full border border-line bg-well/80 p-1 shadow-[var(--well-inset)]",
+          "[&_[data-slot=tabs-trigger]]:rounded-full [&_[data-slot=tabs-trigger]]:px-3.5 [&_[data-slot=tabs-trigger]]:py-1.5 [&_[data-slot=tabs-trigger]]:after:hidden",
+          "[&_[data-slot=tabs-trigger][data-state=active]]:bg-surface [&_[data-slot=tabs-trigger][data-state=active]]:text-ink [&_[data-slot=tabs-trigger][data-state=active]]:shadow-[var(--lift-1)]",
+          variant === "page" && "sticky top-[96px] z-10 backdrop-blur-md"
         )}
       >
         <TabsTrigger value="overview">
@@ -739,40 +741,40 @@ export function TaskDetailPanels({
                   </Section>
                 ) : null}
 
-                <div className="grid gap-3">
-                  {variant === "drawer" && (
-                    <Section title="Details">
-                      <FieldList>
-                        <Field label="Task id">
-                          <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                            {t.id}
-                            <CopyButton value={t.id} label="Copy task id" />
+                {variant === "drawer" && (
+                  <Section title="Details">
+                    <FieldList>
+                      <Field label="Task id">
+                        <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                          {t.id}
+                          <CopyButton value={t.id} label="Copy task id" />
+                        </span>
+                      </Field>
+                      {worktree.data?.exists && (
+                        <Field label="Worktree branch">
+                          <span className="font-mono text-[11px]">{worktree.data.branch}</span>
+                        </Field>
+                      )}
+                      {t.branch && (
+                        <Field label="Base branch">
+                          <span className="font-mono text-[11px]">{t.branch}</span>
+                        </Field>
+                      )}
+                      {t.run_id && (
+                        <Field label="Pipeline">
+                          <span className="font-mono text-[11px]">
+                            {t.run_id}
+                            {t.stage_id ? ` / ${t.stage_id}` : ""}
                           </span>
                         </Field>
-                        {worktree.data?.exists && (
-                          <Field label="Worktree branch">
-                            <span className="font-mono text-[11px]">{worktree.data.branch}</span>
-                          </Field>
-                        )}
-                        {t.branch && (
-                          <Field label="Base branch">
-                            <span className="font-mono text-[11px]">{t.branch}</span>
-                          </Field>
-                        )}
-                        {t.run_id && (
-                          <Field label="Pipeline">
-                            <span className="font-mono text-[11px]">
-                              {t.run_id}
-                              {t.stage_id ? ` / ${t.stage_id}` : ""}
-                            </span>
-                          </Field>
-                        )}
-                        <Field label="Created">{fmtDateTime(t.created_at)}</Field>
-                        <Field label="Updated">{fmtDateTime(t.updated_at)}</Field>
-                      </FieldList>
-                    </Section>
-                  )}
+                      )}
+                      <Field label="Created">{fmtDateTime(t.created_at)}</Field>
+                      <Field label="Updated">{fmtDateTime(t.updated_at)}</Field>
+                    </FieldList>
+                  </Section>
+                )}
 
+                <div className={cn("grid gap-3", variant === "page" && "md:grid-cols-2")}>
                   <Section
                     title={
                       <>
@@ -846,14 +848,13 @@ export function TaskDetailPanels({
                       )}
                     </div>
                   </Section>
-                </div>
 
-                <Section
-                  title={
-                    <>
-                      <Paperclip className="size-3" /> Attachments ({attachments.data?.length ?? 0})
-                    </>
-                  }
+                  <Section
+                    title={
+                      <>
+                        <Paperclip className="size-3" /> Attachments ({attachments.data?.length ?? 0})
+                      </>
+                    }
                   action={
                     <div className="flex items-center gap-1">
                       <input
@@ -952,7 +953,8 @@ export function TaskDetailPanels({
                       hint="Upload files or specs directly onto this task."
                     />
                   )}
-                </Section>
+                  </Section>
+                </div>
               </>
             )}
           </>

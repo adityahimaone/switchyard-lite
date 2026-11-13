@@ -469,7 +469,7 @@ export function TaskDialog({
         if (!nextOpen) onClose();
       }}
     >
-      <DialogContent className="max-w-3xl p-0" showClose>
+      <DialogContent className="max-w-4xl p-0" showClose>
         <form
           onSubmit={submit}
           onKeyDown={(e) => {
@@ -480,34 +480,42 @@ export function TaskDialog({
           }}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <DialogHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              <DialogTitle id="task-dialog-title">New task</DialogTitle>
+          <DialogHeader className="border-b border-line bg-well/45 px-5 py-4">
+            <div className="flex flex-wrap items-center gap-2 pr-8">
+              <DialogTitle id="task-dialog-title" className="text-[17px] tracking-tight">
+                New task
+              </DialogTitle>
               {board && (
                 <Badge variant="default" className="font-mono text-[11px]">
                   {board.name}
                 </Badge>
               )}
-              <Badge variant="secondary" className="font-mono text-[10px]">
+              <Badge
+                variant={startMode === "now" ? "default" : "secondary"}
+                className="font-mono text-[10px]"
+              >
                 {startLabel}
               </Badge>
             </div>
-            <DialogDescription>
-              Describe the work, choose where it runs, and how it should start. Press ⌘↵ to create.
+            <DialogDescription className="text-[12.5px] text-ink-3">
+              Dispatch Studio — specify the task brief, bind a workspace and executor, and press ⌘↵ to create.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogBody className="flex flex-col">
+          <DialogBody className="flex flex-col gap-3 bg-canvas/35 p-4 sm:p-5">
             <ErrorBox error={create.error} />
             <SaasRulesBanner active={saasActive} />
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_276px]">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_296px]">
               {/* -------------------------------------------------- content */}
-              <div className="min-w-0 space-y-3.5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="task-title" className="font-semibold text-ink-2">
-                    Title
-                  </Label>
+              <div className="min-w-0 space-y-3">
+                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="task-title" className="text-[12px] font-semibold text-ink-2">
+                      Title
+                    </Label>
+                    <span className="font-mono text-[10px] text-ink-4">Required</span>
+                  </div>
                   <Input
                     id="task-title"
                     required
@@ -528,20 +536,20 @@ export function TaskDialog({
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-prompt" className="font-semibold text-ink-2">
+                    <Label htmlFor="task-prompt" className="text-[12px] font-semibold text-ink-2">
                       Prompt
                     </Label>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-ink-4">{prompt.length} chars</span>
+                      <span className="font-mono text-[10px] tabular-nums text-ink-4">{prompt.length} chars</span>
                       <Button
                         type="button"
-                        variant="secondary"
+                        variant="ghost"
                         size="xs"
                         onClick={applyFastTemplate}
                         title="Insert a structured prompt template"
-                        className="h-6 border-accent/35 bg-accent-tint text-[11px] text-accent-text hover:bg-accent-tint/80"
+                        className="h-6 border border-accent/35 bg-accent-tint text-[11px] text-accent-text hover:border-accent hover:bg-accent hover:text-accent-ink"
                       >
                         <Sparkles className="size-3" />
                         Template
@@ -560,16 +568,87 @@ export function TaskDialog({
                     skills={skills}
                     onSkillsChange={setSkills}
                     placeholder="Detailed instructions for the agent — context, constraints, files to touch…"
-                    className="min-h-[160px]"
+                    className="min-h-[168px]"
                   />
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/70 pt-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          void handleFilePick(e.target.files);
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="dashed"
+                        size="xs"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        <CloudUpload className="size-3.5" />
+                        Upload files
+                        {pendingFiles.length > 0 && (
+                          <span className="rounded-full bg-accent-tint px-1.5 font-mono text-[10px] text-accent-text">
+                            {pendingFiles.length}
+                          </span>
+                        )}
+                      </Button>
+
+                      <button
+                        type="button"
+                        aria-expanded={advancedOpen}
+                        onClick={() => setAdvancedOpen((v) => !v)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/65 px-2.5 py-1 text-[11px] font-medium text-ink-2 transition-colors hover:border-accent/45 hover:bg-accent-tint hover:text-accent-text"
+                      >
+                        <SlidersHorizontal className="size-3 text-ink-3" />
+                        {advancedOpen ? "Hide" : "Show"} advanced
+                      </button>
+                    </div>
+
+                    <span className="font-mono text-[10.5px] tabular-nums text-ink-4">
+                      {paths.length} ref{paths.length === 1 ? "" : "s"} · {skills.length} skill
+                      {skills.length === 1 ? "" : "s"} · {pendingFiles.length} file
+                      {pendingFiles.length === 1 ? "" : "s"} · {blockedBy.length} blocker
+                      {blockedBy.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+
+                  {pendingFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {pendingFiles.map((pf) => (
+                        <span
+                          key={pf.id}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well px-2.5 py-1 text-[11px] font-medium text-ink-2"
+                        >
+                          <Paperclip className="size-3 text-ink-3" />
+                          <span className="max-w-[160px] truncate">{pf.name}</span>
+                          <span className="font-mono text-[10px] text-ink-4">{fmtBytes(pf.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setPendingFiles((p) => p.filter((x) => x.id !== pf.id))}
+                            className="ml-0.5 rounded-full p-0.5 hover:bg-surface"
+                            aria-label={`Remove ${pf.name}`}
+                          >
+                            <X className="size-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-acceptance" className="font-semibold text-ink-2">
+                    <Label htmlFor="task-acceptance" className="text-[12px] font-semibold text-ink-2">
                       Acceptance criteria
                     </Label>
-                    <span className="font-mono text-[10px] text-ink-4">{acceptance.length} chars</span>
+                    <span className="font-mono text-[10px] tabular-nums text-ink-4">
+                      {acceptance.length} chars
+                    </span>
                   </div>
                   <Textarea
                     id="task-acceptance"
@@ -584,170 +663,176 @@ export function TaskDialog({
 
               {/* --------------------------------------------------- routing */}
               <aside
-                className="space-y-4 rounded-[20px] border border-line bg-well/65 p-3.5 shadow-[var(--well-inset)]"
+                className="space-y-3"
                 aria-label="Task routing"
               >
-                <RailGroup label="Target Workspace">
-                  <RailField label="Repository / Checkout">
-                    <SearchSelect
-                      id="task-workspace"
-                      value={selectValue}
-                      onValueChange={(v) => {
-                        setWsUserEdited(true);
-                        setBranch("");
-                        setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
-                      }}
-                      options={workspaceOptions}
-                      placeholder="Select workspace…"
-                      searchPlaceholder="Search workspaces by name, path, host…"
-                      emptyMessage="No matching workspaces"
-                      ariaLabel="Workspace"
-                      size="sm"
-                      showTriggerBadge
-                    />
-                  </RailField>
-
-                  {selectedWsObj ? (
-                    <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-line bg-surface/80 px-2.5 py-1 text-[10px] text-ink-3">
-                      <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
-                      <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
-                        {selectedWsObj.path}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                      {(savedWorkspaces.data?.length ?? 0) === 0
-                        ? "No saved workspaces yet — add one from the Workspaces page."
-                        : "Scratch runs have no repository, branch, or diff."}
-                      {" "}
-                      <a href="#/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
-                        Manage workspaces
-                      </a>
-                    </p>
-                  )}
-
-                  <BranchField
-                    workspace={workspace.trim()}
-                    isGit={isGit}
-                    inspect={wsInspect.data}
-                    value={branch}
-                    onChange={setBranch}
-                  />
-                </RailGroup>
-
-                <RailGroup label="Agent Execution">
-                  <RailField label="Executor" htmlFor="task-executor">
-                    <Select
-                      value={executor || DEFAULT_SENTINEL}
-                      onValueChange={(v) => {
-                        setExecutor(v === DEFAULT_SENTINEL ? "" : v);
-                        setModel("");
-                      }}
-                    >
-                      <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={DEFAULT_SENTINEL}>
-                          {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
-                        </SelectItem>
-                        {EXECUTORS.map((ex) => (
-                          <SelectItem key={ex} value={ex}>
-                            {EXECUTOR_LABELS[ex] ?? ex}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </RailField>
-
-                  <RailField label="Model" htmlFor="task-model">
-                    {modelList.length > 0 ? (
+                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+                  <RailGroup label="Target Workspace">
+                    <RailField label="Repository / Checkout">
                       <SearchSelect
-                        id="task-model"
-                        value={model || DEFAULT_SENTINEL}
-                        onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
-                        disabled={!effectiveExecutor}
-                        options={[
-                          {
-                            value: DEFAULT_SENTINEL,
-                            label: "(executor default)",
-                            sublabel: board?.default_model || undefined,
-                          },
-                          ...modelList.map((m) => ({
-                            value: m.id,
-                            label: m.name,
-                            sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
-                            badge: m.badge,
-                            keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
-                          })),
-                        ]}
-                        placeholder="Select model…"
-                        searchPlaceholder="Search models…"
-                        ariaLabel="Model"
+                        id="task-workspace"
+                        value={selectValue}
+                        onValueChange={(v) => {
+                          setWsUserEdited(true);
+                          setBranch("");
+                          setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
+                        }}
+                        options={workspaceOptions}
+                        placeholder="Select workspace…"
+                        searchPlaceholder="Search workspaces by name, path, host…"
+                        emptyMessage="No matching workspaces"
+                        ariaLabel="Workspace"
                         size="sm"
-                        contentClassName="min-w-[22rem]"
+                        showTriggerBadge
                       />
+                    </RailField>
+
+                    {selectedWsObj ? (
+                      <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-line bg-well/70 px-2.5 py-1 text-[10px] text-ink-3">
+                        <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
+                        <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
+                          {selectedWsObj.path}
+                        </span>
+                      </div>
                     ) : (
-                      <Input
-                        id="task-model"
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        disabled={!effectiveExecutor}
-                        placeholder="(executor default)"
-                        className="h-8 rounded-full font-mono text-[11px]"
-                        aria-label="Model"
-                      />
+                      <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                        {(savedWorkspaces.data?.length ?? 0) === 0
+                          ? "No saved workspaces yet — add one from the Workspaces page."
+                          : "Scratch runs have no repository, branch, or diff."}
+                        {" "}
+                        <a href="#/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
+                          Manage workspaces
+                        </a>
+                      </p>
                     )}
-                  </RailField>
 
-                  {effectiveExecutor && modelList.length === 0 && (
-                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                      {modelHint
-                        ? `No catalog yet — ${modelHint}`
-                        : `No model catalog reported for ${EXECUTOR_LABELS[effectiveExecutor] ?? effectiveExecutor}. Type a model id, or leave blank for the executor default.`}
-                    </p>
-                  )}
+                    <BranchField
+                      workspace={workspace.trim()}
+                      isGit={isGit}
+                      inspect={wsInspect.data}
+                      value={branch}
+                      onChange={setBranch}
+                    />
+                  </RailGroup>
+                </div>
 
-                  <RailField label="Reasoning Effort" htmlFor="task-effort">
-                    <Select
-                      value={effort || DEFAULT_SENTINEL}
-                      onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
-                    >
-                      <SelectTrigger id="task-effort" size="sm" aria-label="Effort">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
-                        {EFFORTS.map((ef) => (
-                          <SelectItem key={ef} value={ef}>
-                            {ef.charAt(0).toUpperCase() + ef.slice(1)}
+                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+                  <RailGroup label="Agent Execution">
+                    <RailField label="Executor" htmlFor="task-executor">
+                      <Select
+                        value={executor || DEFAULT_SENTINEL}
+                        onValueChange={(v) => {
+                          setExecutor(v === DEFAULT_SENTINEL ? "" : v);
+                          setModel("");
+                        }}
+                      >
+                        <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={DEFAULT_SENTINEL}>
+                            {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </RailField>
-                </RailGroup>
+                          {EXECUTORS.map((ex) => (
+                            <SelectItem key={ex} value={ex}>
+                              {EXECUTOR_LABELS[ex] ?? ex}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </RailField>
 
-                <RailGroup label="Dispatch Mode">
-                  <Segmented
-                    label="Start mode"
-                    value={startMode}
-                    onChange={setStartMode}
-                    options={[
-                      { value: "manual", label: "Manual" },
-                      { value: "queue", label: "Todo" },
-                      { value: "now", label: "Now" },
-                    ]}
-                    className="w-full justify-between"
-                  />
-                  <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                    {startMode === "now"
-                      ? "Created in Todo and dispatched immediately."
-                      : startMode === "manual"
-                        ? "Parked in Backlog until you triage it."
-                        : "Queued in Todo for the next worker poll."}
-                  </p>
-                </RailGroup>
+                    <RailField label="Model" htmlFor="task-model">
+                      {modelList.length > 0 ? (
+                        <SearchSelect
+                          id="task-model"
+                          value={model || DEFAULT_SENTINEL}
+                          onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
+                          disabled={!effectiveExecutor}
+                          options={[
+                            {
+                              value: DEFAULT_SENTINEL,
+                              label: "(executor default)",
+                              sublabel: board?.default_model || undefined,
+                            },
+                            ...modelList.map((m) => ({
+                              value: m.id,
+                              label: m.name,
+                              sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
+                              badge: m.badge,
+                              keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
+                            })),
+                          ]}
+                          placeholder="Select model…"
+                          searchPlaceholder="Search models…"
+                          ariaLabel="Model"
+                          size="sm"
+                          contentClassName="min-w-[22rem]"
+                        />
+                      ) : (
+                        <Input
+                          id="task-model"
+                          value={model}
+                          onChange={(e) => setModel(e.target.value)}
+                          disabled={!effectiveExecutor}
+                          placeholder="(executor default)"
+                          className="h-8 rounded-full font-mono text-[11px]"
+                          aria-label="Model"
+                        />
+                      )}
+                    </RailField>
+
+                    {effectiveExecutor && modelList.length === 0 && (
+                      <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                        {modelHint
+                          ? `No catalog yet — ${modelHint}`
+                          : `No model catalog reported for ${EXECUTOR_LABELS[effectiveExecutor] ?? effectiveExecutor}. Type a model id, or leave blank for the executor default.`}
+                      </p>
+                    )}
+
+                    <RailField label="Reasoning Effort" htmlFor="task-effort">
+                      <Select
+                        value={effort || DEFAULT_SENTINEL}
+                        onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
+                      >
+                        <SelectTrigger id="task-effort" size="sm" aria-label="Effort">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
+                          {EFFORTS.map((ef) => (
+                            <SelectItem key={ef} value={ef}>
+                              {ef.charAt(0).toUpperCase() + ef.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </RailField>
+                  </RailGroup>
+                </div>
+
+                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+                  <RailGroup label="Dispatch Mode">
+                    <Segmented
+                      label="Start mode"
+                      value={startMode}
+                      onChange={setStartMode}
+                      options={[
+                        { value: "manual", label: "Manual" },
+                        { value: "queue", label: "Todo" },
+                        { value: "now", label: "Now" },
+                      ]}
+                      className="w-full justify-between"
+                    />
+                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                      {startMode === "now"
+                        ? "Created in Todo and dispatched immediately."
+                        : startMode === "manual"
+                          ? "Parked in Backlog until you triage it."
+                          : "Queued in Todo for the next worker poll."}
+                    </p>
+                  </RailGroup>
+                </div>
               </aside>
             </div>
 
@@ -768,52 +853,8 @@ export function TaskDialog({
               />
             </CollapsibleSection>
 
-            {/* ------------------------------------------------- supporting */}
-            <div className="mt-2 flex flex-wrap items-center gap-2.5">
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  void handleFilePick(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <Button
-                type="button"
-                variant="dashed"
-                size="xs"
-                onClick={() => fileRef.current?.click()}
-              >
-                <CloudUpload className="size-3.5" />
-                Upload files
-                {pendingFiles.length > 0 && (
-                  <span className="rounded-full bg-accent-tint px-1.5 font-mono text-[10px] text-accent-text">
-                    {pendingFiles.length}
-                  </span>
-                )}
-              </Button>
-
-              <button
-                type="button"
-                aria-expanded={advancedOpen}
-                onClick={() => setAdvancedOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
-              >
-                <SlidersHorizontal className="size-3 text-ink-3" />
-                {advancedOpen ? "Hide" : "Show"} advanced
-              </button>
-
-              <span className="font-mono text-[11px] text-ink-4">
-                {paths.length} ref{paths.length === 1 ? "" : "s"} · {skills.length} skill
-                {skills.length === 1 ? "" : "s"} · {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} ·{" "}
-                {blockedBy.length} blocker{blockedBy.length === 1 ? "" : "s"}
-              </span>
-            </div>
-
             {(advancedOpen || pendingFiles.length > 0) && (
-              <div className="mt-2.5 rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+              <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2">
                     <Paperclip className="size-3.5 text-ink-3" />
@@ -824,28 +865,6 @@ export function TaskDialog({
                     Choose files
                   </Button>
                 </div>
-                {pendingFiles.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {pendingFiles.map((pf) => (
-                      <span
-                        key={pf.id}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well px-2.5 py-1 text-[11px] font-medium text-ink-2"
-                      >
-                        <Paperclip className="size-3 text-ink-3" />
-                        <span className="max-w-[160px] truncate">{pf.name}</span>
-                        <span className="font-mono text-[10px] text-ink-4">{fmtBytes(pf.size)}</span>
-                        <button
-                          type="button"
-                          onClick={() => setPendingFiles((p) => p.filter((x) => x.id !== pf.id))}
-                          className="ml-0.5 rounded-full p-0.5 hover:bg-surface"
-                          aria-label={`Remove ${pf.name}`}
-                        >
-                          <X className="size-2.5" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
 
                 {activeCandidates.length > 0 && (
                   <CollapsibleSection
@@ -907,14 +926,17 @@ export function TaskDialog({
             )}
           </DialogBody>
 
-          <DialogFooter className="sm:items-center">
+          <DialogFooter className="border-t border-line bg-surface/85 px-5 py-3.5 sm:items-center">
             <div className="mr-auto hidden flex-wrap items-center gap-1.5 text-[11px] text-ink-3 sm:flex">
               <MetaChip title="Board">{board?.name ?? "board"}</MetaChip>
+              <ChevronRight className="size-3 text-ink-4" />
               <MetaChip title="Workspace">{wsLabel}</MetaChip>
+              <ChevronRight className="size-3 text-ink-4" />
               <MetaChip tone="accent" title="Executor">
                 {summaryExecutor}
                 {summaryModel ? ` · ${summaryModel}` : ""}
               </MetaChip>
+              <ChevronRight className="size-3 text-ink-4" />
               <MetaChip tone={startMode === "now" ? "review" : "default"}>
                 {startMode === "now" && <Play className="size-2.5" />}
                 {startLabel}

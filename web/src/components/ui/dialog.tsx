@@ -68,7 +68,7 @@ function DialogContent({
             data-slot="dialog-close"
             className={cn(
               "absolute top-4 right-4 z-10 flex size-8 items-center justify-center rounded-full text-ink-3 outline-none",
-              "border border-line bg-surface shadow-[var(--lift-1)] transition-[colors,transform,box-shadow] duration-150 hover:border-line-strong hover:text-ink active:scale-95",
+              "border border-line bg-surface shadow-[var(--lift-1)] transition-[background-color,border-color,color,transform,box-shadow] duration-150 hover:border-line-strong hover:bg-well hover:text-ink active:scale-95",
               "focus-visible:ring-2 focus-visible:ring-focus/40"
             )}
           >

@@ -31,25 +31,25 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border border-line bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)] hover:-translate-y-px hover:border-line-strong hover:bg-raised hover:shadow-[var(--lift-2),var(--lift-inset)] data-[state=open]:shadow-[var(--lift-2),var(--lift-inset)] motion-reduce:transform-none",
+          "border border-line bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)] hover:-translate-y-px hover:border-line-strong hover:bg-well/75 hover:text-ink hover:shadow-[var(--lift-2),var(--lift-inset)] data-[state=open]:shadow-[var(--lift-2),var(--lift-inset)] motion-reduce:transform-none",
         prism:
-          "sheen border border-white/25 bg-[image:var(--grad-prism)] text-white shadow-[var(--glow-brand),var(--lift-inset)] hover:-translate-y-px hover:brightness-[1.04] motion-reduce:transform-none",
+          "sheen border border-white/25 bg-[image:var(--grad-prism)] text-white shadow-[var(--glow-brand),var(--lift-inset)] hover:-translate-y-px hover:border-white/40 hover:text-white hover:brightness-[1.06] hover:shadow-[var(--glow-brand),var(--lift-2),var(--lift-inset)] motion-reduce:transform-none",
         gradient:
-          "sheen border border-white/25 bg-[image:var(--grad-prism)] text-white shadow-[var(--glow-brand),var(--lift-inset)] hover:-translate-y-px hover:brightness-[1.04] motion-reduce:transform-none",
+          "sheen border border-white/25 bg-[image:var(--grad-prism)] text-white shadow-[var(--glow-brand),var(--lift-inset)] hover:-translate-y-px hover:border-white/40 hover:text-white hover:brightness-[1.06] hover:shadow-[var(--glow-brand),var(--lift-2),var(--lift-inset)] motion-reduce:transform-none",
         obsidian:
-          "sheen border border-white/15 bg-[image:var(--grad-obsidian)] text-white shadow-[var(--glow-obsidian)] hover:-translate-y-px hover:brightness-110 motion-reduce:transform-none",
+          "border border-white/15 bg-[image:var(--grad-obsidian)] text-white shadow-[var(--glow-obsidian)] hover:-translate-y-px hover:text-white hover:brightness-110 motion-reduce:transform-none",
         signal:
-          "sheen border border-accent bg-accent text-accent-ink shadow-[var(--glow-accent),var(--lift-inset)] hover:-translate-y-px hover:brightness-[1.05] motion-reduce:transform-none",
+          "border border-accent bg-accent bg-[image:var(--spec-sheen)] text-accent-ink shadow-[var(--glow-accent),var(--lift-inset)] hover:-translate-y-px hover:bg-[color-mix(in_srgb,var(--c-accent)_88%,#000)] hover:text-accent-ink hover:shadow-[var(--glow-accent),var(--lift-2),var(--lift-inset)] motion-reduce:transform-none",
         secondary:
-          "border border-line/80 bg-well text-ink-2 shadow-[var(--well-inset)] hover:border-line-strong hover:bg-surface hover:text-ink",
+          "border border-line/80 bg-well text-ink-2 shadow-[var(--well-inset)] hover:border-line-strong hover:bg-well/70 hover:text-ink",
         outline:
-          "border border-line-strong bg-transparent text-ink hover:bg-surface hover:shadow-[var(--lift-1)]",
+          "border border-line-strong bg-surface text-ink shadow-[var(--lift-1)] hover:border-accent/45 hover:bg-well/80 hover:text-ink hover:shadow-[var(--lift-2)]",
         dashed:
-          "border-[1.5px] border-dashed border-line-strong bg-surface/65 text-ink-2 hover:border-accent hover:bg-surface hover:text-ink",
+          "border-[1.5px] border-dashed border-line-strong bg-well/50 text-ink-2 hover:border-accent hover:bg-accent-tint hover:text-accent-text",
         ghost:
-          "border border-transparent bg-transparent text-ink-2 hover:bg-well/80 hover:text-ink",
+          "border border-transparent bg-transparent text-ink-2 hover:bg-well hover:text-ink",
         destructive:
-          "border border-danger/30 bg-danger-tint text-danger-text shadow-[var(--lift-1)] hover:bg-danger/18",
+          "border border-danger/35 bg-danger-tint text-danger-text shadow-[var(--lift-1)] hover:border-danger/55 hover:bg-danger/20 hover:text-danger-text",
         link: "h-auto rounded-none px-0 text-accent underline-offset-4 hover:underline",
       },
       size: {

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,7 +16,7 @@ export function Segmented<T extends string>({
   label: string;
   value: T;
   onChange: (value: T) => void;
-  options: { value: T; label: string }[];
+  options: { value: T; label: ReactNode }[];
   className?: string;
 }) {
   return (
@@ -37,7 +38,7 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex h-7 flex-1 items-center justify-center rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150",
+              "inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 active:scale-[0.972]",
               active
                 ? "border border-line/70 bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)]"

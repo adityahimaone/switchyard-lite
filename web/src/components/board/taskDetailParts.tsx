@@ -119,17 +119,17 @@ export function Section({
   return (
     <section
       className={cn(
-        "min-w-0 rounded-[20px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]",
+        "min-w-0 rounded-[22px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]",
         className
       )}
     >
       {(title || action) && (
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 border-b border-line/60 pb-2.5">
           {title && <SectionTitle>{title}</SectionTitle>}
           {action}
         </div>
       )}
-      <div className={cn(title || action ? "mt-2.5" : "", bodyClassName)}>{children}</div>
+      <div className={cn(title || action ? "mt-3" : "", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -215,14 +215,14 @@ export function FactTile({
   tone?: "default" | "accent" | "success" | "danger" | "review";
 }) {
   return (
-    <div className="min-w-0 rounded-[20px] border border-line bg-surface px-3.5 py-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
+    <div className="min-w-0 rounded-[18px] border border-line bg-surface px-3.5 py-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
       <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-ink-4 uppercase">
         {icon}
         <span className="truncate">{label}</span>
       </div>
       <div
         className={cn(
-          "mt-1 truncate text-[13px] font-semibold",
+          "mt-1 truncate text-[13.5px] font-semibold tabular-nums",
           tone === "default" && "text-ink",
           tone === "accent" && "text-accent-text",
           tone === "success" && "text-success-text",
@@ -275,6 +275,61 @@ export function CollapsibleText({
   );
 }
 
+const LIFECYCLE_STAGES: Status[] = ["backlog", "todo", "in_progress", "review", "done"];
+
+function LifecycleStepper({ status }: { status: Status }) {
+  const activeIdx = LIFECYCLE_STAGES.indexOf(status);
+  const offTrack = status === "blocked" || status === "failed";
+
+  return (
+    <div
+      className="mt-2.5 flex flex-wrap items-center gap-1.5 rounded-full border border-line bg-well/75 p-1 shadow-[var(--well-inset)]"
+      aria-label="Task lifecycle progression"
+    >
+      {LIFECYCLE_STAGES.map((stage, idx) => {
+        const isCurrent = stage === status;
+        const isPast = !offTrack && activeIdx > idx;
+        return (
+          <div key={stage} className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium leading-none",
+                isCurrent
+                  ? "border border-line-strong bg-surface font-semibold text-ink shadow-[var(--lift-1)]"
+                  : isPast
+                    ? "text-ink-2"
+                    : "text-ink-4"
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-block size-1.5 rounded-full shrink-0",
+                  isCurrent
+                    ? STATUS_DOT[stage]
+                    : isPast
+                      ? "bg-success"
+                      : "bg-ink-4/40"
+                )}
+                aria-hidden
+              />
+              {LABEL[stage] ?? stage}
+            </span>
+            {idx < LIFECYCLE_STAGES.length - 1 && (
+              <ChevronRight className="size-3 shrink-0 text-ink-4/70" aria-hidden />
+            )}
+          </div>
+        );
+      })}
+      {offTrack && (
+        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-danger/35 bg-danger-tint px-2.5 py-1 text-[11px] font-semibold text-danger-text leading-none">
+          <span className={cn("inline-block size-1.5 rounded-full", STATUS_DOT[status])} aria-hidden />
+          {LABEL[status] ?? status}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** Shared task header used by the drawer and the full page. */
 export function TaskHeader({
   id,
@@ -305,14 +360,21 @@ export function TaskHeader({
   return (
     <header
       className={cn(
-        "shrink-0 border-b border-line bg-surface/80 backdrop-blur-xl",
+        "shrink-0 border-b border-line bg-surface/90 backdrop-blur-xl",
         sticky && "sticky top-0 z-20",
-        variant === "page" ? "px-4 pt-3 pb-2.5 sm:px-6" : "px-5 py-3.5"
+        variant === "page" ? "px-4 pt-3.5 pb-3 sm:px-6" : "px-5 py-3.5"
       )}
     >
       <div className="flex items-start gap-2.5">
         {onBack && (
-          <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to board" title="Back to board" className="mt-0.5">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={onBack}
+            aria-label="Back to board"
+            title="Back to board"
+            className="mt-0.5 rounded-full"
+          >
             <ArrowLeft className="size-4" />
           </Button>
         )}
@@ -321,8 +383,8 @@ export function TaskHeader({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <TitleTag
               className={cn(
-                "m-0 min-w-0 max-w-full truncate font-[var(--font-display)] font-bold tracking-[-0.02em] text-ink",
-                variant === "page" ? "text-lg" : "text-base"
+                "m-0 min-w-0 max-w-full truncate font-[var(--font-display)] font-bold tracking-[-0.025em] text-ink",
+                variant === "page" ? "text-xl" : "text-base"
               )}
               title={task?.title ?? id}
             >
@@ -362,6 +424,8 @@ export function TaskHeader({
               </span>
             )}
           </div>
+
+          {variant === "page" && task && <LifecycleStepper status={task.status} />}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">

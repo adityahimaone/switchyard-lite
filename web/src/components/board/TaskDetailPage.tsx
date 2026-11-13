@@ -99,7 +99,7 @@ export function TaskDetailPage({
         sticky
       />
 
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-4 sm:px-6">
         {task.error && (
           <div className="mb-3">
             <ErrorBox error={task.error} />
@@ -107,7 +107,7 @@ export function TaskDetailPage({
         )}
 
         {t && (
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface/60 px-3 py-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-full border border-line bg-well/75 px-3.5 py-2 shadow-[var(--well-inset)]">
             <TaskActions
               task={t}
               onDispatch={() => dispatch.mutate()}
@@ -118,10 +118,13 @@ export function TaskDetailPage({
               onDelete={() => remove.mutate()}
               deletePending={remove.isPending}
             />
+            <span className="hidden font-mono text-[10.5px] text-ink-4 sm:inline">
+              Full-page workbench
+            </span>
           </div>
         )}
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_286px]">
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_316px]">
           <div className="min-w-0">
             <TaskDetailPanels
               id={id}
@@ -134,7 +137,7 @@ export function TaskDetailPage({
             />
           </div>
 
-          <aside className="hidden flex-col gap-3 lg:sticky lg:top-[76px] lg:flex" aria-label="Task properties">
+          <aside className="hidden flex-col gap-3 lg:sticky lg:top-[110px] lg:flex" aria-label="Task properties">
             {t && (
               <>
                 <Section title="Lifecycle">

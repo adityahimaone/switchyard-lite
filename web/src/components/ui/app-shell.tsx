@@ -5,13 +5,13 @@ import { BrandMark } from "./brand";
 /**
  * Switchyard Lite App / Dashboard Shell
  *
- * Implements the double-framed atmospheric control plane stage from Concept 2 & Concept 3:
- *   - `AppShell`: Root 2-column viewport frame (`236px` expanded / `64px` collapsed) over the
- *     atmospheric cloud sky + `32px` blueprint grid ground.
- *   - `AppSidebar`: Frosted capsule navigation rail with `AppSidebarBrand`, `AppSidebarGroup`,
- *     `AppSidebarItem` (raised porcelain capsule plate on active route), and `AppSidebarFooter`.
- *   - `AppInset`: Framed right-hand workspace stage with `AppHeader` (`52px` glass top bar)
- *     and `AppMain` (scrollable or full-bleed Kanban stage).
+ * Implements the Floating Left Capsule Sidebar Dock + Double-Framed Porcelain Stage:
+ *   - `AppShell`: Root 2-column viewport grid (`244px` expanded / `68px` collapsed) over soft cloud sky.
+ *   - `AppSidebar`: Floating left sidebar dock (`rounded-[26px]`) housing `.side-top-pod` (`AppSidebarBrand` +
+ *     board switcher + quick task button), `AppSidebarTrack`, `AppSidebarGroup` cards, `AppSidebarItem`
+ *     (elevated porcelain pill on active route), and `AppSidebarFooter`.
+ *   - `AppInset`: Double-framed porcelain bezel (`rounded-[26px]` well) enclosing `AppHeader` (stage ribbon)
+ *     and `AppMain` (scrollable or full-bleed workspace stage).
  */
 interface AppShellContextValue {
   collapsed: boolean;
@@ -126,6 +126,22 @@ export function AppSidebarBrand({
 
 export interface AppSidebarGroupProps extends React.ComponentProps<"div"> {
   label?: string;
+}
+
+export function AppSidebarTrack({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="app-sidebar-track"
+      className={cn("nav-deck-track", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function AppSidebarGroup({

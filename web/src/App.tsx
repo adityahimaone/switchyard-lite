@@ -36,7 +36,9 @@ import {
   AppSidebarFooter,
   AppSidebarGroup,
   AppSidebarItem,
+  AppSidebarTrack,
 } from "@/components/ui/app-shell";
+import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/pill";
 import {
   FlowScreen,
@@ -118,7 +120,11 @@ export function App() {
     location.hash = "/" + p;
   };
 
-  const reviewCount = (tasks.data ?? []).filter((t) => t.status === "review").length;
+  const taskList = tasks.data ?? [];
+  const reviewCount = taskList.filter((t) => t.status === "review").length;
+  const queuedCount = taskList.filter((t) => t.status === "todo").length;
+  const runningCount = taskList.filter((t) => t.status === "in_progress").length;
+  const doneCount = taskList.filter((t) => t.status === "done").length;
 
   const groups = ["Work", "Infrastructure", "Observe"] as const;
 
@@ -126,55 +132,72 @@ export function App() {
     <TooltipProvider>
     <AppShell collapsed={collapsed} onCollapsedChange={setCollapsed}>
       <AppSidebar>
-        <AppSidebarBrand name="Switchyard" tag="LITE" markSize={28} />
+        <div className="side-top-pod">
+          <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
 
-        {/* Sidebar Board Switcher */}
-        {(boards.data?.length ?? 0) > 0 && (
-          <div className="side-board-box" style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <BoardSwitcher
-              boards={boards.data}
-              value={boardId}
-              onChange={(id) => {
-                setBoardId(id);
-                if (page !== "board" && page !== "flow" && page !== "review") go("board");
-              }}
-              ariaLabel="Active board"
-              className="min-w-0 flex-1"
-              triggerClassName="font-semibold"
-            />
-            <Tip label="New board">
-              <button
+          {/* Sidebar Board Switcher & Quick Task */}
+          {(boards.data?.length ?? 0) > 0 && (
+            <div className="side-board-box flex flex-col gap-2 border-t border-line/70 pt-2">
+              <div className="flex items-center gap-1">
+                <BoardSwitcher
+                  boards={boards.data}
+                  value={boardId}
+                  onChange={(id) => {
+                    setBoardId(id);
+                    if (page !== "board" && page !== "flow" && page !== "review") go("board");
+                  }}
+                  ariaLabel="Active board"
+                  className="min-w-0 flex-1"
+                  triggerClassName="h-8 font-semibold"
+                />
+                <Tip label="New board">
+                  <button
+                    type="button"
+                    className="btn ghost icon shrink-0"
+                    style={{ height: 30, width: 30 }}
+                    onClick={() => setBoardDialog({ mode: "new" })}
+                    aria-label="New board"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </Tip>
+              </div>
+              <Button
                 type="button"
-                className="btn ghost icon"
-                style={{ height: 32, width: 32 }}
-                onClick={() => setBoardDialog({ mode: "new" })}
-                aria-label="New board"
+                variant="prism"
+                size="sm"
+                className="w-full justify-center"
+                onClick={() => setTaskDialogOpen(true)}
+                disabled={!boardId}
               >
                 <Plus className="size-3.5" />
-              </button>
-            </Tip>
-          </div>
-        )}
+                <span>Quick task</span>
+              </Button>
+            </div>
+          )}
+        </div>
 
-        {groups.map((grp) => (
-          <AppSidebarGroup key={grp} label={grp}>
-            {NAV.filter((item) => item.group === grp).map((item) => {
-              const Icon = item.icon;
-              return (
-                <AppSidebarItem
-                  key={item.id}
-                  href={`#/${item.id}`}
-                  active={page === item.id}
-                  title={item.label}
-                  icon={<Icon className="nav-icon" aria-hidden />}
-                  badge={item.id === "review" && reviewCount > 0 ? reviewCount : undefined}
-                >
-                  {item.label}
-                </AppSidebarItem>
-              );
-            })}
-          </AppSidebarGroup>
-        ))}
+        <AppSidebarTrack>
+          {groups.map((grp) => (
+            <AppSidebarGroup key={grp} label={grp}>
+              {NAV.filter((item) => item.group === grp).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <AppSidebarItem
+                    key={item.id}
+                    href={`#/${item.id}`}
+                    active={page === item.id}
+                    title={item.label}
+                    icon={<Icon className="nav-icon" aria-hidden />}
+                    badge={item.id === "review" && reviewCount > 0 ? reviewCount : undefined}
+                  >
+                    {item.label}
+                  </AppSidebarItem>
+                );
+              })}
+            </AppSidebarGroup>
+          ))}
+        </AppSidebarTrack>
 
         <AppSidebarFooter>
           {NAV.filter((item) => item.group === "Footer").map((item) => {
@@ -191,6 +214,23 @@ export function App() {
               </AppSidebarItem>
             );
           })}
+          <div className="flex items-center justify-between gap-2 border-t border-line/70 pt-1.5">
+            <span className="side-footer-status">
+              <StatusPill status="online" size="sm" label="Online" />
+            </span>
+            <button
+              type="button"
+              className="btn ghost icon sm"
+              onClick={() => {
+                const isDark = document.documentElement.classList.toggle("dark");
+                localStorage.setItem("switchyard.dark", isDark ? "1" : "");
+              }}
+              title="Toggle theme"
+              aria-label="Toggle theme"
+            >
+              <SunMoon className="size-4" />
+            </button>
+          </div>
         </AppSidebarFooter>
       </AppSidebar>
 
@@ -220,13 +260,41 @@ export function App() {
                 <>
                   <span className="crumb-sep">/</span>
                   <span className="badge">{activeBoard.name}</span>
+                  {activeBoard.default_executor && (
+                    <span className="badge accent hidden sm:inline-flex" title="Board default executor">
+                      {activeBoard.default_executor}
+                      {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
+                    </span>
+                  )}
                 </>
               )}
             </div>
           </div>
 
           <div className="header-right">
-            <StatusPill status="online" size="sm" label="Online" />
+            {activeBoard && (
+              <div className="hidden items-center gap-1.5 rounded-full border border-line bg-well/75 px-2.5 py-1 text-[11px] text-ink-3 lg:flex">
+                <span className="inline-flex items-center gap-1 font-mono tabular">
+                  <span className="size-1.5 rounded-full bg-[var(--c-st-todo)]" aria-hidden />
+                  <strong className="text-ink-2">{queuedCount}</strong> queued
+                </span>
+                <span className="text-line-strong">·</span>
+                <span className="inline-flex items-center gap-1 font-mono tabular">
+                  <span className="size-1.5 rounded-full bg-[var(--c-st-in_progress)]" aria-hidden />
+                  <strong className="text-accent-text">{runningCount}</strong> running
+                </span>
+                <span className="text-line-strong">·</span>
+                <span className="inline-flex items-center gap-1 font-mono tabular">
+                  <span className="size-1.5 rounded-full bg-[var(--c-st-review)]" aria-hidden />
+                  <strong className="text-review-text">{reviewCount}</strong> review
+                </span>
+                <span className="text-line-strong">·</span>
+                <span className="inline-flex items-center gap-1 font-mono tabular">
+                  <span className="size-1.5 rounded-full bg-[var(--c-st-done)]" aria-hidden />
+                  <strong className="text-success-text">{doneCount}</strong> done
+                </span>
+              </div>
+            )}
 
             <button
               type="button"
@@ -235,22 +303,22 @@ export function App() {
               aria-label="Open command palette"
             >
               <Search className="size-3.5 text-[var(--c-ink-3)]" />
-              <span>Search boards, tasks, commands…</span>
+              <span className="hidden sm:inline">Search boards, tasks…</span>
               <kbd>⌘K</kbd>
             </button>
 
-            <button
-              type="button"
-              className="btn ghost icon sm"
-              onClick={() => {
-                const isDark = document.documentElement.classList.toggle("dark");
-                localStorage.setItem("switchyard.dark", isDark ? "1" : "");
-              }}
-              title="Toggle theme"
-              aria-label="Toggle theme"
-            >
-              <SunMoon className="size-4" />
-            </button>
+            {boardId && (
+              <Button
+                type="button"
+                variant="prism"
+                size="xs"
+                onClick={() => setTaskDialogOpen(true)}
+                className="hidden sm:inline-flex"
+              >
+                <Plus className="size-3" />
+                Quick task
+              </Button>
+            )}
           </div>
         </AppHeader>
 
