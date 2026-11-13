@@ -39,6 +39,9 @@ export interface Workspace {
   note?: string;
   git?: boolean;
   status?: "local" | "connected" | "unreachable" | "unknown";
+  /** Which node-agent node reports this path (empty when nothing claims it). */
+  node?: string;
+  hostname?: string;
   latency_ms?: number;
   created_at?: number;
 }
@@ -178,16 +181,64 @@ export const NEXT: Record<Status, Status[]> = {
 export interface ModelOpt {
   id: string;
   name: string;
+  sublabel?: string;
+  badge?: string;
 }
 
+export interface ModelCatalog {
+  models: ModelOpt[];
+  /** Upstream explanation when the catalog is empty, e.g. "node has not reported this catalog yet". */
+  detail: string;
+  source: string;
+}
+
+type RawModel = {
+  id?: unknown;
+  name?: unknown;
+  value?: unknown;
+  label?: unknown;
+  sublabel?: unknown;
+  badge?: unknown;
+  provider?: unknown;
+};
+
+/**
+ * The node-agent reports models as `{value, label, sublabel, badge, provider}`;
+ * older payloads use `{id, name}` and bare strings. Accept all three — reading
+ * only `id`/`name` rendered every model as the literal string "undefined".
+ */
 export function normalizeModels(raw: unknown): ModelOpt[] {
-  const arr = Array.isArray(raw) ? raw : (raw as { models?: unknown[] })?.models ?? [];
-  return arr.map((m) =>
-    typeof m === "string"
-      ? { id: m, name: m }
-      : {
-          id: String((m as ModelOpt).id ?? (m as ModelOpt).name),
-          name: String((m as ModelOpt).name ?? (m as ModelOpt).id),
-        }
-  );
+  const arr = Array.isArray(raw) ? raw : ((raw as { models?: unknown[] })?.models ?? []);
+  const out: ModelOpt[] = [];
+  for (const m of arr) {
+    if (typeof m === "string") {
+      if (m) out.push({ id: m, name: m });
+      continue;
+    }
+    if (!m || typeof m !== "object") continue;
+    const r = m as RawModel;
+    const id = r.id ?? r.value ?? r.name ?? r.label;
+    const name = r.label ?? r.name ?? r.value ?? r.id;
+    if (id == null && name == null) continue;
+    const badge = r.badge ?? r.provider;
+    out.push({
+      id: String(id ?? name),
+      name: String(name ?? id),
+      sublabel: typeof r.sublabel === "string" && r.sublabel ? r.sublabel : undefined,
+      badge: typeof badge === "string" && badge ? badge : undefined,
+    });
+  }
+  return out;
+}
+
+export function parseModelCatalog(raw: unknown): ModelCatalog {
+  const obj = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as {
+    detail?: unknown;
+    source?: unknown;
+  };
+  return {
+    models: normalizeModels(raw),
+    detail: typeof obj.detail === "string" ? obj.detail : "",
+    source: typeof obj.source === "string" ? obj.source : "",
+  };
 }

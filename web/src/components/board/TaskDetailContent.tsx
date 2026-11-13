@@ -19,7 +19,7 @@ import {
   apiOr,
   del,
   getToken,
-  normalizeModels,
+  parseModelCatalog,
   patch,
   platformOfWorkspace,
   post,
@@ -207,13 +207,14 @@ export function TaskDetailPanels({
     queryKey: ["models", editing ? editDraft.executor : t?.executor],
     enabled: !!(editing ? editDraft.executor : t?.executor),
     queryFn: async () =>
-      normalizeModels(
+      parseModelCatalog(
         await apiOr<unknown>(
           `/api/v1/models?executor=${encodeURIComponent((editing ? editDraft.executor : t?.executor) || "")}`,
-          []
+          {}
         )
       ),
   });
+  const modelList = models.data?.models ?? [];
 
   const inval = () => qc.invalidateQueries();
 
@@ -396,9 +397,9 @@ export function TaskDetailPanels({
           value: w.path,
           label: w.name,
           sublabel: w.path,
-          badge: w.host ? "ssh" : "local",
+          badge: w.host ? "ssh" : (w.node ?? "local"),
           badgeNode: (
-            <span className="font-mono text-[9px] text-ink-3">{w.host || "local"}</span>
+            <span className="font-mono text-[9px] text-ink-3">{w.host || w.node || "local"}</span>
           ),
           keywords: [w.name, w.path, w.host ?? "", w.os ?? "", w.kind ?? "", pk, ...(w.labels ?? [])],
         });
@@ -595,7 +596,7 @@ export function TaskDetailPanels({
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="edit-task-model">Model</Label>
-                      {models.data?.length ? (
+                      {modelList.length ? (
                         <SearchSelect
                           id="edit-task-model"
                           value={editDraft.model || DEFAULT_SENTINEL}
@@ -604,17 +605,19 @@ export function TaskDetailPanels({
                           }
                           options={[
                             { value: DEFAULT_SENTINEL, label: "(executor default)" },
-                            ...models.data.map((m) => ({
+                            ...modelList.map((m) => ({
                               value: m.id,
                               label: m.name,
-                              sublabel: m.id === m.name ? undefined : m.id,
-                              keywords: [m.id, m.name],
+                              sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
+                              badge: m.badge,
+                              keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
                             })),
                           ]}
                           placeholder="Select model…"
                           searchPlaceholder="Search models…"
                           ariaLabel="Model"
                           size="sm"
+                          contentClassName="min-w-[22rem]"
                         />
                       ) : (
                         <Input

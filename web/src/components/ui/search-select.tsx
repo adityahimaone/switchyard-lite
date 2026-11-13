@@ -284,7 +284,7 @@ export function SearchSelect({
                 aria-activedescendant={
                   filteredOptions[activeIndex] ? `search-select-opt-${activeIndex}` : undefined
                 }
-                className="ml-2 w-full bg-transparent text-xs text-ink placeholder:text-ink-4 outline-none"
+                className="field-flat ml-2 w-full bg-transparent text-xs text-ink placeholder:text-ink-4 outline-none"
               />
               {query && (
                 <button

@@ -103,7 +103,7 @@ function statusStyleFor(w: Workspace) {
   if (raw === "unreachable" || raw === "offline" || raw === "missing" || raw === "error") {
     return STATUS_STYLE.unreachable;
   }
-  return w.host ? STATUS_STYLE.unknown : STATUS_STYLE.local;
+  return w.host || w.node ? STATUS_STYLE.unknown : STATUS_STYLE.local;
 }
 
 interface PingPoint {
@@ -895,6 +895,15 @@ export function WorkspacesPage() {
                                 {w.host && (
                                   <Badge variant="secondary" className="px-1.5 py-0 font-mono text-[10px]">
                                     ssh · {w.host}
+                                  </Badge>
+                                )}
+                                {!w.host && w.node && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="px-1.5 py-0 font-mono text-[10px]"
+                                    title={w.hostname || w.node}
+                                  >
+                                    node · {w.node}
                                   </Badge>
                                 )}
                                 {(w.git || w.kind === "repo") && (
