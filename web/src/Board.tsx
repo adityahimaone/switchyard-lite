@@ -440,17 +440,41 @@ export function BoardScreen({
               </span>
             )}
           </h2>
-          <span className="bar-sub">Queue, dispatch and review for this board.</span>
-          <div className="bar-spacer" />
 
           {(boards.data?.length ?? 0) > 0 && (
             <BoardSwitcher
               boards={boards.data}
               value={boardId}
               onChange={setBoardId}
-              className="w-auto min-w-[180px]"
+              className="w-[172px]"
             />
           )}
+
+          {activeBoard && (
+            <Tip label="Board settings">
+              <button
+                type="button"
+                className="btn ghost icon"
+                onClick={() => (onEditBoard ? onEditBoard(activeBoard) : setBoardModal("edit"))}
+                aria-label="Board settings"
+              >
+                <Settings2 className="size-3.5" />
+              </button>
+            </Tip>
+          )}
+
+          <Tip label="Create a new board">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => (onNewBoard ? onNewBoard() : setBoardModal("new"))}
+            >
+              <Plus className="size-3.5" />
+              <span>New board</span>
+            </button>
+          </Tip>
+
+          <div className="bar-spacer" />
 
           <Segmented
             label="Board view mode"
@@ -487,44 +511,28 @@ export function BoardScreen({
             ]}
           />
 
-          <Tip label="Create a new board">
-            <button
-              type="button"
-              className="btn"
-              onClick={() => (onNewBoard ? onNewBoard() : setBoardModal("new"))}
-            >
-              <Plus className="size-3.5" />
-              <span>New board</span>
-            </button>
-          </Tip>
-
-          {activeBoard && (
-            <Tip label="Board settings">
-              <button
-                type="button"
-                className="btn ghost icon"
-                onClick={() => (onEditBoard ? onEditBoard(activeBoard) : setBoardModal("edit"))}
-                aria-label="Board settings"
-              >
-                <Settings2 className="size-3.5" />
-              </button>
-            </Tip>
-          )}
-
+          <button
+            className="btn primary"
+            onClick={() => setCreating({ startMode: "queue" })}
+            disabled={!boardId}
+          >
+            <Plus className="size-3.5" />
+            <span>New task</span>
+          </button>
         </div>
 
-        {/* Compact filter & search bar: one row of tokens, no status strip. */}
-        <div className="flex flex-wrap items-center gap-1.5" role="search" aria-label="Filter tasks">
+        {/* Compact filter & search bar: uniform 32px height across every control. */}
+        <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter tasks">
           <div
             className={cn(
-              "group relative flex h-9 w-[300px] items-center rounded-full border pr-2 pl-3 transition-[border-color,background-color,box-shadow] duration-150",
+              "group relative flex h-8 w-[240px] items-center rounded-[10px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
               q
                 ? "border-accent/45 bg-surface shadow-[var(--lift-1)]"
                 : "border-line bg-well/55 hover:border-line-strong hover:bg-surface"
             )}
           >
             <Search
-              className={cn("size-4 shrink-0 transition-colors", q ? "text-accent-text" : "text-ink-3")}
+              className={cn("size-3.5 shrink-0 transition-colors", q ? "text-accent-text" : "text-ink-3")}
               aria-hidden
             />
             <input
@@ -539,19 +547,19 @@ export function BoardScreen({
               }}
               placeholder="Search tasks, prompts, IDs…"
               aria-label="Search tasks"
-              className="ml-2 w-full bg-transparent text-[12px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
+              className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
             />
             {q ? (
               <button
                 type="button"
                 onClick={() => setQ("")}
                 aria-label="Clear search"
-                className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-well hover:text-ink"
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-3 transition-colors hover:bg-well hover:text-ink"
               >
-                <span aria-hidden className="text-[14px] leading-none">×</span>
+                <span aria-hidden className="text-[13px] leading-none">×</span>
               </button>
             ) : (
-              <kbd className="hidden shrink-0 rounded-full border border-line bg-surface px-1.5 py-0.5 font-mono text-[9px] text-ink-4 sm:inline">
+              <kbd className="hidden shrink-0 rounded-[5px] border border-line bg-surface px-1.5 py-0.5 font-mono text-[9px] text-ink-4 sm:inline">
                 /
               </kbd>
             )}
@@ -566,7 +574,7 @@ export function BoardScreen({
             aria-label="Task filters"
           />
 
-          <span className="ml-0.5 font-mono text-[10px] tabular-nums text-ink-4">
+          <span className="ml-0.5 font-mono text-[11px] tabular-nums text-ink-4">
             {filtered.length === allTasks.length
               ? `${allTasks.length} ${allTasks.length === 1 ? "task" : "tasks"}`
               : `${filtered.length} of ${allTasks.length}`}
@@ -576,30 +584,21 @@ export function BoardScreen({
 
           <button
             type="button"
-            className={"btn sm" + (bulkMode ? " primary" : "")}
+            className={"btn" + (bulkMode ? " primary" : "")}
             aria-pressed={bulkMode}
             onClick={() => {
               setBulkMode((v) => !v);
               setSelected(new Set());
             }}
           >
-            <CheckCircle2 className="size-3" />
+            <CheckCircle2 className="size-3.5" />
             Bulk select
-          </button>
-
-          <button
-            className="btn primary"
-            onClick={() => setCreating({ startMode: "queue" })}
-            disabled={!boardId}
-          >
-            <Plus className="size-3.5" />
-            <span>New task</span>
           </button>
         </div>
       </div>
 
       {bulkMode && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-6 py-2">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-surface px-4 py-1.5">
           <span className="tabular text-xs font-semibold text-ink">
             {selected.size} selected
           </span>
@@ -697,7 +696,7 @@ export function BoardScreen({
                             type="button"
                             onClick={() => setCreating({ startMode: quickAdd })}
                             aria-label={`Add task to ${LABEL[s]}`}
-                            className="ml-1 inline-flex size-5 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-raised hover:text-ink"
+                            className="col-quick-btn inline-flex items-center justify-center text-ink-4 transition-colors hover:bg-raised hover:text-ink"
                           >
                             <Plus className="size-3.5" />
                           </button>
@@ -720,7 +719,7 @@ export function BoardScreen({
                           <button
                             type="button"
                             onClick={() => setCreating({ startMode: quickAdd })}
-                            className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-semibold text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
+                            className="mt-1.5 inline-flex h-7 items-center gap-1 rounded-[8px] border border-line bg-surface px-2.5 text-[11px] font-semibold text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
                           >
                             <Plus className="size-3" />
                             Add task
@@ -745,7 +744,7 @@ export function BoardScreen({
                             <span aria-hidden className="card-coupler" />
 
                             {/* Card top telemetry bar */}
-                            <div className="mb-1 flex items-center justify-between gap-2">
+                            <div className="mb-1 flex min-h-[20px] items-center justify-between gap-2">
                               <div className="flex min-w-0 items-center gap-1.5">
                                 {bulkMode && (
                                   <input
@@ -770,7 +769,7 @@ export function BoardScreen({
                                     <button
                                       type="button"
                                       aria-label={`Actions for ${t.title}`}
-                                      className="-mt-0.5 -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-well hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
+                                      className="-mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-well hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
                                     >
                                       <MoreHorizontal className="size-3.5" />
                                     </button>
@@ -814,37 +813,41 @@ export function BoardScreen({
                             {firstLine && <div className="card-snippet">{firstLine}</div>}
 
                             <div className="meta">
-                              <span className="badge accent">
-                                {t.executor || "default"}
-                                {t.model ? ` · ${t.model}` : ""}
+                              <span className="badge accent max-w-[128px] truncate" title={`${t.executor || "default"}${t.model ? ` · ${t.model}` : ""}`}>
+                                <span className="truncate">
+                                  {t.executor || "default"}
+                                  {t.model ? ` · ${t.model}` : ""}
+                                </span>
                               </span>
-                              {t.effort && <span className="badge">{t.effort}</span>}
                               {t.workspace && (
-                                <span className="badge inline-flex items-center gap-1" title={t.workspace}>
+                                <span className="badge inline-flex max-w-[100px] items-center gap-1 truncate" title={t.workspace}>
                                   <OsIcon
                                     ws={(workspaces.data ?? []).find((w) => w.path === t.workspace)}
                                     path={t.workspace}
-                                    className="size-3"
+                                    className="size-3 shrink-0"
                                   />
-                                  {t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace}
+                                  <span className="truncate">
+                                    {t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace}
+                                  </span>
                                 </span>
                               )}
                               {t.blocked_by?.length > 0 && (
-                                <span className="badge warn" title={`Blocked by: ${t.blocked_by.join(", ")}`}>
+                                <span className="badge warn shrink-0" title={`Blocked by: ${t.blocked_by.join(", ")}`}>
                                   {t.blocked_by.length} dep{t.blocked_by.length === 1 ? "" : "s"}
                                 </span>
                               )}
-                              {t.retry_count > 0 && <span className="badge warn">retry {t.retry_count}</span>}
+                              {!t.blocked_by?.length && t.retry_count > 0 && (
+                                <span className="badge warn shrink-0">retry {t.retry_count}</span>
+                              )}
                             </div>
 
-                            <div className="mt-2.5 flex items-center gap-1.5 border-t border-line/60 pt-2">
-                              <span className="font-mono text-[10px] text-ink-4" title="Last updated">
+                            <div className="card-footer">
+                              <span className="font-mono text-[10px] tabular text-ink-4" title="Last updated">
                                 {relativeTime(t.updated_at)}
                               </span>
-                              <div className="flex-1" />
                               {t.status === "todo" ? (
                                 <button
-                                  className="btn primary sm"
+                                  className="btn primary xs"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     dispatch.mutate(t.id);
@@ -855,7 +858,7 @@ export function BoardScreen({
                                   <span>Dispatch</span>
                                 </button>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
                                   Open
                                   <ArrowRight className="size-2.5" />
                                 </span>
@@ -874,8 +877,8 @@ export function BoardScreen({
       )}
 
       {viewMode === "table" && (
-        <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
-          <div className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-[var(--glass-lift-card)]">
+        <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+          <div className="overflow-hidden rounded-[12px] border border-line bg-surface shadow-[var(--glass-lift-card)]">
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12 text-center">
                 <ListTodo className="size-6 text-ink-3" />
@@ -961,14 +964,14 @@ export function BoardScreen({
       )}
 
       {viewMode === "lanes" && (
-        <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {(executorsOnBoard.length ? executorsOnBoard : ["default"]).map((exec) => {
               const laneTasks = filtered.filter((t) => (t.executor || "default") === exec);
               return (
                 <section
                   key={exec}
-                  className="flex flex-col gap-2.5 rounded-[22px] border border-line bg-well/65 p-3.5 shadow-[var(--well-inset)]"
+                  className="flex flex-col gap-2 rounded-[12px] border border-line bg-well/65 p-3 shadow-[var(--well-inset)]"
                 >
                   <div className="flex items-center justify-between gap-2 px-1">
                     <div className="flex items-center gap-2">
@@ -1160,7 +1163,7 @@ export function BoardDialog({
                     onChange={(e) => setDefaultModel(e.target.value)}
                     placeholder="(executor default)"
                     disabled={!defaultExecutor}
-                    className="h-8 rounded-full font-mono text-xs"
+                    className="font-mono text-xs"
                   />
                 )}
               </div>

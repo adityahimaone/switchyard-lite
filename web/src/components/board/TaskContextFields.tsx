@@ -51,8 +51,8 @@ export function SaasRulesBanner({ active, compact = false }: { active: boolean; 
     <div
       role="status"
       className={cn(
-        "mb-3 flex items-start gap-2 rounded-full border border-success/35 bg-[var(--c-mint-wash)] px-3.5 py-2 text-success-text shadow-[var(--lift-1)]",
-        compact ? "text-[10px]" : "text-[11px]"
+        "flex items-center gap-2 rounded-[10px] border border-success/35 bg-[var(--c-mint-wash)] px-3 py-1.5 text-success-text shadow-[var(--lift-1)]",
+        compact ? "text-[10.5px]" : "text-[11px]"
       )}
     >
       <ShieldCheck className="mt-px size-3.5 shrink-0" />
@@ -274,7 +274,7 @@ export function PromptOmnibox({
         <div
           role="listbox"
           aria-label={token?.kind === "file" ? "Workspace file suggestions" : "Agent skill suggestions"}
-          className="absolute top-full left-0 z-50 mt-1.5 w-full min-w-[20rem] overflow-hidden rounded-[20px] border border-line-strong/85 bg-raised/96 shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-xl"
+          className="absolute top-full left-0 z-50 mt-1.5 w-full min-w-[20rem] overflow-hidden rounded-[12px] border border-line-strong/85 bg-raised/96 shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-xl"
         >
           <div className="flex items-center justify-between gap-2 border-b border-line bg-well/45 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-ink-3 uppercase">
             <span className="inline-flex items-center gap-1.5">
@@ -386,11 +386,11 @@ export function TaskContextPicker({
   const fileList: FileMatch[] = files.data?.files ?? [];
 
   return (
-    <div className="space-y-3 rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+    <div className="space-y-2.5 rounded-[10px] border border-line bg-well/40 p-2.5">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h3 className="m-0 text-xs font-semibold text-ink">Workspace Context &amp; References</h3>
-          <p className="m-0 mt-0.5 text-[10px] leading-relaxed text-ink-4">
+          <p className="m-0 mt-0.5 text-[10.5px] leading-relaxed text-ink-4">
             Attached files and skills are sent with the task and injected into the agent prompt at dispatch.
           </p>
         </div>
@@ -569,12 +569,12 @@ function Chip({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent/35 bg-accent-tint px-2.5 py-0.5 text-[10px] font-medium text-accent-text">
+    <span className="inline-flex h-6 max-w-full items-center gap-1 rounded-[7px] border border-accent/35 bg-accent-tint px-2 text-[10.5px] font-medium text-accent-text">
       {icon}
       <span className="max-w-[220px] truncate font-mono" title={label}>
         {prefix}{label}
       </span>
-      <button type="button" onClick={onRemove} className="rounded-full p-0.5 hover:bg-surface" aria-label={`Remove ${label}`}>
+      <button type="button" onClick={onRemove} className="rounded-[4px] p-0.5 hover:bg-surface" aria-label={`Remove ${label}`}>
         <X className="size-2.5" />
       </button>
     </span>

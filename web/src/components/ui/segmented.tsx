@@ -24,7 +24,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-line bg-well p-1 shadow-[var(--well-inset)]",
+        "inline-flex h-8 items-center gap-0.5 rounded-[10px] border border-line bg-well p-0.5 shadow-[var(--well-inset)]",
         className
       )}
     >
@@ -38,7 +38,7 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150",
+              "inline-flex h-[26px] flex-1 items-center justify-center gap-1.5 rounded-[8px] px-2.5 text-xs font-semibold whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 active:scale-[0.972]",
               active
                 ? "border border-line/70 bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)]"

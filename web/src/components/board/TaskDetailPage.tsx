@@ -87,7 +87,7 @@ export function TaskDetailPage({
   }));
 
   return (
-    <div className="-mx-6 -mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div className="-mx-5 -mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <TaskHeader
         id={id}
         task={t}
@@ -99,7 +99,7 @@ export function TaskDetailPage({
         sticky
       />
 
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-3 sm:px-5">
         {task.error && (
           <div className="mb-3">
             <ErrorBox error={task.error} />
@@ -107,7 +107,7 @@ export function TaskDetailPage({
         )}
 
         {t && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-full border border-line bg-well/75 px-3.5 py-2 shadow-[var(--well-inset)]">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-line bg-well/75 px-3 py-1.5 shadow-[var(--well-inset)]">
             <TaskActions
               task={t}
               onDispatch={() => dispatch.mutate()}
@@ -118,13 +118,10 @@ export function TaskDetailPage({
               onDelete={() => remove.mutate()}
               deletePending={remove.isPending}
             />
-            <span className="hidden font-mono text-[10.5px] text-ink-4 sm:inline">
-              Full-page workbench
-            </span>
           </div>
         )}
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_316px]">
+        <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="min-w-0">
             <TaskDetailPanels
               id={id}
@@ -137,7 +134,7 @@ export function TaskDetailPage({
             />
           </div>
 
-          <aside className="hidden flex-col gap-3 lg:sticky lg:top-[110px] lg:flex" aria-label="Task properties">
+          <aside className="hidden flex-col gap-3 lg:sticky lg:top-[104px] lg:flex" aria-label="Task properties">
             {t && (
               <>
                 <Section title="Lifecycle">
@@ -209,7 +206,10 @@ export function TaskDetailPage({
                   ) : (
                     <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                       {deps.map((d) => (
-                        <li key={d.id} className="flex items-center gap-1.5">
+                        <li
+                          key={d.id}
+                          className="flex h-8 items-center gap-2 rounded-[8px] border border-line bg-well/40 px-2.5"
+                        >
                           <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-ink-2">
                             {d.task ? d.task.title : d.id}
                           </span>

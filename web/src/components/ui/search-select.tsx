@@ -215,7 +215,7 @@ export function SearchSelect({
             aria-expanded={open}
             onKeyDown={handleKeyDown}
             className={cn(
-              "flex w-full items-center justify-between gap-2 rounded-full px-3.5 text-[13px] font-medium text-ink tracking-[-0.01em] outline-none",
+              "flex w-full items-center justify-between gap-2 rounded-[10px] px-3 text-xs font-medium text-ink tracking-[-0.01em] outline-none",
               "transition-[border-color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)]",
               variant === "plate" &&
                 "border border-line bg-surface shadow-[var(--lift-1),var(--lift-inset)] hover:border-accent/45 hover:bg-well/55 hover:shadow-[var(--lift-2),var(--lift-inset)]",
@@ -226,8 +226,8 @@ export function SearchSelect({
               "focus-visible:border-focus focus-visible:ring-[3px] focus-visible:ring-focus/35",
               "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50",
               size === "sm" && "h-8 px-3 py-1 text-xs",
-              size === "default" && "h-9 py-2",
-              size === "lg" && "h-11 px-4 py-2.5 text-sm",
+              size === "default" && "h-8 px-3 py-1 text-xs",
+              size === "lg" && "h-9 px-3.5 py-1.5 text-[13px]",
               triggerClassName
             )}
           >
@@ -271,7 +271,7 @@ export function SearchSelect({
             onTouchMove={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
             className={cn(
-              "z-[110] flex max-h-[min(26rem,calc(100dvh-5rem))] w-[var(--radix-popover-trigger-width)] min-w-[15rem] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[20px]",
+              "z-[110] flex max-h-[min(26rem,calc(100dvh-5rem))] w-[var(--radix-popover-trigger-width)] min-w-[15rem] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[12px]",
               "border border-line bg-raised/96 text-ink shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-2xl saturate-150 outline-none",
               "transition-[opacity,transform] duration-180 ease-[var(--ease-out-expo)]",
               "data-[state=closed]:scale-[0.97] data-[state=closed]:opacity-0",
@@ -281,9 +281,9 @@ export function SearchSelect({
               contentClassName
             )}
           >
-            {/* Capsule search trough inside popover header */}
-            <div className="shrink-0 border-b border-line/60 p-2">
-              <div className="relative flex h-8 items-center rounded-full border border-line/80 bg-well px-3 shadow-[var(--well-inset)]">
+            {/* Search trough inside popover header */}
+            <div className="shrink-0 border-b border-line/60 p-1.5">
+              <div className="relative flex h-7 items-center rounded-[8px] border border-line/80 bg-well px-2.5 shadow-[var(--well-inset)]">
                 <Search className="size-3.5 shrink-0 text-ink-3" aria-hidden />
                 <input
                   ref={inputRef}
@@ -325,7 +325,7 @@ export function SearchSelect({
               onWheel={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
               style={{ touchAction: "pan-y" }}
-              className="max-h-64 overflow-y-auto overscroll-contain p-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-line-strong/40"
+              className="max-h-64 overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-line-strong/40"
             >
               {filteredOptions.length === 0 ? (
                 <div className="px-3 py-4 text-center text-xs text-ink-3">{emptyMessage}</div>
@@ -346,7 +346,7 @@ export function SearchSelect({
                       onClick={() => !opt.disabled && selectOption(opt.value)}
                       onMouseEnter={() => setActiveIndex(idx)}
                       className={cn(
-                        "relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] px-3 py-2 text-xs font-medium outline-none select-none",
+                        "relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-medium outline-none select-none",
                         "transition-colors duration-100",
                         isActive && "bg-accent-tint/80 text-ink",
                         isSelected && "bg-accent-tint font-semibold text-accent-text",

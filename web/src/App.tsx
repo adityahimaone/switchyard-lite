@@ -235,7 +235,7 @@ export function App() {
 
           <div className="header-right">
             {activeBoard && (
-              <div className="hidden items-center gap-1.5 rounded-full border border-line bg-well/75 px-2.5 py-1 text-[11px] text-ink-3 lg:flex">
+              <div className="hidden h-7 items-center gap-1.5 rounded-[8px] border border-line bg-well/75 px-2.5 text-[11px] text-ink-3 lg:flex">
                 <span className="inline-flex items-center gap-1 font-mono tabular">
                   <span className="size-1.5 rounded-full bg-[var(--c-st-todo)]" aria-hidden />
                   <strong className="text-ink-2">{queuedCount}</strong> queued

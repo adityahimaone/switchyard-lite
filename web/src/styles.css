@@ -161,10 +161,10 @@ code, pre, .mono {
    ========================================================================== */
 .shell {
   display: grid;
-  grid-template-columns: 244px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 8px;
   height: 100vh;
-  padding: 12px;
+  padding: 8px;
   overflow: hidden;
   background-color: var(--c-canvas);
   /* Photographic cloud sky, with the existing radial wash on top. */
@@ -176,7 +176,7 @@ code, pre, .mono {
 }
 
 .shell.collapsed {
-  grid-template-columns: 68px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
 }
 
 /* Floating Left Sidebar Dock */
@@ -185,11 +185,11 @@ nav.side {
   backdrop-filter: blur(12px) saturate(1.1);
   -webkit-backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--c-line-strong);
-  border-radius: 26px;
-  padding: 8px;
+  border-radius: 18px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   box-shadow: var(--lift-2), var(--well-inset);
   min-height: 0;
   overflow: hidden;
@@ -199,11 +199,11 @@ nav.side {
 .side-top-pod {
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 18px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   box-shadow: var(--lift-1), var(--lift-inset);
   flex-shrink: 0;
 }
@@ -268,7 +268,7 @@ nav.side h1 {
 .nav-deck-track {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -285,8 +285,8 @@ nav.side h1 {
   flex-direction: column;
   gap: 2px;
   background: color-mix(in srgb, var(--c-surface) 55%, var(--c-well));
-  padding: 6px;
-  border-radius: 18px;
+  padding: 5px;
+  border-radius: 12px;
   border: 1px solid var(--c-line);
   flex-shrink: 0;
 }
@@ -333,13 +333,14 @@ nav.side h1 {
 nav.side a {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 11px;
-  border-radius: 999px;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
   border: 1px solid transparent;
   color: var(--c-ink-2);
   text-decoration: none;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
   transition: background-color 140ms, border-color 140ms, box-shadow 140ms, color 140ms, transform 120ms var(--ease-out);
@@ -398,8 +399,8 @@ nav.side a[aria-current="page"] {
   gap: 6px;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 18px;
-  padding: 8px;
+  border-radius: 12px;
+  padding: 6px;
   box-shadow: var(--lift-1), var(--lift-inset);
   flex-shrink: 0;
 }
@@ -411,14 +412,14 @@ nav.side a[aria-current="page"] {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  border-radius: 26px;
+  border-radius: 18px;
   border: 1px solid var(--c-line-strong);
   /* Slightly translucent porcelain: the cloud sky stays visible behind the
      stage without touching the opacity of the cards themselves. */
   background: color-mix(in srgb, var(--c-well) 78%, transparent);
   backdrop-filter: blur(14px) saturate(1.1);
   -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  padding: 7px;
+  padding: 6px;
   box-shadow: var(--lift-2), var(--well-inset);
   overflow: hidden;
   position: relative;
@@ -449,14 +450,14 @@ nav.side a[aria-current="page"] {
 header.top-header {
   position: relative;
   overflow: hidden;
-  height: 48px;
+  height: 42px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 18px;
-  border-radius: 19px 19px 0 0;
+  gap: 10px;
+  padding: 0 14px;
+  border-radius: 12px 12px 0 0;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
   border-bottom: 1px solid var(--c-line);
@@ -506,15 +507,15 @@ header.top-header > * {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 30px;
-  min-width: 190px;
+  height: 28px;
+  min-width: 180px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid var(--c-line);
   background: var(--c-well);
   box-shadow: var(--well-inset);
   color: var(--c-ink-3);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   transition: border-color 140ms, background-color 140ms, box-shadow 140ms;
 }
@@ -530,8 +531,8 @@ kbd, .kbd {
   font-family: var(--mono);
   font-size: 10px;
   line-height: 1;
-  padding: 3px 6px;
-  border-radius: 999px;
+  padding: 2px 5px;
+  border-radius: 5px;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
   color: var(--c-ink-3);
@@ -543,10 +544,10 @@ main {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  border-radius: 0 0 19px 19px;
+  border-radius: 0 0 12px 12px;
   /* Soft glass over the cloud sky. Cards remain opaque, so copy stays crisp
      while the atmosphere reads through the page surface. */
   background: color-mix(in srgb, var(--c-surface) 86%, transparent);
@@ -566,14 +567,14 @@ main.bleed {
    Page Header & Toolbar (Switchyard Board Pattern)
    ========================================================================== */
 .page-header {
-  padding: 18px 24px 15px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--c-line);
   background: color-mix(in srgb, var(--c-surface) 94%, transparent);
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
@@ -581,7 +582,7 @@ main.bleed {
 /* Non-board pages live inside a padded main. Pull the header to the stage
    edges so it reads as part of the app shell instead of a floating block. */
 main:not(.bleed) .page-header {
-  margin: -20px -24px 16px;
+  margin: -16px -20px 14px;
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
@@ -668,15 +669,15 @@ main:not(.bleed) .page-header {
 
 .search-box {
   position: relative;
-  width: 240px;
+  width: 220px;
 }
 
 .search-box input {
-  padding-left: 32px;
+  padding-left: 30px;
   padding-right: 28px;
   height: 32px;
   font-size: 12px;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--c-well);
   box-shadow: var(--well-inset);
 }
@@ -741,8 +742,8 @@ main:not(.bleed) .page-header {
   gap: 6px;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 999px;
-  padding: 5px 13px;
+  border-radius: 10px;
+  padding: 0 11px;
   height: 32px;
   font-size: 12px;
   font-weight: 600;
@@ -836,13 +837,28 @@ main:not(.bleed) .page-header {
 }
 
 .btn.sm {
-  height: 26px;
-  padding: 2px 10px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
   font-size: 11px;
+}
+
+.btn.xs {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 10.5px;
 }
 
 .btn.icon {
   width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.btn.icon.sm {
+  width: 28px;
+  height: 28px;
   padding: 0;
 }
 
@@ -854,11 +870,15 @@ main:not(.bleed) .page-header {
 input, select, textarea {
   background: var(--c-well);
   border: 1px solid var(--c-line);
-  border-radius: var(--radius);
-  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  padding: 5px 10px;
   width: 100%;
-  font-size: 13px;
+  font-size: 12px;
   transition: border-color 120ms, box-shadow 120ms;
+}
+
+input:not([type="checkbox"]):not([type="radio"]), select {
+  height: 32px;
 }
 
 input:hover, select:hover, textarea:hover {
@@ -913,15 +933,15 @@ label.f {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 12px;
-  padding: 14px 24px 20px;
+  gap: 10px;
+  padding: 12px 16px 16px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
 }
 
 .col {
-  width: 272px;
+  width: 256px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -929,32 +949,41 @@ label.f {
 }
 
 .col-header {
-  padding: 2px 4px 8px;
+  padding: 2px 4px 6px;
 }
 
 .col h3 {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--c-ink);
   margin: 0 0 6px;
+  min-height: 24px;
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
 .col-count {
-  margin-left: auto;
+  margin-left: 2px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
   color: var(--c-ink-3);
   background: var(--c-well);
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: 6px;
+}
+
+.col-quick-btn {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
 }
 
 .track-line {
-  height: 3px;
+  height: 2.5px;
   border-radius: 999px;
   background: var(--lamp, var(--c-ink-4));
   opacity: 0.88;
@@ -969,14 +998,14 @@ label.f {
 
 .col-well {
   flex: 1;
-  min-height: 160px;
+  min-height: 120px;
   background: var(--c-well);
   border-radius: var(--radius-card);
-  padding: 8px;
+  padding: 6px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid var(--c-line);
   box-shadow: var(--well-inset);
   transition: border-color 120ms, background-color 120ms;
@@ -994,24 +1023,24 @@ label.f {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 24px 12px;
+  padding: 18px 10px;
   color: var(--c-ink-3);
-  font-size: 12px;
-  gap: 4px;
+  font-size: 11px;
+  gap: 3px;
 }
 
 .col-empty span {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--c-ink-4);
 }
 
-/* Task Card (Concentric 14px porcelain plate inside 20px column well) */
+/* Task Card (Concentric 10px porcelain plate inside 12px column well) */
 .card {
   position: relative;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 14px;
-  padding: var(--card-pad) var(--card-pad) var(--card-pad) 14px;
+  border-radius: 10px;
+  padding: 9px 10px 8px 11px;
   cursor: pointer;
   box-shadow: var(--glass-lift-card);
   transition: border-color 140ms, transform 140ms var(--ease-out), box-shadow 140ms, background-color 140ms;
@@ -1046,8 +1075,8 @@ label.f {
 .card-coupler {
   position: absolute;
   left: 0;
-  top: 12px;
-  height: 18px;
+  top: 10px;
+  height: 16px;
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--lamp, var(--c-ink-4));
@@ -1055,16 +1084,20 @@ label.f {
 
 .card-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.35;
   color: var(--c-ink);
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-snippet {
-  margin-top: 4px;
+  margin-top: 3px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--c-ink-3);
   white-space: nowrap;
   overflow: hidden;
@@ -1074,23 +1107,40 @@ label.f {
 .card .meta {
   display: flex;
   align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-height: 20px;
   color: var(--c-ink-3);
-  font-size: 11px;
-  margin-top: 8px;
+  font-size: 10.5px;
+  margin-top: 6px;
+}
+
+.card-footer {
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--c-line) 65%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 30px;
+  font-size: 10.5px;
+  color: var(--c-ink-3);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  height: 20px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 500;
-  line-height: 1.2;
-  padding: 2px 8px;
-  border-radius: 999px;
+  line-height: 1;
+  padding: 0 7px;
+  border-radius: 6px;
+  white-space: nowrap;
   background: var(--c-well);
   border: 1px solid var(--c-line);
   color: var(--c-ink-2);
@@ -1305,16 +1355,16 @@ label.f {
   z-index: 50;
   display: flex;
   justify-content: flex-end;
-  padding: 12px;
+  padding: 8px;
   animation: fade-in 160ms var(--ease-out);
 }
 
 .drawer-panel {
   display: flex;
   height: 100%;
-  width: min(700px, 100%);
+  width: min(560px, 100%);
   flex-direction: column;
-  border-radius: 26px;
+  border-radius: 18px;
   border: 1px solid var(--c-line-strong);
   background: var(--glass-tint-dialog);
   backdrop-filter: blur(28px) saturate(1.6);
@@ -1358,7 +1408,7 @@ label.f {
 }
 
 .drawer-head {
-  padding: 16px 20px 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--c-line);
   background: color-mix(in srgb, var(--c-surface) 80%, transparent);
 }
@@ -1366,11 +1416,11 @@ label.f {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 12px 16px;
 }
 
 .drawer-foot {
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-top: 1px solid var(--c-line);
   background: color-mix(in srgb, var(--c-surface) 80%, transparent);
   display: flex;
@@ -1886,7 +1936,7 @@ pre.diff {
 .page-header.page-header-stack {
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 8px;
 }
 
 .page-header.page-header-stack .bar {

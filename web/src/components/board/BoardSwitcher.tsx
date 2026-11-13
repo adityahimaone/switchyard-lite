@@ -52,7 +52,7 @@ export function BoardSwitcher({
       size={size}
       showTriggerBadge
       className={className}
-      triggerClassName={triggerClassName}
+      triggerClassName={triggerClassName ?? "h-8 rounded-[10px]"}
     />
   );
 }

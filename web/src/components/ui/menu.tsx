@@ -38,9 +38,10 @@ export function Menu({
           aria-label={label}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "z-[220] min-w-[196px] overflow-hidden rounded-[20px] border border-line-strong/80 bg-raised/97 p-1.5",
+            "z-[220] min-w-[188px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[12px] border border-line-strong/80 bg-raised/97 p-1",
             "text-ink shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-xl",
-            "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 transition-opacity duration-100"
+            "transition-[opacity,transform] duration-140 ease-[var(--ease-out-expo)]",
+            "data-[state=closed]:scale-[0.97] data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=open]:opacity-100"
           )}
         >
           {children}
@@ -85,7 +86,7 @@ export function MenuItem({
         onSelect?.();
       }}
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-xs font-medium outline-none select-none",
+        "flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-medium outline-none select-none",
         "transition-colors data-[highlighted]:bg-well data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
         danger ? "text-danger-text data-[highlighted]:bg-danger-tint" : "text-ink-2 data-[highlighted]:text-ink"
       )}

@@ -31,9 +31,7 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        /* Switchyard Lite Capsule Select Trigger:
-           999px pill radius (`rounded-full`) with porcelain plate elevation or recessed well trough. */
-        "flex w-full items-center justify-between gap-2 whitespace-nowrap overflow-hidden rounded-full px-3.5 py-2 text-[13px] font-medium text-ink tracking-[-0.01em] outline-none",
+        "flex w-full items-center justify-between gap-2 whitespace-nowrap overflow-hidden rounded-[10px] px-3 py-1 text-xs font-medium text-ink tracking-[-0.01em] outline-none",
         "transition-[border-color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)]",
         variant === "plate" &&
           "border border-line bg-surface shadow-[var(--lift-1),var(--lift-inset)] hover:border-accent/45 hover:bg-well/55 hover:shadow-[var(--lift-2),var(--lift-inset)]",
@@ -46,8 +44,8 @@ function SelectTrigger({
         "aria-invalid:border-danger aria-invalid:ring-danger/20",
         "data-[placeholder]:text-ink-3",
         "data-[size=sm]:h-8 data-[size=sm]:px-3 data-[size=sm]:text-xs",
-        "data-[size=default]:h-9",
-        "data-[size=lg]:h-11 data-[size=lg]:px-4 data-[size=lg]:text-sm",
+        "data-[size=default]:h-8 data-[size=default]:px-3 data-[size=default]:text-xs",
+        "data-[size=lg]:h-9 data-[size=lg]:px-3.5 data-[size=lg]:text-[13px]",
         "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:whitespace-nowrap *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-ink-3 [&[data-state=open]>svg]:rotate-180",
         className
@@ -77,10 +75,7 @@ function SelectContent({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         className={cn(
-          /* Concentric Geometry:
-             Outer shell radius = 20px (`rounded-[20px]`), viewport padding = 8px (`p-2`),
-             Inner option item radius = 20 - 8 = 12px (`rounded-[12px]`). */
-          "relative z-[110] max-h-[min(320px,calc(100dvh-4rem))] max-w-[calc(100vw-1rem)] min-w-[10rem] origin-(--radix-select-content-transform-origin) overflow-hidden rounded-[20px] border border-line bg-raised/96 text-ink shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-2xl saturate-150 outline-none",
+          "relative z-[110] max-h-[min(320px,calc(100dvh-4rem))] max-w-[calc(100vw-1rem)] min-w-[10rem] origin-(--radix-select-content-transform-origin) overflow-hidden rounded-[12px] border border-line bg-raised/96 text-ink shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-2xl saturate-150 outline-none",
           "transition-[transform,opacity] duration-180 ease-[var(--ease-out-expo)]",
           "data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
           "data-[side=bottom]:data-[state=closed]:translate-y-[-4px] data-[side=bottom]:data-[state=open]:translate-y-0",
@@ -103,7 +98,7 @@ function SelectContent({
           onTouchMove={(e) => e.stopPropagation()}
           style={{ touchAction: "pan-y" }}
           className={cn(
-            "min-h-0 max-h-[min(300px,var(--radix-select-content-available-height))] overflow-y-auto overscroll-contain p-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-line-strong/40",
+            "min-h-0 max-h-[min(300px,var(--radix-select-content-available-height))] overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-line-strong/40",
             position === "popper" &&
               "w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
           )}
@@ -141,7 +136,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-pointer items-center gap-2 rounded-[12px] py-2 pr-8 pl-3 text-xs font-medium text-ink outline-none select-none transition-colors duration-100",
+        "relative flex w-full cursor-pointer items-center gap-2 rounded-[8px] py-1.5 pr-7 pl-2.5 text-xs font-medium text-ink outline-none select-none transition-colors duration-100",
         "focus:bg-accent-tint focus:text-accent-text hover:bg-accent-tint/70 data-[state=checked]:bg-accent-tint/60 data-[state=checked]:font-semibold data-[state=checked]:text-accent-text data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 [&_svg:not([class*='text-'])]:text-accent *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className

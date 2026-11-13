@@ -26,10 +26,10 @@ function PopoverContent({
            every `overflow: hidden` ancestor, so content past the viewport edge is
            genuinely unreachable. Letting the panel shrink keeps it on screen. */
         className={cn(
-          "z-[110] max-h-[calc(100dvh-2rem)] w-72 origin-(--radix-popover-content-transform-origin) rounded-panel p-1.5 text-ink outline-none",
+          "z-[110] max-h-[calc(100dvh-2rem)] w-72 origin-(--radix-popover-content-transform-origin) rounded-[12px] p-2 text-xs text-ink outline-none",
           "border border-line/60 bg-raised/95 shadow-float backdrop-blur-2xl saturate-150 dark:bg-raised/90",
           "transition-[opacity,transform] duration-180 ease-[var(--ease-out-expo)]",
-          "data-[state=closed]:scale-[0.96] data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=open]:opacity-100",
+          "data-[state=closed]:scale-[0.97] data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=open]:opacity-100",
           className
         )}
         {...props}

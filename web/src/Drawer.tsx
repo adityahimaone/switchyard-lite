@@ -72,11 +72,6 @@ export function TaskDrawer({
         onClick={(e) => e.stopPropagation()}
         className="drawer-panel outline-none"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-line/70 bg-well/55 px-5 py-2 text-[10.5px] font-mono tracking-[0.08em] text-ink-4 uppercase">
-          <span>Task inspector</span>
-          <span>Live telemetry</span>
-        </div>
-
         <TaskHeader
           id={id}
           task={t}
@@ -88,7 +83,7 @@ export function TaskDrawer({
           onOpenPage={openFullPage}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-canvas/35 px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-canvas/35 px-4 py-3">
           <TaskDetailPanels
             id={id}
             variant="drawer"
@@ -102,16 +97,16 @@ export function TaskDrawer({
           />
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface/85 px-5 py-3 backdrop-blur-md">
+        <footer className="flex shrink-0 items-center justify-between gap-2.5 border-t border-line bg-surface/85 px-4 py-2.5 backdrop-blur-md">
           <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-4">
             <Kbd>esc</Kbd>
-            <span>to close</span>
-            <span className="mx-1 h-3 w-px bg-line" aria-hidden />
+            <span>close</span>
+            <span className="mx-0.5 h-3 w-px bg-line" aria-hidden />
             <Kbd>⌘</Kbd>
             <Kbd>↵</Kbd>
-            <span>to comment</span>
+            <span>comment</span>
           </span>
-          <Button type="button" variant="outline" size="sm" onClick={openFullPage}>
+          <Button type="button" variant="outline" size="xs" onClick={openFullPage}>
             <Maximize2 className="size-3.5" />
             Open full page
           </Button>

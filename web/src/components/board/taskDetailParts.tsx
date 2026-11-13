@@ -61,13 +61,13 @@ export function StatusBadge({ status }: { status: Status | string }) {
     <Badge
       variant="outline"
       className={cn(
-        "gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize leading-none",
+        "h-5 gap-1.5 rounded-md px-2 py-0 text-[10.5px] font-semibold capitalize leading-none",
         STATUS_CHIP[s] ?? STATUS_CHIP.todo
       )}
     >
       <span
         aria-hidden
-        className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[s] ?? "bg-ink-4")}
+        className={cn("size-1.5 shrink-0 rounded-full", STATUS_DOT[s] ?? "bg-ink-4")}
       />
       {LABEL[status] ?? status.replace("_", " ")}
     </Badge>
@@ -119,17 +119,17 @@ export function Section({
   return (
     <section
       className={cn(
-        "min-w-0 rounded-[22px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]",
+        "min-w-0 rounded-[12px] border border-line bg-surface p-3 shadow-[var(--lift-1),var(--lift-inset)]",
         className
       )}
     >
       {(title || action) && (
-        <div className="flex items-center justify-between gap-2 border-b border-line/60 pb-2.5">
+        <div className="flex items-center justify-between gap-2 border-b border-line/60 pb-2">
           {title && <SectionTitle>{title}</SectionTitle>}
           {action}
         </div>
       )}
-      <div className={cn(title || action ? "mt-3" : "", bodyClassName)}>{children}</div>
+      <div className={cn(title || action ? "mt-2.5" : "", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -159,7 +159,7 @@ export function EmptyNote({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-[16px] border border-dashed border-line-strong/80 bg-well/35 px-3 py-5 text-center">
+    <div className="flex flex-col items-center gap-1 rounded-[10px] border border-dashed border-line-strong/80 bg-well/35 px-3 py-4 text-center">
       {icon && <span className="text-ink-3">{icon}</span>}
       <p className="m-0 text-xs font-semibold text-ink-2">{title}</p>
       {hint && <p className="m-0 max-w-[38ch] text-[11px] leading-relaxed text-ink-4">{hint}</p>}
@@ -186,7 +186,7 @@ export function MetaChip({
     <span
       title={title}
       className={cn(
-        "inline-flex max-w-[220px] items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none",
+        "inline-flex h-5 max-w-[220px] items-center gap-1 rounded-md border px-1.5 py-0 text-[10.5px] font-medium leading-none",
         tone === "default" && "border-line bg-well text-ink-2",
         tone === "accent" && "border-accent/30 bg-accent-tint text-accent-text",
         tone === "warn" && "border-warning/30 bg-warning-tint text-warning-text",
@@ -200,7 +200,7 @@ export function MetaChip({
   );
 }
 
-/** Big number + label tile used for the overview facts row. */
+/** Uniform compact tile used for the overview facts row. */
 export function FactTile({
   label,
   value,
@@ -215,14 +215,14 @@ export function FactTile({
   tone?: "default" | "accent" | "success" | "danger" | "review";
 }) {
   return (
-    <div className="min-w-0 rounded-[18px] border border-line bg-surface px-3.5 py-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
+    <div className="flex h-[58px] min-w-0 flex-col justify-center rounded-[10px] border border-line bg-surface px-3 py-2 shadow-[var(--lift-1),var(--lift-inset)]">
       <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-ink-4 uppercase">
         {icon}
         <span className="truncate">{label}</span>
       </div>
       <div
         className={cn(
-          "mt-1 truncate text-[13.5px] font-semibold tabular-nums",
+          "mt-0.5 truncate text-xs font-semibold tabular-nums",
           tone === "default" && "text-ink",
           tone === "accent" && "text-accent-text",
           tone === "success" && "text-success-text",
@@ -233,7 +233,7 @@ export function FactTile({
       >
         {value}
       </div>
-      {hint && <div className="mt-0.5 truncate text-[10px] text-ink-4">{hint}</div>}
+      {hint && <div className="mt-0.5 truncate text-[10px] leading-none text-ink-4">{hint}</div>}
     </div>
   );
 }
@@ -283,17 +283,17 @@ function LifecycleStepper({ status }: { status: Status }) {
 
   return (
     <div
-      className="mt-2.5 flex flex-wrap items-center gap-1.5 rounded-full border border-line bg-well/75 p-1 shadow-[var(--well-inset)]"
+      className="mt-2 flex flex-wrap items-center gap-1 rounded-[10px] border border-line bg-well/75 p-0.5 shadow-[var(--well-inset)]"
       aria-label="Task lifecycle progression"
     >
       {LIFECYCLE_STAGES.map((stage, idx) => {
         const isCurrent = stage === status;
         const isPast = !offTrack && activeIdx > idx;
         return (
-          <div key={stage} className="flex items-center gap-1.5">
+          <div key={stage} className="flex items-center gap-1">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium leading-none",
+                "inline-flex h-[22px] items-center gap-1.5 rounded-[7px] px-2 text-[10.5px] font-medium leading-none",
                 isCurrent
                   ? "border border-line-strong bg-surface font-semibold text-ink shadow-[var(--lift-1)]"
                   : isPast
@@ -321,7 +321,7 @@ function LifecycleStepper({ status }: { status: Status }) {
         );
       })}
       {offTrack && (
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-danger/35 bg-danger-tint px-2.5 py-1 text-[11px] font-semibold text-danger-text leading-none">
+        <span className="ml-auto inline-flex h-[22px] items-center gap-1.5 rounded-[7px] border border-danger/35 bg-danger-tint px-2 text-[10.5px] font-semibold leading-none text-danger-text">
           <span className={cn("inline-block size-1.5 rounded-full", STATUS_DOT[status])} aria-hidden />
           {LABEL[status] ?? status}
         </span>
@@ -362,29 +362,29 @@ export function TaskHeader({
       className={cn(
         "shrink-0 border-b border-line bg-surface/90 backdrop-blur-xl",
         sticky && "sticky top-0 z-20",
-        variant === "page" ? "px-4 pt-3.5 pb-3 sm:px-6" : "px-5 py-3.5"
+        variant === "page" ? "px-4 pt-3 pb-2.5 sm:px-5" : "px-4 py-2.5"
       )}
     >
       <div className="flex items-start gap-2.5">
         {onBack && (
           <Button
             variant="outline"
-            size="icon-sm"
+            size="icon-xs"
             onClick={onBack}
             aria-label="Back to board"
             title="Back to board"
-            className="mt-0.5 rounded-full"
+            className="mt-0.5"
           >
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-3.5" />
           </Button>
         )}
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <TitleTag
               className={cn(
                 "m-0 min-w-0 max-w-full truncate font-[var(--font-display)] font-bold tracking-[-0.025em] text-ink",
-                variant === "page" ? "text-xl" : "text-base"
+                variant === "page" ? "text-[17px]" : "text-[15px]"
               )}
               title={task?.title ?? id}
             >
@@ -394,7 +394,7 @@ export function TaskHeader({
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-3">
-            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-well py-0.5 pr-1 pl-2 font-mono text-[11px] text-ink-2">
+            <span className="inline-flex h-5 items-center gap-1 rounded-md border border-line bg-well pr-1 pl-1.5 font-mono text-[10.5px] leading-none text-ink-2">
               {id}
               <CopyButton value={id} label="Copy task id" />
             </span>
@@ -434,12 +434,12 @@ export function TaskHeader({
             <Button
               type="button"
               variant={editing ? "secondary" : "ghost"}
-              size="sm"
+              size="xs"
               onClick={onToggleEdit}
               disabled={!task}
               aria-pressed={editing}
             >
-              <Pencil className="size-3.5" />
+              <Pencil className="size-3" />
               <span className="hidden sm:inline">{editing ? "Editing" : "Edit"}</span>
             </Button>
           </Tip>
@@ -448,11 +448,11 @@ export function TaskHeader({
               <Button
                 type="button"
                 variant="ghost"
-                size="icon-sm"
+                size="icon-xs"
                 onClick={onOpenPage}
                 aria-label="Open full detail page"
               >
-                <Maximize2 className="size-4" />
+                <Maximize2 className="size-3.5" />
               </Button>
             </Tip>
           )}
@@ -461,11 +461,11 @@ export function TaskHeader({
               <Button
                 type="button"
                 variant="ghost"
-                size="icon-sm"
+                size="icon-xs"
                 onClick={onClose}
                 aria-label="Close task drawer"
               >
-                <X className="size-4" />
+                <X className="size-3.5" />
               </Button>
             </Tip>
           )}
@@ -621,7 +621,7 @@ export function WorktreeDiffPanel({
               Approving keeps the branch and marks the task done. Requesting changes records your
               feedback as a comment and requeues the task to Todo.
             </p>
-            <Button type="button" variant="signal" size="sm" loading={approvePending} onClick={onApprove}>
+            <Button type="button" variant="signal" size="xs" loading={approvePending} onClick={onApprove}>
               <CheckCircle2 className="size-3.5" />
               Approve &amp; mark done
             </Button>

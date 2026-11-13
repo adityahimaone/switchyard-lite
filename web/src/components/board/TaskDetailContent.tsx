@@ -442,10 +442,10 @@ export function TaskDetailPanels({
       <TabsList
         variant="default"
         className={cn(
-          "h-auto w-full justify-start overflow-x-auto rounded-full border border-line bg-well/80 p-1 shadow-[var(--well-inset)]",
-          "[&_[data-slot=tabs-trigger]]:rounded-full [&_[data-slot=tabs-trigger]]:px-3.5 [&_[data-slot=tabs-trigger]]:py-1.5 [&_[data-slot=tabs-trigger]]:after:hidden",
+          "h-8 w-full justify-start overflow-x-auto rounded-[10px] border border-line bg-well/80 p-0.5 shadow-[var(--well-inset)]",
+          "[&_[data-slot=tabs-trigger]]:h-[26px] [&_[data-slot=tabs-trigger]]:rounded-[8px] [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:py-0 [&_[data-slot=tabs-trigger]]:after:hidden",
           "[&_[data-slot=tabs-trigger][data-state=active]]:bg-surface [&_[data-slot=tabs-trigger][data-state=active]]:text-ink [&_[data-slot=tabs-trigger][data-state=active]]:shadow-[var(--lift-1)]",
-          variant === "page" && "sticky top-[96px] z-10 backdrop-blur-md"
+          variant === "page" && "sticky top-[104px] z-10 backdrop-blur-md"
         )}
       >
         <TabsTrigger value="overview">
@@ -461,26 +461,30 @@ export function TaskDetailPanels({
           <MessageSquare className="size-3.5" />
           Discussion
           {commentCount > 0 && (
-            <span className="rounded-full bg-well px-1.5 py-0.2 font-mono text-[10px] text-ink-2">{commentCount}</span>
+            <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-2">
+              {commentCount}
+            </span>
           )}
         </TabsTrigger>
         <TabsTrigger value="history">
           <History className="size-3.5" />
           History
           {eventCount > 0 && (
-            <span className="rounded-full bg-well px-1.5 py-0.2 font-mono text-[10px] text-ink-3">{eventCount}</span>
+            <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-3">
+              {eventCount}
+            </span>
           )}
         </TabsTrigger>
       </TabsList>
 
       {anyErr && (
-        <div className="pt-3.5">
+        <div className="pt-3">
           <ErrorBox error={anyErr} />
         </div>
       )}
 
       {/* ---------------------------------------------------------- Overview */}
-      <TabsContent value="overview" className="space-y-3 pt-3.5">
+      <TabsContent value="overview" className="space-y-3 pt-3">
         {t && (
           <>
             {showActions && (
@@ -656,10 +660,10 @@ export function TaskDetailPanels({
                   </div>
 
                   <div className="flex justify-end gap-2 pt-1">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>
+                    <Button type="button" variant="outline" size="xs" onClick={() => setEditing(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" variant="signal" size="sm" loading={updateTask.isPending}>
+                    <Button type="submit" variant="signal" size="xs" loading={updateTask.isPending}>
                       Save changes
                     </Button>
                   </div>
@@ -723,18 +727,18 @@ export function TaskDetailPanels({
                   <Section title={<><Paperclip className="size-3" /> Context &amp; references</>}>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {t.branch && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-line bg-well px-2 py-0.5 font-mono text-[10px] text-ink-2">
+                        <span className="inline-flex h-5 items-center gap-1 rounded-md border border-line bg-well px-1.5 font-mono text-[10.5px] leading-none text-ink-2">
                           <GitBranch className="size-2.5" /> base: {t.branch}
                         </span>
                       )}
                       {(t.paths ?? []).map((p) => (
-                        <span key={p} className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent/35 bg-accent/12 px-2 py-0.5 font-mono text-[10px] text-accent-text">
-                          <FileCode2 className="size-2.5" />
+                        <span key={p} className="inline-flex h-5 max-w-full items-center gap-1 rounded-md border border-accent/35 bg-accent/12 px-1.5 font-mono text-[10.5px] leading-none text-accent-text">
+                          <FileCode2 className="size-2.5 shrink-0" />
                           <span className="max-w-[240px] truncate">@{p}</span>
                         </span>
                       ))}
                       {(t.skills ?? []).map((s) => (
-                        <span key={s} className="inline-flex items-center gap-1 rounded-full border border-line bg-well px-2 py-0.5 font-mono text-[10px] text-ink-2">
+                        <span key={s} className="inline-flex h-5 items-center gap-1 rounded-md border border-line bg-well px-1.5 font-mono text-[10.5px] leading-none text-ink-2">
                           ${s}
                         </span>
                       ))}
@@ -745,12 +749,6 @@ export function TaskDetailPanels({
                 {variant === "drawer" && (
                   <Section title="Details">
                     <FieldList>
-                      <Field label="Task id">
-                        <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                          {t.id}
-                          <CopyButton value={t.id} label="Copy task id" />
-                        </span>
-                      </Field>
                       {worktree.data?.exists && (
                         <Field label="Worktree branch">
                           <span className="font-mono text-[11px]">{worktree.data.branch}</span>
@@ -790,7 +788,7 @@ export function TaskDetailPanels({
                           return (
                             <div
                               key={dep}
-                              className="flex items-center gap-2 rounded-control border border-line bg-well/40 px-2.5 py-1.5"
+                              className="flex h-8 items-center gap-2 rounded-[8px] border border-line bg-well/40 px-2.5"
                             >
                               <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2">
                                 {found ? `${found.id} · ${found.title}` : dep}
@@ -886,7 +884,7 @@ export function TaskDetailPanels({
                 >
                   {showNoteAtt && (
                     <form
-                      className="mb-2.5 space-y-2 rounded-control border border-line bg-well/40 p-2.5"
+                      className="mb-2.5 space-y-2 rounded-[10px] border border-line bg-well/40 p-2.5"
                       onSubmit={(e) => {
                         e.preventDefault();
                         if (attName.trim()) uploadTextAtt.mutate();
@@ -897,14 +895,14 @@ export function TaskDetailPanels({
                         value={attName}
                         onChange={(e) => setAttName(e.target.value)}
                         placeholder="Filename (e.g. spec.md)"
-                        className="h-7 text-xs"
+                        className="h-7 rounded-[8px] text-xs"
                       />
                       <Textarea
                         rows={2}
                         value={attContent}
                         onChange={(e) => setAttContent(e.target.value)}
                         placeholder="Paste text / context…"
-                        className="min-h-14 text-xs"
+                        className="min-h-14 rounded-[8px] text-xs"
                       />
                       <div className="flex justify-end gap-1.5">
                         <Button type="button" variant="ghost" size="xs" onClick={() => setShowNoteAtt(false)}>
@@ -922,7 +920,7 @@ export function TaskDetailPanels({
                       {attachments.data.map((a) => (
                         <div
                           key={a.id}
-                          className="group flex items-center gap-2 rounded-control border border-line bg-well/40 px-2.5 py-1.5"
+                          className="group flex h-8 items-center gap-2 rounded-[8px] border border-line bg-well/40 px-2.5"
                         >
                           <Paperclip className="size-3.5 shrink-0 text-ink-3" />
                           <button
@@ -963,7 +961,7 @@ export function TaskDetailPanels({
       </TabsContent>
 
       {/* ---------------------------------------------------- Diff & Worktree */}
-      <TabsContent value="diff" className="pt-3.5">
+      <TabsContent value="diff" className="pt-3">
         {t && (
           <WorktreeDiffPanel
             task={t}
@@ -980,7 +978,7 @@ export function TaskDetailPanels({
       </TabsContent>
 
       {/* -------------------------------------------------------- Discussion */}
-      <TabsContent value="discussion" className="space-y-3 pt-3.5">
+      <TabsContent value="discussion" className="space-y-3 pt-3">
         <Section title={`Comments${commentCount ? ` (${commentCount})` : ""}`}>
           {comments.data?.length ? (
             <div className="space-y-2.5">
@@ -988,11 +986,11 @@ export function TaskDetailPanels({
                 <div key={c.id ?? idx} className="flex gap-2.5">
                   <span
                     aria-hidden
-                    className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-line bg-well text-[10px] font-semibold text-ink-2"
+                    className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[8px] border border-line bg-well text-[10px] font-semibold text-ink-2"
                   >
                     {initials(c.author)}
                   </span>
-                  <div className="min-w-0 flex-1 rounded-control border border-line bg-well/40 px-3 py-2">
+                  <div className="min-w-0 flex-1 rounded-[10px] border border-line bg-well/40 px-3 py-2">
                     <div className="flex items-center justify-between gap-2 text-[11px]">
                       <span className="font-semibold text-ink">{c.author}</span>
                       <span className="text-ink-3" title={fmtDateTime(c.created_at)}>
@@ -1043,11 +1041,11 @@ export function TaskDetailPanels({
               <Button
                 type="submit"
                 variant="signal"
-                size="sm"
+                size="xs"
                 loading={addComment.isPending}
                 disabled={!commentBody.trim()}
               >
-                <Send className="size-3.5" />
+                <Send className="size-3" />
                 Comment
               </Button>
             </div>
@@ -1056,7 +1054,7 @@ export function TaskDetailPanels({
       </TabsContent>
 
       {/* ----------------------------------------------------------- History */}
-      <TabsContent value="history" className="pt-3.5">
+      <TabsContent value="history" className="pt-3">
         <Section
           title={`Activity${eventCount ? ` (${eventCount})` : ""}`}
           action={eventCount > 0 ? <span className="text-[10px] text-ink-4">newest first</span> : undefined}

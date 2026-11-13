@@ -19,8 +19,8 @@ function TabsList({
       data-variant={variant}
       className={cn(
         variant === "line"
-          ? "inline-flex items-center gap-1 border-b border-line"
-          : "inline-flex h-9 w-fit items-center justify-center gap-1 rounded-full border border-line bg-well p-1 shadow-[var(--well-inset)]",
+          ? "inline-flex h-8 items-center gap-1 border-b border-line"
+          : "inline-flex h-8 w-fit items-center justify-center gap-0.5 rounded-[10px] border border-line bg-well p-0.5 shadow-[var(--well-inset)]",
         className
       )}
       {...props}
@@ -33,10 +33,10 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap text-ink-3 outline-none transition-colors",
+        "relative inline-flex h-[26px] items-center justify-center gap-1.5 rounded-[8px] px-2.5 py-0 text-xs font-medium whitespace-nowrap text-ink-3 outline-none transition-colors",
         "hover:text-ink focus-visible:ring-2 focus-visible:ring-focus/40 disabled:pointer-events-none disabled:opacity-50",
         "data-[state=active]:text-accent-text data-[state=active]:font-semibold",
-        "after:absolute after:inset-x-1 after:bottom-0 after:h-[2.5px] after:rounded-full after:bg-transparent data-[state=active]:after:bg-accent",
+        "after:absolute after:inset-x-1 after:bottom-0 after:h-[2px] after:rounded-full after:bg-transparent data-[state=active]:after:bg-accent",
         className
       )}
       {...props}

@@ -372,8 +372,9 @@ export function FilterBar({
         return (
           <div
             key={filter.id}
+            data-slot="filter-token"
             className={cn(
-              "flex h-[27px] items-stretch overflow-hidden rounded-full border border-line bg-surface/90 text-[11px] shadow-[var(--lift-1)] transition-colors",
+              "flex h-8 items-stretch overflow-hidden rounded-[10px] border border-line bg-surface/90 text-xs shadow-[var(--lift-1)] transition-colors",
               flash === filter.id && "border-accent/60 bg-accent-tint"
             )}
           >
@@ -385,7 +386,7 @@ export function FilterBar({
                 <Segment
                   ariaLabel={`Field: ${field?.label ?? filter.field}. Change field.`}
                   active={isOpen(filter.id, "field")}
-                  className="rounded-l-full pl-2 font-medium"
+                  className="rounded-l-[10px] pl-2.5 font-medium"
                 >
                   {field?.icon && (
                     <span className="text-ink-3" aria-hidden>
@@ -505,9 +506,9 @@ export function FilterBar({
             type="button"
             aria-label={value.length === 0 ? emptyLabel : addLabel}
             data-kubai-trigger
-            className="inline-flex h-[27px] items-center gap-1 rounded-full border border-line bg-surface/70 px-2.5 text-[11px] font-medium text-ink-3 shadow-[var(--lift-1)] transition-colors hover:border-accent/45 hover:bg-accent-tint hover:text-accent-text focus-visible:outline-none focus-visible:bg-well"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-line bg-surface/80 px-2.5 text-xs font-medium text-ink-3 shadow-[var(--lift-1)] transition-colors hover:border-accent/45 hover:bg-accent-tint hover:text-accent-text focus-visible:outline-none focus-visible:bg-well"
           >
-            <Plus className="size-3" />
+            <Plus className="size-3.5" />
             {value.length === 0 ? emptyLabel : addLabel}
           </button>
         </PopoverTrigger>

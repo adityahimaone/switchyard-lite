@@ -143,13 +143,13 @@
 
   /* Closed-Form Radius Scale */
   --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius: 12px;
-  --radius-control: 12px;
-  --radius-card: 20px;
-  --radius-panel: 28px;
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-control: 10px;
+  --radius-card: 12px;
+  --radius-panel: 18px;
   --radius-pill: 999px;
-  --radius-concentric: calc(var(--radius-card) - 8px); /* 20px - 8px = 12px */
+  --radius-concentric: calc(var(--radius-card) - 4px); /* 12px - 4px = 8px */
 
   /* Typography Stack */
   --font-display: "Space Grotesk", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -168,7 +168,7 @@
   --dur-2: 170ms;
   --dur-3: 260ms;
 
-  --card-pad: 14px;
+  --card-pad: 10px;
   --focus-ring: 0 0 0 3px rgb(47 91 255 / 0.28);
 }
 

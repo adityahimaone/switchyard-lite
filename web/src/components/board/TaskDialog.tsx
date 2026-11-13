@@ -14,7 +14,6 @@ import {
   Play,
   Plus,
   Send,
-  SlidersHorizontal,
   Sparkles,
   X,
 } from "@/components/ui/icons";
@@ -143,49 +142,6 @@ function RailField({ label, htmlFor, children }: { label: string; htmlFor?: stri
   );
 }
 
-function CollapsibleSection({
-  title,
-  icon,
-  count,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  icon?: ReactNode;
-  count?: number;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="mt-3">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="group flex w-full items-center gap-2 rounded-full py-1 text-left text-xs font-medium text-ink-3 transition-colors hover:text-ink"
-      >
-        <ChevronRight
-          className={cn(
-            "size-3.5 shrink-0 text-ink-4 transition-transform duration-150",
-            open && "rotate-90 text-ink-2"
-          )}
-        />
-        {icon}
-        <span>{title}</span>
-        {typeof count === "number" && count > 0 && (
-          <Badge variant="default" className="px-1.5 py-0 text-[10px]">
-            {count}
-          </Badge>
-        )}
-        <span className="h-px flex-1 bg-line/70" />
-      </button>
-      {open && <div className="mt-2.5 pl-1">{children}</div>}
-    </div>
-  );
-}
-
 export function TaskDialog({
   open = true,
   boardId,
@@ -221,7 +177,6 @@ export function TaskDialog({
   const [paths, setPaths] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [depsOpen, setDepsOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
 
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -460,7 +415,6 @@ export function TaskDialog({
       });
     }
     setPendingFiles((prev) => [...prev, ...added]);
-    setAdvancedOpen(true);
   };
 
   const summaryExecutor = executor
@@ -485,7 +439,7 @@ export function TaskDialog({
         if (!nextOpen) onClose();
       }}
     >
-      <DialogContent className="max-w-4xl p-0" showClose>
+      <DialogContent className="max-w-3xl p-0" showClose>
         <form
           onSubmit={submit}
           onKeyDown={(e) => {
@@ -496,38 +450,38 @@ export function TaskDialog({
           }}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <DialogHeader className="border-b border-line bg-well/45 px-5 py-4">
+          <DialogHeader className="border-b border-line bg-well/45 px-5 py-3">
             <div className="flex flex-wrap items-center gap-2 pr-8">
-              <DialogTitle id="task-dialog-title" className="text-[17px] tracking-tight">
+              <DialogTitle id="task-dialog-title" className="text-[15px] tracking-tight">
                 New task
               </DialogTitle>
               {board && (
-                <Badge variant="default" className="font-mono text-[11px]">
+                <Badge variant="default" className="font-mono text-[10.5px]">
                   {board.name}
                 </Badge>
               )}
               <Badge
                 variant={startMode === "now" ? "default" : "secondary"}
-                className="font-mono text-[10px]"
+                className="font-mono text-[10.5px]"
               >
                 {startLabel}
               </Badge>
             </div>
-            <DialogDescription className="text-[12.5px] text-ink-3">
-              Dispatch Studio — specify the task brief, bind a workspace and executor, and press ⌘↵ to create.
+            <DialogDescription className="text-xs text-ink-3">
+              Specify the task brief, bind a workspace and executor, and press ⌘↵ to create.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogBody className="flex flex-col gap-3 bg-canvas/35 p-4 sm:p-5">
+          <DialogBody className="flex flex-col gap-3 bg-canvas/35 p-4">
             <ErrorBox error={create.error} />
             <SaasRulesBanner active={saasActive} />
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_296px]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_256px]">
               {/* -------------------------------------------------- content */}
-              <div className="min-w-0 space-y-3">
-                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] space-y-2">
+              <div className="min-w-0 space-y-3 rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-title" className="text-[12px] font-semibold text-ink-2">
+                    <Label htmlFor="task-title" className="text-xs font-semibold text-ink-2">
                       Title
                     </Label>
                     <span className="font-mono text-[10px] text-ink-4">Required</span>
@@ -552,9 +506,9 @@ export function TaskDialog({
                   )}
                 </div>
 
-                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-prompt" className="text-[12px] font-semibold text-ink-2">
+                    <Label htmlFor="task-prompt" className="text-xs font-semibold text-ink-2">
                       Prompt
                     </Label>
                     <div className="flex items-center gap-2">
@@ -565,7 +519,7 @@ export function TaskDialog({
                         size="xs"
                         onClick={applyFastTemplate}
                         title="Insert a structured prompt template"
-                        className="h-6 border border-accent/35 bg-accent-tint text-[11px] text-accent-text hover:border-accent hover:bg-accent hover:text-accent-ink"
+                        className="border border-accent/35 bg-accent-tint text-accent-text hover:border-accent hover:bg-accent hover:text-accent-ink"
                       >
                         <Sparkles className="size-3" />
                         Template
@@ -575,7 +529,7 @@ export function TaskDialog({
                   <PromptOmnibox
                     id="task-prompt"
                     inputRef={promptRef}
-                    rows={7}
+                    rows={5}
                     value={prompt}
                     onChange={setPrompt}
                     workspace={workspace.trim()}
@@ -585,11 +539,11 @@ export function TaskDialog({
                     onSkillsChange={setSkills}
                     boardTasks={candidates}
                     placeholder="Detailed instructions for the agent — context, constraints, files to touch…"
-                    className="min-h-[168px]"
+                    className="min-h-[124px]"
                   />
 
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/70 pt-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <input
                         ref={fileRef}
                         type="file"
@@ -606,31 +560,52 @@ export function TaskDialog({
                         size="xs"
                         onClick={() => fileRef.current?.click()}
                       >
-                        <CloudUpload className="size-3.5" />
+                        <CloudUpload className="size-3" />
                         Upload files
                         {pendingFiles.length > 0 && (
-                          <span className="rounded-full bg-accent-tint px-1.5 font-mono text-[10px] text-accent-text">
+                          <span className="rounded bg-accent-tint px-1 font-mono text-[10px] text-accent-text">
                             {pendingFiles.length}
                           </span>
                         )}
                       </Button>
 
-                      <button
+                      <Button
                         type="button"
-                        aria-expanded={advancedOpen}
-                        onClick={() => setAdvancedOpen((v) => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/65 px-2.5 py-1 text-[11px] font-medium text-ink-2 transition-colors hover:border-accent/45 hover:bg-accent-tint hover:text-accent-text"
+                        variant={contextOpen ? "secondary" : "outline"}
+                        size="xs"
+                        aria-expanded={contextOpen}
+                        onClick={() => setContextOpen((v) => !v)}
                       >
-                        <SlidersHorizontal className="size-3 text-ink-3" />
-                        {advancedOpen ? "Hide" : "Show"} advanced
-                      </button>
+                        <AtSign className="size-3" />
+                        Context
+                        {paths.length + skills.length > 0 && (
+                          <span className="rounded bg-accent-tint px-1 font-mono text-[10px] text-accent-text">
+                            {paths.length + skills.length}
+                          </span>
+                        )}
+                      </Button>
+
+                      {activeCandidates.length > 0 && (
+                        <Button
+                          type="button"
+                          variant={depsOpen ? "secondary" : "outline"}
+                          size="xs"
+                          aria-expanded={depsOpen}
+                          onClick={() => setDepsOpen((v) => !v)}
+                        >
+                          <Link2 className="size-3" />
+                          Dependencies
+                          {blockedBy.length > 0 && (
+                            <span className="rounded bg-accent-tint px-1 font-mono text-[10px] text-accent-text">
+                              {blockedBy.length}
+                            </span>
+                          )}
+                        </Button>
+                      )}
                     </div>
 
-                    <span className="font-mono text-[10.5px] tabular-nums text-ink-4">
-                      {paths.length} ref{paths.length === 1 ? "" : "s"} · {skills.length} skill
-                      {skills.length === 1 ? "" : "s"} · {pendingFiles.length} file
-                      {pendingFiles.length === 1 ? "" : "s"} · {blockedBy.length} blocker
-                      {blockedBy.length === 1 ? "" : "s"}
+                    <span className="font-mono text-[10px] tabular-nums text-ink-4">
+                      {paths.length} ref · {skills.length} skill · {pendingFiles.length} file · {blockedBy.length} dep
                     </span>
                   </div>
 
@@ -639,7 +614,7 @@ export function TaskDialog({
                       {pendingFiles.map((pf) => (
                         <span
                           key={pf.id}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well px-2.5 py-1 text-[11px] font-medium text-ink-2"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-[8px] border border-line bg-well px-2.5 text-[11px] font-medium text-ink-2"
                         >
                           <Paperclip className="size-3 text-ink-3" />
                           <span className="max-w-[160px] truncate">{pf.name}</span>
@@ -647,7 +622,7 @@ export function TaskDialog({
                           <button
                             type="button"
                             onClick={() => setPendingFiles((p) => p.filter((x) => x.id !== pf.id))}
-                            className="ml-0.5 rounded-full p-0.5 hover:bg-surface"
+                            className="ml-0.5 rounded-[4px] p-0.5 hover:bg-surface"
                             aria-label={`Remove ${pf.name}`}
                           >
                             <X className="size-2.5" />
@@ -656,11 +631,74 @@ export function TaskDialog({
                       ))}
                     </div>
                   )}
+
+                  {contextOpen && (
+                    <div className="pt-1">
+                      <TaskContextPicker
+                        workspace={workspace.trim()}
+                        paths={paths}
+                        onPathsChange={setPaths}
+                        skills={skills}
+                        onSkillsChange={setSkills}
+                      />
+                    </div>
+                  )}
+
+                  {depsOpen && activeCandidates.length > 0 && (
+                    <div className="space-y-2 rounded-[10px] border border-line bg-well/40 p-2.5">
+                      <SearchSelect
+                        value={depId}
+                        onValueChange={(v) => {
+                          if (!v) return;
+                          setBlockedBy((prev) => (prev.includes(v) ? prev : [...prev, v]));
+                          setDepId("");
+                        }}
+                        options={activeCandidates
+                          .filter((c) => !blockedBy.includes(c.id))
+                          .map((c) => ({
+                            value: c.id,
+                            label: c.title,
+                            sublabel: c.id,
+                            badge: c.status,
+                            keywords: [c.id, c.title, c.status],
+                          }))}
+                        placeholder="Add blocker task…"
+                        searchPlaceholder="Search tasks by title or id…"
+                        emptyMessage="No matching tasks"
+                        ariaLabel="Add blocker"
+                        size="sm"
+                      />
+                      {blockedBy.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {blockedBy.map((id) => {
+                            const c = candidates.find((x) => x.id === id);
+                            return (
+                              <span
+                                key={id}
+                                className="inline-flex h-6 items-center gap-1 rounded-[7px] border border-accent/40 bg-accent-tint px-2 text-[10.5px] font-medium text-accent-text"
+                              >
+                                <Check className="size-3" />
+                                <span className="max-w-[200px] truncate">{c?.title ?? id}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))}
+                                  className="ml-0.5 rounded-[4px] p-0.5 hover:bg-surface"
+                                  aria-label={`Remove blocker ${c?.title ?? id}`}
+                                >
+                                  <X className="size-2.5" />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] space-y-2">
+                <div className="space-y-1.5 border-t border-line/70 pt-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-acceptance" className="text-[12px] font-semibold text-ink-2">
+                    <Label htmlFor="task-acceptance" className="text-xs font-semibold text-ink-2">
                       Acceptance criteria
                     </Label>
                     <div className="flex items-center gap-2">
@@ -669,7 +707,7 @@ export function TaskDialog({
                           <button
                             type="button"
                             onClick={applyDefaultGate}
-                            className="inline-flex items-center gap-1 rounded-full border border-accent/35 bg-accent-tint px-2 py-0.5 font-mono text-[9px] text-accent-text hover:border-accent"
+                            className="inline-flex h-5 items-center gap-1 rounded-[6px] border border-accent/35 bg-accent-tint px-2 font-mono text-[10px] text-accent-text hover:border-accent"
                             title="Inferred from marker files in this workspace"
                           >
                             <Sparkles className="size-2.5" />
@@ -687,73 +725,71 @@ export function TaskDialog({
                     value={acceptance}
                     onChange={(e) => setAcceptance(e.target.value)}
                     placeholder="How should we verify this is done? Tests, checks, expected output…"
-                    className="min-h-16"
+                    className="min-h-[54px]"
                   />
                 </div>
               </div>
 
               {/* --------------------------------------------------- routing */}
               <aside
-                className="space-y-3"
+                className="space-y-3 rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] self-start"
                 aria-label="Task routing"
               >
-                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
-                  <RailGroup label="Target Workspace">
-                    <RailField label="Repository / Checkout">
-                      <SearchSelect
-                        id="task-workspace"
-                        value={selectValue}
-                        onValueChange={(v) => {
-                          setWsUserEdited(true);
-                          setBranch("");
-                          setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
-                        }}
-                        options={workspaceOptions}
-                        placeholder="Select workspace…"
-                        searchPlaceholder="Search workspaces by name, path, host…"
-                        emptyMessage="No matching workspaces"
-                        ariaLabel="Workspace"
-                        size="sm"
-                        showTriggerBadge
-                      />
-                    </RailField>
-
-                    {selectedWsObj ? (
-                      <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-line bg-well/70 px-2.5 py-1 text-[10px] text-ink-3">
-                        <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
-                        <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
-                          {selectedWsObj.path}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                        {(savedWorkspaces.data?.length ?? 0) === 0
-                          ? "No saved workspaces yet — add one from the Workspaces page."
-                          : "Scratch runs have no repository, branch, or diff."}
-                        {" "}
-                        <a href="#/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
-                          Manage workspaces
-                        </a>
-                      </p>
-                    )}
-
-                    <BranchField
-                      workspace={workspace.trim()}
-                      isGit={isGit}
-                      inspect={wsInspect.data}
-                      value={branch}
-                      onChange={setBranch}
-                      loading={wsInspect.isFetching}
-                      onRefresh={() => {
-                        setBranchRefresh((n) => n + 1);
-                        qc.invalidateQueries({ queryKey: ["ws-files", workspace.trim()] });
-                        qc.invalidateQueries({ queryKey: ["ws-symbols", workspace.trim()] });
+                <RailGroup label="Target Workspace">
+                  <RailField label="Repository / Checkout">
+                    <SearchSelect
+                      id="task-workspace"
+                      value={selectValue}
+                      onValueChange={(v) => {
+                        setWsUserEdited(true);
+                        setBranch("");
+                        setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
                       }}
+                      options={workspaceOptions}
+                      placeholder="Select workspace…"
+                      searchPlaceholder="Search workspaces by name, path, host…"
+                      emptyMessage="No matching workspaces"
+                      ariaLabel="Workspace"
+                      size="sm"
+                      showTriggerBadge
                     />
-                  </RailGroup>
-                </div>
+                  </RailField>
 
-                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+                  {selectedWsObj ? (
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-[8px] border border-line bg-well/70 px-2.5 py-1 text-[10px] text-ink-3">
+                      <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
+                      <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
+                        {selectedWsObj.path}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                      {(savedWorkspaces.data?.length ?? 0) === 0
+                        ? "No saved workspaces yet — add one from the Workspaces page."
+                        : "Scratch runs have no repository, branch, or diff."}
+                      {" "}
+                      <a href="#/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
+                        Manage workspaces
+                      </a>
+                    </p>
+                  )}
+
+                  <BranchField
+                    workspace={workspace.trim()}
+                    isGit={isGit}
+                    inspect={wsInspect.data}
+                    value={branch}
+                    onChange={setBranch}
+                    loading={wsInspect.isFetching}
+                    onRefresh={() => {
+                      setBranchRefresh((n) => n + 1);
+                      qc.invalidateQueries({ queryKey: ["ws-files", workspace.trim()] });
+                      qc.invalidateQueries({ queryKey: ["ws-symbols", workspace.trim()] });
+                    }}
+                  />
+                </RailGroup>
+
+                <div className="border-t border-line/70 pt-3">
                   <RailGroup label="Agent Execution">
                     <RailField label="Executor" htmlFor="task-executor">
                       <Select
@@ -813,7 +849,7 @@ export function TaskDialog({
                           onChange={(e) => setModel(e.target.value)}
                           disabled={!effectiveExecutor}
                           placeholder="(executor default)"
-                          className="h-8 rounded-full font-mono text-[11px]"
+                          className="font-mono text-xs"
                           aria-label="Model"
                         />
                       )}
@@ -848,7 +884,7 @@ export function TaskDialog({
                   </RailGroup>
                 </div>
 
-                <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+                <div className="border-t border-line/70 pt-3">
                   <RailGroup label="Dispatch Mode">
                     <Segmented
                       label="Start mode"
@@ -872,98 +908,9 @@ export function TaskDialog({
                 </div>
               </aside>
             </div>
-
-            {/* ------------------------------------- context & references */}
-            <CollapsibleSection
-              title="Workspace Context & References"
-              icon={<AtSign className="size-3 text-ink-3" />}
-              count={paths.length + skills.length}
-              open={contextOpen}
-              onToggle={() => setContextOpen((v) => !v)}
-            >
-              <TaskContextPicker
-                workspace={workspace.trim()}
-                paths={paths}
-                onPathsChange={setPaths}
-                skills={skills}
-                onSkillsChange={setSkills}
-              />
-            </CollapsibleSection>
-
-            {(advancedOpen || pendingFiles.length > 0) && (
-              <div className="rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2">
-                    <Paperclip className="size-3.5 text-ink-3" />
-                    Attachments ({pendingFiles.length})
-                  </span>
-                  <Button type="button" variant="dashed" size="xs" onClick={() => fileRef.current?.click()}>
-                    <Plus className="size-3" />
-                    Choose files
-                  </Button>
-                </div>
-
-                {activeCandidates.length > 0 && (
-                  <CollapsibleSection
-                    title="Dependencies (blocked by)"
-                    icon={<Link2 className="size-3 text-ink-3" />}
-                    count={blockedBy.length}
-                    open={depsOpen}
-                    onToggle={() => setDepsOpen((v) => !v)}
-                  >
-                    <SearchSelect
-                      value={depId}
-                      onValueChange={(v) => {
-                        if (!v) return;
-                        setBlockedBy((prev) => (prev.includes(v) ? prev : [...prev, v]));
-                        setDepId("");
-                      }}
-                      options={activeCandidates
-                        .filter((c) => !blockedBy.includes(c.id))
-                        .map((c) => ({
-                          value: c.id,
-                          label: c.title,
-                          sublabel: c.id,
-                          badge: c.status,
-                          keywords: [c.id, c.title, c.status],
-                        }))}
-                      placeholder="Add blocker…"
-                      searchPlaceholder="Search tasks by title or id…"
-                      emptyMessage="No matching tasks"
-                      ariaLabel="Add blocker"
-                      size="sm"
-                    />
-                    {blockedBy.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {blockedBy.map((id) => {
-                          const c = candidates.find((x) => x.id === id);
-                          return (
-                            <span
-                              key={id}
-                              className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent-tint px-2.5 py-1 text-[11px] font-medium text-accent-text"
-                            >
-                              <Check className="size-3" />
-                              <span className="max-w-[200px] truncate">{c?.title ?? id}</span>
-                              <button
-                                type="button"
-                                onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))}
-                                className="ml-0.5 rounded-full p-0.5 hover:bg-surface"
-                                aria-label={`Remove blocker ${c?.title ?? id}`}
-                              >
-                                <X className="size-2.5" />
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CollapsibleSection>
-                )}
-              </div>
-            )}
           </DialogBody>
 
-          <DialogFooter className="border-t border-line bg-surface/85 px-5 py-3.5 sm:items-center">
+          <DialogFooter className="border-t border-line bg-surface/85 px-5 py-3 sm:items-center">
             <div className="mr-auto hidden flex-wrap items-center gap-1.5 text-[11px] text-ink-3 sm:flex">
               <MetaChip title="Board">{board?.name ?? "board"}</MetaChip>
               <ChevronRight className="size-3 text-ink-4" />
