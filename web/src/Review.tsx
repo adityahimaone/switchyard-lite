@@ -4,6 +4,7 @@ import { Check, FolderGit2, X } from "lucide-react";
 import { api, ApiError, apiOr, post, type Task } from "./api";
 import { ErrorBox, Lamp, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
+import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 
 export function DiffView({ text }: { text: string }) {
   const lines = text.split("\n");
@@ -87,23 +88,9 @@ export function ReviewScreen({ taskId, pick }: { taskId?: string; pick: (id: str
   return (
     <div>
       <div className="bar">
-        <h2>
-          Review Gate
-          {activeBoard && <span className="badge">{activeBoard.name}</span>}
-        </h2>
+        <h2>Review Gate</h2>
         {(boards.data?.length ?? 0) > 1 && (
-          <select
-            aria-label="Switch board"
-            className="board-switcher"
-            value={boardId ?? ""}
-            onChange={(e) => setBoardId(e.target.value)}
-          >
-            {boards.data?.map((b) => (
-              <option key={b.id} value={b.id}>
-                📋 {b.name}
-              </option>
-            ))}
-          </select>
+          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
         )}
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
           <input

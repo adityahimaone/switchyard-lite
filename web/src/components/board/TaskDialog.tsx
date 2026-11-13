@@ -49,12 +49,11 @@ import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { Textarea } from "@/components/ui/textarea";
 import { MetaChip } from "@/components/board/taskDetailParts";
 
@@ -86,7 +85,6 @@ function PlatformIcon({ platform, className }: { platform: PlatformKey; classNam
 const DEFAULT_SENTINEL = "__default__";
 const CURRENT_BRANCH_SENTINEL = "__current__";
 const SCRATCH_SENTINEL = "__scratch__";
-const CUSTOM_WS_SENTINEL = "__custom__";
 
 export type StartMode = "manual" | "queue" | "now";
 
@@ -188,7 +186,6 @@ export function TaskDialog({
   const [prompt, setPrompt] = useState("");
   const [acceptance, setAcceptance] = useState("");
   const [workspace, setWorkspace] = useState("");
-  const [customWsMode, setCustomWsMode] = useState(false);
   const [wsUserEdited, setWsUserEdited] = useState(false);
   const [branch, setBranch] = useState("");
   const [executor, setExecutor] = useState("");
@@ -196,6 +193,7 @@ export function TaskDialog({
   const [effort, setEffort] = useState("");
   const [startMode, setStartMode] = useState<StartMode>(initialStartMode);
   const [blockedBy, setBlockedBy] = useState<string[]>([]);
+  const [depId, setDepId] = useState("");
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [depsOpen, setDepsOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -216,9 +214,6 @@ export function TaskDialog({
     const recentWs = candidates.find((c) => c.workspace)?.workspace;
     if (recentWs) {
       setWorkspace(recentWs);
-      if (list.length > 0 && !list.some((w) => w.path === recentWs)) {
-        setCustomWsMode(true);
-      }
       return;
     }
     if (list.length > 0) {
@@ -262,6 +257,67 @@ export function TaskDialog({
     }
     return order.filter((k) => (map.get(k)?.length ?? 0) > 0).map((k) => [k, map.get(k)!] as const);
   }, [savedWorkspaces.data]);
+
+  /** Workspaces are select-only here — creation lives on the Workspaces page. */
+  const workspaceOptions = useMemo<SearchSelectOption[]>(() => {
+    const opts: SearchSelectOption[] = [
+      {
+        value: SCRATCH_SENTINEL,
+        label: "No workspace (scratch)",
+        sublabel: "no repository · no branch · no diff",
+        icon: <Sparkles className="size-3.5" />,
+        keywords: ["scratch", "none", "empty", "no workspace"],
+      },
+    ];
+
+    for (const [pk, list] of groupedWorkspaces) {
+      for (const w of list) {
+        const live = w.status === "local" || w.status === "connected";
+        opts.push({
+          value: w.path,
+          label: w.name,
+          sublabel: w.path,
+          icon: <PlatformIcon platform={pk} />,
+          badge: w.host ? "ssh" : "local",
+          badgeNode: (
+            <span className="inline-flex items-center gap-1">
+              <span
+                className={cn("size-1.5 rounded-full", live && "animate-pulse")}
+                style={{ background: live ? "var(--c-success)" : "var(--c-line-strong)" }}
+                aria-hidden
+              />
+              <span className="font-mono text-[9px] text-ink-3">{w.host || "local"}</span>
+            </span>
+          ),
+          keywords: [
+            w.name,
+            w.path,
+            w.host ?? "",
+            w.os ?? "",
+            w.kind ?? "",
+            w.status ?? "",
+            PLATFORM_LABELS[pk],
+            ...(w.labels ?? []),
+            w.host ? "ssh remote" : "local",
+          ],
+        });
+      }
+    }
+
+    // Keep a task's existing (unsaved) path selectable instead of silently dropping it.
+    const trimmed = workspace.trim();
+    if (trimmed && !opts.some((o) => o.value === trimmed)) {
+      opts.splice(1, 0, {
+        value: trimmed,
+        label: trimmed.split(/[\\/]/).filter(Boolean).pop() || trimmed,
+        sublabel: trimmed,
+        badge: "unsaved",
+        keywords: [trimmed, "unsaved", "custom"],
+      });
+    }
+
+    return opts;
+  }, [groupedWorkspaces, workspace]);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -362,13 +418,7 @@ export function TaskDialog({
     ? (selectedWsObj?.name ?? (workspace.split(/[\\/]/).filter(Boolean).pop() || workspace))
     : "Scratch";
 
-  const selectValue = customWsMode
-    ? CUSTOM_WS_SENTINEL
-    : selectedWsObj
-      ? selectedWsObj.path
-      : workspace
-        ? CUSTOM_WS_SENTINEL
-        : SCRATCH_SENTINEL;
+  const selectValue = workspace.trim() ? workspace.trim() : SCRATCH_SENTINEL;
 
   const startLabel =
     startMode === "now" ? "Start now" : startMode === "manual" ? "Backlog" : "Todo";
@@ -408,7 +458,7 @@ export function TaskDialog({
           <DialogBody className="flex flex-col">
             <ErrorBox error={create.error} />
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_250px]">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_268px]">
               {/* -------------------------------------------------- content */}
               <div className="min-w-0 space-y-3.5">
                 <div className="space-y-1.5">
@@ -479,71 +529,41 @@ export function TaskDialog({
               </div>
 
               {/* --------------------------------------------------- routing */}
-              <aside className="space-y-3.5 rounded-card border border-line bg-well/25 p-3" aria-label="Task routing">
-                <RailGroup label="Workspace">
-                  {(savedWorkspaces.data?.length ?? 0) > 0 && (
-                    <Select
-                      value={selectValue}
-                      onValueChange={(v) => {
-                        setWsUserEdited(true);
-                        setBranch("");
-                        if (v === SCRATCH_SENTINEL) {
-                          setCustomWsMode(false);
-                          setWorkspace("");
-                        } else if (v === CUSTOM_WS_SENTINEL) {
-                          setCustomWsMode(true);
-                        } else {
-                          setCustomWsMode(false);
-                          setWorkspace(v);
-                        }
-                      }}
-                    >
-                      <SelectTrigger id="task-workspace-select" size="sm" aria-label="Workspace">
-                        <SelectValue placeholder="Select workspace…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={SCRATCH_SENTINEL}>No workspace (scratch)</SelectItem>
-                        {groupedWorkspaces.map(([pk, list]) => (
-                          <SelectGroup key={pk}>
-                            <SelectLabel>{PLATFORM_LABELS[pk]}</SelectLabel>
-                            {list.map((w) => (
-                              <SelectItem key={w.id} value={w.path}>
-                                <span className="inline-flex items-center gap-1.5">
-                                  <PlatformIcon platform={pk} className="text-ink-3" />
-                                  <span>{w.name}</span>
-                                  {w.host && <span className="font-mono text-[10px] text-ink-4">· {w.host}</span>}
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ))}
-                        <SelectItem value={CUSTOM_WS_SENTINEL}>Custom path…</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+              <aside className="space-y-3.5 rounded-card border border-line bg-well/25 p-3" aria-label="Task routing">                <RailGroup label="Workspace">
+                  <SearchSelect
+                    id="task-workspace"
+                    value={selectValue}
+                    onValueChange={(v) => {
+                      setWsUserEdited(true);
+                      setBranch("");
+                      setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
+                    }}
+                    options={workspaceOptions}
+                    placeholder="Select workspace…"
+                    searchPlaceholder="Search workspaces by name, path, host…"
+                    emptyMessage="No matching workspaces"
+                    ariaLabel="Workspace"
+                    size="sm"
+                    showTriggerBadge
+                  />
 
-                  {(customWsMode || (savedWorkspaces.data?.length ?? 0) === 0) && (
-                    <Input
-                      id="task-workspace"
-                      value={workspace}
-                      onChange={(e) => {
-                        setWsUserEdited(true);
-                        setWorkspace(e.target.value);
-                        setBranch("");
-                      }}
-                      placeholder="/path/to/repo"
-                      className="font-mono text-[11px]"
-                      aria-label="Custom workspace path"
-                    />
-                  )}
-
-                  {selectedWsObj && (
+                  {selectedWsObj ? (
                     <div className="flex flex-wrap items-center gap-1 text-[10px] text-ink-3">
                       <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
                       <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
                         {selectedWsObj.path}
                       </span>
                     </div>
+                  ) : (
+                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                      {(savedWorkspaces.data?.length ?? 0) === 0
+                        ? "No saved workspaces yet — add one from the Workspaces page."
+                        : "Scratch runs have no repository, branch, or diff."}
+                      {" "}
+                      <a href="#/workspaces" className="text-accent-text underline-offset-2 hover:underline">
+                        Manage workspaces
+                      </a>
+                    </p>
                   )}
 
                   {isGit && (
@@ -553,22 +573,19 @@ export function TaskDialog({
                         Base branch
                       </Label>
                       {wsInspect.data?.branches?.length ? (
-                        <Select
+                        <SearchSelect
+                          id="task-branch"
                           value={branch || CURRENT_BRANCH_SENTINEL}
                           onValueChange={(v) => setBranch(v === CURRENT_BRANCH_SENTINEL ? "" : v)}
-                        >
-                          <SelectTrigger id="task-branch" size="sm" aria-label="Base branch">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={CURRENT_BRANCH_SENTINEL}>(current HEAD)</SelectItem>
-                            {wsInspect.data.branches.map((b) => (
-                              <SelectItem key={b} value={b}>
-                                {b}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={[
+                            { value: CURRENT_BRANCH_SENTINEL, label: "(current HEAD)" },
+                            ...wsInspect.data.branches.map((b) => ({ value: b, label: b })),
+                          ]}
+                          placeholder="Select branch…"
+                          searchPlaceholder="Search branches…"
+                          ariaLabel="Base branch"
+                          size="sm"
+                        />
                       ) : (
                         <Input
                           id="task-branch"
@@ -606,23 +623,29 @@ export function TaskDialog({
                   </Select>
 
                   {models.data && models.data.length > 0 ? (
-                    <Select
+                    <SearchSelect
+                      id="task-model"
                       value={model || DEFAULT_SENTINEL}
                       onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
                       disabled={!effectiveExecutor}
-                    >
-                      <SelectTrigger id="task-model" size="sm" aria-label="Model">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={DEFAULT_SENTINEL}>(executor default)</SelectItem>
-                        {models.data.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={[
+                        {
+                          value: DEFAULT_SENTINEL,
+                          label: "(executor default)",
+                          sublabel: board?.default_model || undefined,
+                        },
+                        ...models.data.map((m) => ({
+                          value: m.id,
+                          label: m.name,
+                          sublabel: m.id === m.name ? undefined : m.id,
+                          keywords: [m.id, m.name],
+                        })),
+                      ]}
+                      placeholder="Select model…"
+                      searchPlaceholder="Search models…"
+                      ariaLabel="Model"
+                      size="sm"
+                    />
                   ) : (
                     <Input
                       id="task-model"
@@ -747,29 +770,52 @@ export function TaskDialog({
                     open={depsOpen}
                     onToggle={() => setDepsOpen((v) => !v)}
                   >
-                    <div className="flex flex-wrap gap-1.5">
-                      {activeCandidates.map((c) => {
-                        const active = blockedBy.includes(c.id);
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() =>
-                              setBlockedBy((prev) => (active ? prev.filter((x) => x !== c.id) : [...prev, c.id]))
-                            }
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
-                              active
-                                ? "border-accent/40 bg-accent/14 font-medium text-accent-text"
-                                : "border-line bg-well/60 text-ink-2 hover:border-line-strong hover:text-ink"
-                            )}
-                          >
-                            {active ? <Check className="size-3" /> : <span className="text-ink-4">+</span>}
-                            <span className="max-w-[200px] truncate">{c.title}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <SearchSelect
+                      value={depId}
+                      onValueChange={(v) => {
+                        if (!v) return;
+                        setBlockedBy((prev) => (prev.includes(v) ? prev : [...prev, v]));
+                        setDepId("");
+                      }}
+                      options={activeCandidates
+                        .filter((c) => !blockedBy.includes(c.id))
+                        .map((c) => ({
+                          value: c.id,
+                          label: c.title,
+                          sublabel: c.id,
+                          badge: c.status,
+                          keywords: [c.id, c.title, c.status],
+                        }))}
+                      placeholder="Add blocker…"
+                      searchPlaceholder="Search tasks by title or id…"
+                      emptyMessage="No matching tasks"
+                      ariaLabel="Add blocker"
+                      size="sm"
+                    />
+                    {blockedBy.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {blockedBy.map((id) => {
+                          const c = candidates.find((x) => x.id === id);
+                          return (
+                            <span
+                              key={id}
+                              className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/14 px-2.5 py-1 text-[11px] font-medium text-accent-text"
+                            >
+                              <Check className="size-3" />
+                              <span className="max-w-[200px] truncate">{c?.title ?? id}</span>
+                              <button
+                                type="button"
+                                onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))}
+                                className="ml-0.5 rounded-full p-0.5 hover:bg-raised"
+                                aria-label={`Remove blocker ${c?.title ?? id}`}
+                              >
+                                <X className="size-2.5" />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </CollapsibleSection>
                 )}
               </div>

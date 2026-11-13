@@ -3,6 +3,15 @@ import { useState } from "react";
 import { api, apiOr, del, post, setToken, STATUSES, type Task, type Worker } from "./api";
 import { ErrorBox, Lamp, Panel, statusColor, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
+import { BoardSwitcher } from "@/components/board/BoardSwitcher";
+import { SearchSelect } from "@/components/ui/search-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Overview {
   counts: Record<string, number>;
@@ -48,18 +57,7 @@ export function OverviewScreen() {
           </button>
         )}
         {(boards.data?.length ?? 0) > 1 && scopeBoard && (
-          <select
-            aria-label="Switch board"
-            className="board-switcher"
-            value={boardId ?? ""}
-            onChange={(e) => setBoardId(e.target.value)}
-          >
-            {boards.data?.map((b) => (
-              <option key={b.id} value={b.id}>
-                📋 {b.name}
-              </option>
-            ))}
-          </select>
+          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
         )}
         {q.data && (
           <span
@@ -420,23 +418,9 @@ export function PipelineScreen() {
   return (
     <div>
       <div className="bar">
-        <h2>
-          Pipeline runs
-          {activeBoard && <span className="badge">{activeBoard.name}</span>}
-        </h2>
+        <h2>Pipeline runs</h2>
         {(boards.data?.length ?? 0) > 1 && (
-          <select
-            aria-label="Switch board"
-            className="board-switcher"
-            value={boardId ?? ""}
-            onChange={(e) => setBoardId(e.target.value)}
-          >
-            {boards.data?.map((b) => (
-              <option key={b.id} value={b.id}>
-                📋 {b.name}
-              </option>
-            ))}
-          </select>
+          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
         )}
       </div>
       <ErrorBox error={q.error ?? start.error ?? cancel.error} />
@@ -450,18 +434,18 @@ export function PipelineScreen() {
         >
           <div className="bar" style={{ marginBottom: 0 }}>
             {(templates.data?.length ?? 0) > 0 && (
-              <select
-                value={template}
-                onChange={(e) => setTemplate(e.target.value)}
-                style={{ width: 180 }}
-                aria-label="Pipeline template"
-              >
-                {templates.data?.map((t) => (
-                  <option key={t.name} value={t.name}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={template} onValueChange={setTemplate}>
+                <SelectTrigger className="w-[180px]" aria-label="Pipeline template" size="default">
+                  <SelectValue placeholder="Choose template…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.data?.map((t) => (
+                    <SelectItem key={t.name} value={t.name}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             <input
               value={goal}
@@ -540,10 +524,7 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
   return (
     <div>
       <div className="bar">
-        <h2>
-          Flow map
-          {activeBoard && <span className="badge">{activeBoard.name}</span>}
-        </h2>
+        <h2>Flow map</h2>
         <button
           type="button"
           className={"chip" + (showAll ? " active" : "")}
@@ -552,18 +533,7 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
           {showAll ? "Showing all board tasks" : "Dependencies only"}
         </button>
         {(boards.data?.length ?? 0) > 1 && (
-          <select
-            aria-label="Switch board"
-            className="board-switcher"
-            value={boardId ?? ""}
-            onChange={(e) => setBoardId(e.target.value)}
-          >
-            {boards.data?.map((b) => (
-              <option key={b.id} value={b.id}>
-                📋 {b.name}
-              </option>
-            ))}
-          </select>
+          <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
         )}
       </div>
       <ErrorBox error={q.error} />
@@ -708,16 +678,19 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
                 style={{ width: 160 }}
                 aria-label="Token name"
               />
-              <select
+              <SearchSelect
                 value={scope}
-                onChange={(e) => setScope(e.target.value)}
-                style={{ width: 110 }}
-                aria-label="Scope"
-              >
-                <option>read</option>
-                <option>write</option>
-                <option>admin</option>
-              </select>
+                onValueChange={setScope}
+                ariaLabel="Scope"
+                size="default"
+                className="w-[130px]"
+                options={[
+                  { value: "read", label: "read", sublabel: "read-only access" },
+                  { value: "write", label: "write", sublabel: "read + mutate tasks" },
+                  { value: "admin", label: "admin", sublabel: "full control" },
+                ]}
+                searchPlaceholder="Search scopes…"
+              />
               <button className="btn primary" onClick={() => create.mutate()}>
                 Create
               </button>

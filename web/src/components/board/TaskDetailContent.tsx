@@ -42,12 +42,11 @@ import { CopyButton } from "@/components/ui/copy-button";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -73,7 +72,6 @@ export interface AttachmentMeta {
 
 const DEFAULT_SENTINEL = "__default__";
 const SCRATCH_SENTINEL = "__scratch__";
-const CUSTOM_SENTINEL = "__custom__";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -182,7 +180,6 @@ export function TaskDetailPanels({
     model: "",
     effort: "",
   });
-  const [customWsMode, setCustomWsMode] = useState(false);
 
   const [commentBody, setCommentBody] = useState("");
   const [depId, setDepId] = useState("");
@@ -204,8 +201,6 @@ export function TaskDetailPanels({
       model: t.model || "",
       effort: t.effort || "",
     });
-    const list = workspaces.data ?? [];
-    setCustomWsMode(!!t.workspace && list.length > 0 && !list.some((w) => w.path === t.workspace));
   }, [editing, t, workspaces.data]);
 
   const models = useQuery({
@@ -385,6 +380,43 @@ export function TaskDetailPanels({
     return order.filter((k) => (map.get(k)?.length ?? 0) > 0).map((k) => [k, map.get(k)!] as const);
   }, [workspaces.data]);
 
+  /** Select-only: workspace creation lives on the Workspaces page. */
+  const workspaceOptions = useMemo<SearchSelectOption[]>(() => {
+    const opts: SearchSelectOption[] = [
+      {
+        value: SCRATCH_SENTINEL,
+        label: "No workspace (scratch)",
+        sublabel: "no repository · no branch · no diff",
+        keywords: ["scratch", "none", "empty"],
+      },
+    ];
+    for (const [pk, items] of groupedWorkspaces) {
+      for (const w of items) {
+        opts.push({
+          value: w.path,
+          label: w.name,
+          sublabel: w.path,
+          badge: w.host ? "ssh" : "local",
+          badgeNode: (
+            <span className="font-mono text-[9px] text-ink-3">{w.host || "local"}</span>
+          ),
+          keywords: [w.name, w.path, w.host ?? "", w.os ?? "", w.kind ?? "", pk, ...(w.labels ?? [])],
+        });
+      }
+    }
+    const current = editDraft.workspace.trim();
+    if (current && !opts.some((o) => o.value === current)) {
+      opts.splice(1, 0, {
+        value: current,
+        label: current.split(/[\\/]/).filter(Boolean).pop() || current,
+        sublabel: current,
+        badge: "unsaved",
+        keywords: [current, "unsaved"],
+      });
+    }
+    return opts;
+  }, [groupedWorkspaces, editDraft.workspace]);
+
   const depChoices = useMemo(
     () => (boardTasks.data ?? []).filter((b) => b.id !== id && !t?.blocked_by?.includes(b.id)),
     [boardTasks.data, id, t?.blocked_by]
@@ -512,56 +544,27 @@ export function TaskDetailPanels({
 
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-task-ws">Workspace</Label>
-                    {(workspaces.data?.length ?? 0) > 0 && (
-                      <Select
-                        value={
-                          customWsMode
-                            ? CUSTOM_SENTINEL
-                            : (workspaces.data ?? []).some((w) => w.path === editDraft.workspace)
-                              ? editDraft.workspace
-                              : editDraft.workspace
-                                ? CUSTOM_SENTINEL
-                                : SCRATCH_SENTINEL
-                        }
-                        onValueChange={(v) => {
-                          if (v === SCRATCH_SENTINEL) {
-                            setCustomWsMode(false);
-                            setEditDraft((p) => ({ ...p, workspace: "" }));
-                          } else if (v === CUSTOM_SENTINEL) {
-                            setCustomWsMode(true);
-                          } else {
-                            setCustomWsMode(false);
-                            setEditDraft((p) => ({ ...p, workspace: v }));
-                          }
-                        }}
-                      >
-                        <SelectTrigger id="edit-task-ws" size="sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={SCRATCH_SENTINEL}>No workspace (scratch)</SelectItem>
-                          {groupedWorkspaces.map(([pk, items]) => (
-                            <SelectGroup key={pk}>
-                              <SelectLabel>{pk.toUpperCase()}</SelectLabel>
-                              {items.map((w) => (
-                                <SelectItem key={w.id} value={w.path}>
-                                  {w.name} {w.host ? `(${w.host})` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          ))}
-                          <SelectItem value={CUSTOM_SENTINEL}>Custom path…</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {(customWsMode || (workspaces.data?.length ?? 0) === 0) && (
-                      <Input
-                        value={editDraft.workspace}
-                        onChange={(e) => setEditDraft((p) => ({ ...p, workspace: e.target.value }))}
-                        placeholder="/path/to/repo"
-                        className="font-mono text-xs"
-                      />
-                    )}
+                    <SearchSelect
+                      id="edit-task-ws"
+                      value={editDraft.workspace.trim() || SCRATCH_SENTINEL}
+                      onValueChange={(v) =>
+                        setEditDraft((p) => ({ ...p, workspace: v === SCRATCH_SENTINEL ? "" : v }))
+                      }
+                      options={workspaceOptions}
+                      placeholder="Select workspace…"
+                      searchPlaceholder="Search workspaces by name, path, host…"
+                      emptyMessage="No matching workspaces"
+                      ariaLabel="Workspace"
+                      size="sm"
+                      showTriggerBadge
+                    />
+                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                      Add or edit workspaces on the{" "}
+                      <a href="#/workspaces" className="text-accent-text underline-offset-2 hover:underline">
+                        Workspaces page
+                      </a>
+                      .
+                    </p>
                   </div>
 
                   <div className="grid gap-2.5 sm:grid-cols-3">
@@ -593,29 +596,32 @@ export function TaskDetailPanels({
                     <div className="space-y-1">
                       <Label htmlFor="edit-task-model">Model</Label>
                       {models.data?.length ? (
-                        <Select
+                        <SearchSelect
+                          id="edit-task-model"
                           value={editDraft.model || DEFAULT_SENTINEL}
                           onValueChange={(v) =>
                             setEditDraft((p) => ({ ...p, model: v === DEFAULT_SENTINEL ? "" : v }))
                           }
-                        >
-                          <SelectTrigger id="edit-task-model" size="sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={DEFAULT_SENTINEL}>(executor default)</SelectItem>
-                            {models.data.map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
-                                {m.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={[
+                            { value: DEFAULT_SENTINEL, label: "(executor default)" },
+                            ...models.data.map((m) => ({
+                              value: m.id,
+                              label: m.name,
+                              sublabel: m.id === m.name ? undefined : m.id,
+                              keywords: [m.id, m.name],
+                            })),
+                          ]}
+                          placeholder="Select model…"
+                          searchPlaceholder="Search models…"
+                          ariaLabel="Model"
+                          size="sm"
+                        />
                       ) : (
                         <Input
                           id="edit-task-model"
                           value={editDraft.model}
                           onChange={(e) => setEditDraft((p) => ({ ...p, model: e.target.value }))}
+                          placeholder="(executor default)"
                           className="font-mono text-xs"
                         />
                       )}
@@ -779,18 +785,23 @@ export function TaskDetailPanels({
 
                       {depChoices.length > 0 && (
                         <div className="flex items-center gap-1.5 pt-1">
-                          <Select value={depId} onValueChange={setDepId}>
-                            <SelectTrigger size="sm" aria-label="Add blocker">
-                              <SelectValue placeholder="Add dependency…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {depChoices.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.id} · {c.title.slice(0, 34)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <SearchSelect
+                            value={depId}
+                            onValueChange={setDepId}
+                            options={depChoices.map((c) => ({
+                              value: c.id,
+                              label: c.title,
+                              sublabel: c.id,
+                              badge: c.status,
+                              keywords: [c.id, c.title, c.status],
+                            }))}
+                            placeholder="Add dependency…"
+                            searchPlaceholder="Search tasks by title or id…"
+                            emptyMessage="No matching tasks"
+                            ariaLabel="Add blocker"
+                            size="sm"
+                            className="min-w-0 flex-1"
+                          />
                           <Button
                             type="button"
                             variant="outline"

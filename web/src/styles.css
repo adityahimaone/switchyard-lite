@@ -617,17 +617,6 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--c-accent-tint);
 }
 
-.board-switcher {
-  width: auto;
-  min-width: 165px;
-  height: 30px;
-  padding: 0 28px 0 10px;
-  font-weight: 600;
-  font-size: 12px;
-  background-color: var(--c-surface);
-  border-color: var(--c-line-strong);
-}
-
 label.f {
   display: flex;
   flex-direction: column;

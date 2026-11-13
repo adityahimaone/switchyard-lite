@@ -18,12 +18,13 @@ import {
 import { api, getToken, type Board, type Task } from "./api";
 import { BoardDialog, BoardScreen, TaskDialog, useBoardId } from "./Board";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
+import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskDrawer } from "./Drawer";
 import { Login } from "./Login";
 import { ReviewScreen } from "./Review";
 import { Kbd } from "@/components/ui/kbd";
 import { Toaster } from "@/components/ui/toast";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tip, TooltipProvider } from "@/components/ui/tooltip";
 import {
   FlowScreen,
   OverviewScreen,
@@ -121,32 +122,29 @@ export function App() {
 
         {/* Sidebar Board Switcher */}
         {(boards.data?.length ?? 0) > 0 && (
-          <div className="side-board-box" style={{ display: "flex", gap: 4 }}>
-            <select
-              aria-label="Active board"
-              value={boardId ?? ""}
-              onChange={(e) => {
-                setBoardId(e.target.value);
+          <div className="side-board-box" style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <BoardSwitcher
+              boards={boards.data}
+              value={boardId}
+              onChange={(id) => {
+                setBoardId(id);
                 if (page !== "board" && page !== "flow" && page !== "review") go("board");
               }}
-              style={{ flex: 1, fontWeight: 600, fontSize: 12, height: 30 }}
-            >
-              {boards.data?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  📋 {b.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="btn sm"
-              style={{ height: 30, padding: "0 8px" }}
-              onClick={() => setBoardDialog({ mode: "new" })}
-              title="New board"
-              aria-label="New board"
-            >
-              +
-            </button>
+              ariaLabel="Active board"
+              className="min-w-0 flex-1"
+              triggerClassName="font-semibold"
+            />
+            <Tip label="New board">
+              <button
+                type="button"
+                className="btn ghost icon"
+                style={{ height: 32, width: 32 }}
+                onClick={() => setBoardDialog({ mode: "new" })}
+                aria-label="New board"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </Tip>
           </div>
         )}
 
