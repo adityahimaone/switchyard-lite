@@ -34,13 +34,30 @@ func IsGit(dir string) bool {
 // Worktree is a per-task checkout on branch sy/<task-id>.
 type Worktree struct{ Repo, Path, Branch, BaseSHA string }
 
-// EnsureWorktree creates (or reuses) the worktree for a task.
+// EnsureWorktree creates (or reuses) the worktree for a task from HEAD.
 func EnsureWorktree(repo, taskID string) (Worktree, error) {
+	return EnsureWorktreeFrom(repo, taskID, "")
+}
+
+// EnsureWorktreeFrom creates the isolated worktree from baseBranch when one is
+// selected. A bare branch name, origin/<name> and a full ref are all accepted;
+// an unresolvable base falls back to HEAD so dispatch never hard-fails on a
+// stale branch name.
+func EnsureWorktreeFrom(repo, taskID, baseBranch string) (Worktree, error) {
 	branch := "sy/" + taskID
 	path := filepath.Join(repo, ".switchyard", "worktrees", taskID)
 	base, err := Git(repo, "rev-parse", "HEAD")
 	if err != nil {
 		return Worktree{}, err
+	}
+	if b := strings.TrimSpace(baseBranch); b != "" && b != "__head" {
+		b = strings.TrimPrefix(b, "refs/heads/")
+		for _, candidate := range []string{b, "origin/" + b, "refs/remotes/origin/" + b} {
+			if sha, e := Git(repo, "rev-parse", "--verify", candidate+"^{commit}"); e == nil && sha != "" {
+				base = sha
+				break
+			}
+		}
 	}
 	if ex, err := Git(repo, "rev-parse", "--git-path", "info/exclude"); err == nil {
 		if !filepath.IsAbs(ex) {

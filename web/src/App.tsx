@@ -10,6 +10,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   Plus,
+  ScrollText,
   Search,
   Settings2,
   SunMoon,
@@ -27,6 +28,7 @@ import { Toaster } from "@/components/ui/toast";
 import { Tip, TooltipProvider } from "@/components/ui/tooltip";
 import {
   FlowScreen,
+  LogsScreen,
   OverviewScreen,
   PipelineScreen,
   SettingsScreen,
@@ -42,6 +44,7 @@ const NAV = [
   { id: "workspaces", label: "Workspaces", group: "Infrastructure", icon: FolderGit2 },
   { id: "workers", label: "Workers", group: "Infrastructure", icon: Cpu },
   { id: "overview", label: "Overview", group: "Observe", icon: Activity },
+  { id: "logs", label: "Logs", group: "Observe", icon: ScrollText },
   { id: "settings", label: "Settings", group: "Footer", icon: Settings2 },
 ] as const;
 
@@ -265,6 +268,7 @@ export function App() {
           {page === "flow" && <FlowScreen open={setDrawer} />}
           {page === "workspaces" && <WorkspacesScreen />}
           {page === "overview" && <OverviewScreen />}
+          {page === "logs" && <LogsScreen />}
           {page === "workers" && <WorkersScreen />}
           {page === "settings" && <SettingsScreen logout={() => setAuthed(false)} />}
         </main>

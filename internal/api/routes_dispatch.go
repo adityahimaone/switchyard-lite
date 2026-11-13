@@ -2,20 +2,26 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/adityahimaone/switchyard-lite/internal/catalog"
 	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
 	"github.com/adityahimaone/switchyard-lite/internal/models"
 	"github.com/adityahimaone/switchyard-lite/internal/nodes"
 	"github.com/adityahimaone/switchyard-lite/internal/review"
+	"github.com/adityahimaone/switchyard-lite/internal/skills"
 	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-lite/internal/wsindex"
 )
 
 type dispatchDeps struct {
@@ -23,6 +29,9 @@ type dispatchDeps struct {
 	r *review.Service
 	m *models.Catalog
 	n *nodes.Registry
+	c *catalog.Catalog
+	s *skills.Registry
+	x *wsindex.Index
 }
 
 var (
@@ -35,7 +44,18 @@ func UseDispatcher(a *API, d *dispatch.Dispatcher) {
 	depsMu.Lock()
 	defer depsMu.Unlock()
 	r, _ := review.New(a.S)
-	deps[a] = &dispatchDeps{d: d, r: r, m: models.New(d.Cfg.NodeAgentURL, d.Cfg.Token), n: nodes.New(d.Cfg.NodeAgentURL, d.Cfg.Token)}
+	deps[a] = buildDeps(a, d, r, d.Cfg)
+}
+
+func buildDeps(a *API, d *dispatch.Dispatcher, r *review.Service, cfg dispatch.Config) *dispatchDeps {
+	return &dispatchDeps{
+		d: d, r: r,
+		m: models.New(cfg.NodeAgentURL, cfg.Token),
+		n: nodes.New(cfg.NodeAgentURL, cfg.Token),
+		c: catalog.New(cfg.NodeAgentURL, cfg.Token),
+		s: skills.NewFromEnv(),
+		x: wsindex.New(),
+	}
 }
 
 func getDeps(a *API) (*dispatchDeps, error) {
@@ -53,7 +73,7 @@ func getDeps(a *API) (*dispatchDeps, error) {
 	if err != nil {
 		return nil, err
 	}
-	x := &dispatchDeps{d: d, r: r, m: models.New(cfg.NodeAgentURL, cfg.Token), n: nodes.New(cfg.NodeAgentURL, cfg.Token)}
+	x := buildDeps(a, d, r, cfg)
 	deps[a] = x
 	return x, nil
 }
@@ -158,25 +178,100 @@ func init() {
 			ok(w, map[string]string{"id": id, "name": in.Name, "url": in.URL})
 		}))
 		m.HandleFunc("GET /api/v1/workspaces", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
-			list, err := queryWorkspaces(r.Context(), a, x.n)
+			list, err := queryWorkspaces(r.Context(), a, x.n, x.c)
 			if err != nil {
 				fail(w, 500, err.Error())
 				return
 			}
 			ok(w, list)
 		}))
+		// The kanban-board live registry (node-agent's ~/.hermes/workspaces.json).
+		// Read-only: it is the machine-identity source of truth used by the
+		// overlay above, and the payload behind "Sync live workspaces".
+		m.HandleFunc("GET /api/v1/workspaces/live", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			list, err := x.c.List(r.Context(), r.URL.Query().Get("refresh") == "1")
+			if err != nil {
+				fail(w, 502, err.Error())
+				return
+			}
+			ok(w, map[string]any{"workspaces": list, "count": len(list)})
+		}))
+		m.HandleFunc("POST /api/v1/workspaces/sync", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			live, err := x.c.List(r.Context(), true)
+			if err != nil {
+				fail(w, 502, err.Error())
+				return
+			}
+			imported, updated, err := syncLiveWorkspaces(a, live)
+			if err != nil {
+				fail(w, 500, err.Error())
+				return
+			}
+			ok(w, map[string]any{"imported": imported, "updated": updated, "live": len(live)})
+		}))
 		m.HandleFunc("GET /api/v1/workspaces/inspect", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
-			p := r.URL.Query().Get("path")
+			p := strings.TrimSpace(r.URL.Query().Get("path"))
 			isGit := dispatch.IsGit(p)
-			branches := []string{}
-			if isGit {
+			branches, current, warning := x.x.Branches(p)
+			if len(branches) == 0 && isGit {
 				if out, err := dispatch.Git(p, "branch", "--format=%(refname:short)"); err == nil && out != "" {
-					for _, b := range splitLines(out) {
-						branches = append(branches, b)
-					}
+					branches = append(branches, splitLines(out)...)
 				}
 			}
-			ok(w, map[string]any{"path": p, "is_git": isGit, "branches": branches})
+			var labelsRaw string
+			_ = a.S.DB.QueryRow(`SELECT labels FROM dispatch_workspaces WHERE path=? LIMIT 1`, p).Scan(&labelsRaw)
+			labels := splitLabels(labelsRaw)
+			ok(w, map[string]any{
+				"path": p, "is_git": isGit, "branches": branches,
+				"current": current, "warning": warning, "local": wsindex.Local(p),
+				"saas": dispatch.IsSAASWorkspace(p, labels),
+			})
+		}))
+		// Agent skills. The registry follows symlinks (npx skills add -g links
+		// into ~/.claude/skills etc.) and decorates with `npx skills list` when
+		// that CLI is available; the filesystem walk is always authoritative.
+		m.HandleFunc("GET /api/v1/skills", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			list := x.s.List(r.URL.Query().Get("refresh") == "1")
+			if q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q"))); q != "" {
+				kept := make([]skills.Skill, 0, len(list))
+				for _, s := range list {
+					if strings.Contains(strings.ToLower(s.Name), q) || strings.Contains(strings.ToLower(s.Description), q) {
+						kept = append(kept, s)
+					}
+				}
+				list = kept
+			}
+			ok(w, map[string]any{"skills": list, "count": len(list)})
+		}))
+		m.HandleFunc("GET /api/v1/skills/content", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			name := strings.TrimSpace(r.URL.Query().Get("name"))
+			content, err := x.s.Content(name)
+			if err != nil {
+				fail(w, 404, "skill not found")
+				return
+			}
+			ok(w, map[string]string{"name": name, "content": content})
+		}))
+		// Workspace file search powers the @ omnibox. Remote workspaces are not
+		// visible to this process, so the response carries a hint instead of an
+		// empty list and the composer still accepts a manually typed path.
+		m.HandleFunc("GET /api/v1/workspaces/files", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			p := strings.TrimSpace(r.URL.Query().Get("path"))
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			files, hint := x.x.Files(p, r.URL.Query().Get("q"), limit)
+			ok(w, map[string]any{"path": p, "files": files, "hint": hint, "local": wsindex.Local(p)})
+		}))
+		m.HandleFunc("GET /api/v1/workspaces/branches", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			p := strings.TrimSpace(r.URL.Query().Get("path"))
+			branches, current, warning := x.x.Branches(p)
+			ok(w, map[string]any{
+				"path": p, "branches": branches, "current": current,
+				"warning": warning, "local": wsindex.Local(p),
+			})
+		}))
+		m.HandleFunc("POST /api/v1/skills/refresh", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			list := x.s.List(true)
+			ok(w, map[string]any{"skills": list, "count": len(list)})
 		}))
 		m.HandleFunc("POST /api/v1/workspaces", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			var in workspaceInput
@@ -268,13 +363,13 @@ func init() {
 		m.HandleFunc("PUT /api/v1/workspaces/{id}", updateWorkspace)
 		m.HandleFunc("PATCH /api/v1/workspaces/{id}", updateWorkspace)
 		m.HandleFunc("POST /api/v1/workspaces/ping", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
-			list, err := queryWorkspaces(r.Context(), a, x.n)
+			list, err := queryWorkspaces(r.Context(), a, x.n, x.c)
 			if err != nil {
 				fail(w, 500, err.Error())
 				return
 			}
 			for i := range list {
-				list[i] = pingWorkspaceRecord(r.Context(), a, x.n, list[i])
+				list[i] = pingWorkspaceRecord(r.Context(), a, x.n, x.c, list[i])
 			}
 			ok(w, list)
 		}))
@@ -288,7 +383,7 @@ func init() {
 				fail(w, 500, err.Error())
 				return
 			}
-			ok(w, pingWorkspaceRecord(r.Context(), a, x.n, ws))
+			ok(w, pingWorkspaceRecord(r.Context(), a, x.n, x.c, ws))
 		}))
 		m.HandleFunc("GET /api/v1/tasks/{id}/worktree", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			var repo, path, branch, baseSHA string
@@ -398,10 +493,105 @@ type workspaceRecord struct {
 	Status string   `json:"status"`
 	// Node / Hostname come from the node-agent's live report and say which
 	// machine can actually serve this path. Empty when nothing claims it.
-	Node      string `json:"node,omitempty"`
-	Hostname  string `json:"hostname,omitempty"`
+	Node     string `json:"node,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
+	// Machine is the resolved platform (mac / windows / current / linux).
+	// It is derived from the live kanban-board registry, the node report and
+	// finally the path shape — never from a stale "mac: " name prefix.
+	Machine string `json:"machine,omitempty"`
+	// Live marks a workspace found in kanban-board's workspaces.json.
+	Live      bool   `json:"live,omitempty"`
+	LiveID    string `json:"live_id,omitempty"`
+	Source    string `json:"source,omitempty"`
 	LatencyMs int64  `json:"latency_ms,omitempty"`
 	CreatedAt int64  `json:"created_at"`
+}
+
+// syncLiveWorkspaces imports the kanban-board registry into the local table.
+// Existing rows keep their id and any user-authored name; stale "mac: " names
+// and missing os/host/labels are repaired from the live record.
+func syncLiveWorkspaces(a *API, live []catalog.Workspace) (imported, updated int, err error) {
+	type row struct{ id, name, path, host, os, kind, labels string }
+	rows, err := a.S.DB.Query(`SELECT id,name,path,host,os,kind,labels FROM dispatch_workspaces`)
+	if err != nil {
+		return 0, 0, err
+	}
+	existing := map[string]row{}
+	for rows.Next() {
+		var v row
+		if err := rows.Scan(&v.id, &v.name, &v.path, &v.host, &v.os, &v.kind, &v.labels); err != nil {
+			rows.Close()
+			return 0, 0, err
+		}
+		existing[catalog.Normalize(v.path)] = v
+	}
+	rows.Close()
+
+	for _, lw := range live {
+		key := catalog.Normalize(lw.Path)
+		if key == "" {
+			continue
+		}
+		if cur, found := existing[key]; found {
+			name := cur.name
+			if catalog.HasStalePrefix(name) && strings.TrimSpace(lw.Name) != "" {
+				name = strings.TrimSpace(lw.Name)
+			}
+			osName := cur.os
+			if osName == "" || (lw.OS != "" && catalog.MachineFor(cur.path, cur.os, cur.host, "") != catalog.MachineOf(lw)) {
+				osName = lw.OS
+			}
+			host := cur.host
+			if host == "" {
+				host = lw.Host
+			}
+			labels := cur.labels
+			if labels == "" && len(lw.Labels) > 0 {
+				labels = joinLabels(lw.Labels)
+			}
+			kind := cur.kind
+			if (kind == "" || kind == "dir") && lw.Kind != "" {
+				kind = lw.Kind
+			}
+			res, e := a.S.DB.Exec(
+				`UPDATE dispatch_workspaces SET name=?, host=?, os=?, kind=?, labels=? WHERE id=?`,
+				name, host, osName, kind, labels, cur.id,
+			)
+			if e != nil {
+				return imported, updated, e
+			}
+			if n, _ := res.RowsAffected(); n > 0 {
+				updated++
+			}
+			continue
+		}
+		id := strings.TrimSpace(lw.ID)
+		if id == "" {
+			sum := sha256.Sum256([]byte(key))
+			id = "ws_" + hex.EncodeToString(sum[:])[:12]
+		}
+		name := strings.TrimSpace(lw.Name)
+		if name == "" {
+			name = catalog.CleanName("", lw.Path)
+		}
+		_, e := a.S.DB.Exec(
+			`INSERT OR IGNORE INTO dispatch_workspaces(id,name,path,host,os,kind,labels,note,created_at) VALUES(?,?,?,?,?,?,?,?,?)`,
+			id, name, strings.TrimSpace(lw.Path), lw.Host, lw.OS, firstNonEmpty(lw.Kind, "dir"), joinLabels(lw.Labels), lw.Note, time.Now().Unix(),
+		)
+		if e != nil {
+			return imported, updated, e
+		}
+		existing[key] = row{id: id, path: lw.Path, name: name, host: lw.Host, os: lw.OS, kind: lw.Kind, labels: joinLabels(lw.Labels)}
+		imported++
+	}
+	return imported, updated, nil
+}
+
+func firstNonEmpty(a, b string) string {
+	if strings.TrimSpace(a) != "" {
+		return a
+	}
+	return b
 }
 
 func joinLabels(labels []string) string {
@@ -437,24 +627,68 @@ func workspaceStatus(w workspaceRecord) string {
 	return "unknown"
 }
 
-// applyNodeStatus lets the node-agent override the local guess. A node that
-// lists this path is the machine that will actually run the task, so its
-// heartbeat — not a stat() on the control plane — decides liveness.
-func applyNodeStatus(w *workspaceRecord, list []nodes.Node, now time.Time) bool {
-	n, ok := nodes.Match(list, w.Path)
-	if !ok {
-		return false
-	}
-	w.Node, w.Hostname = n.NodeID, n.Hostname
-	if n.Fresh(now) {
-		w.Status = "connected"
+// applyLiveMetadata overlays kanban-board's live workspaces.json onto a local
+// row. Imported rows carry no os/host/labels and often a wrong "mac: " name;
+// the live registry is the source of truth for machine identity. User edits
+// (a custom name, an explicit os) are preserved unless they contradict the
+// path shape, which is unambiguous.
+func applyLiveMetadata(w *workspaceRecord, live []catalog.Workspace) {
+	machine := catalog.MachineFor(w.Path, w.OS, w.Host, "")
+	if rec, found := catalog.Match(live, w.Path); found {
+		w.Live, w.LiveID, w.Source = true, rec.ID, "kanban-board"
+		if rec.Name != "" && (catalog.HasStalePrefix(w.Name) || w.Name == w.Path || w.Name == catalog.CleanName("", w.Path)) {
+			w.Name = rec.Name
+		}
+		if rec.OS != "" && (w.OS == "" || catalog.MachineFor(w.Path, w.OS, w.Host, "") != machine) {
+			w.OS = rec.OS
+		}
+		if rec.Host != "" && w.Host == "" {
+			w.Host = rec.Host
+		}
+		if len(rec.Labels) > 0 && len(w.Labels) == 0 {
+			w.Labels = append([]string(nil), rec.Labels...)
+		}
+		if rec.Kind != "" && (w.Kind == "" || w.Kind == "dir") {
+			w.Kind = rec.Kind
+		}
+		machine = catalog.MachineFor(w.Path, w.OS, w.Host, "")
 	} else {
-		w.Status = "unreachable"
+		w.Source = "local"
+		if catalog.HasStalePrefix(w.Name) {
+			w.Name = catalog.CleanName(w.Name, w.Path)
+		}
 	}
-	return true
+	w.Machine = machine
 }
 
-func queryWorkspaces(ctx context.Context, a *API, reg *nodes.Registry) ([]workspaceRecord, error) {
+// resolveWorkspace decides machine attribution and liveness. A path that
+// exists on the control plane is local; otherwise the node-agent heartbeat
+// is authoritative, because stat() on the control plane cannot see a remote
+// Mac/Windows checkout.
+func resolveWorkspace(w *workspaceRecord, list []nodes.Node, live []catalog.Workspace, now time.Time) {
+	applyLiveMetadata(w, live)
+	w.Git = dispatch.IsGit(w.Path) || w.Kind == "repo"
+	if w.Machine == "current" {
+		if _, err := os.Stat(w.Path); err == nil {
+			w.Status = "local"
+			return
+		}
+	}
+	if len(list) > 0 {
+		if n, _ := nodes.Find(list, w.Path, w.Machine); n.NodeID != "" {
+			w.Node, w.Hostname = n.NodeID, n.Hostname
+			if n.Fresh(now) {
+				w.Status = "connected"
+			} else {
+				w.Status = "unreachable"
+			}
+			return
+		}
+	}
+	w.Status = workspaceStatus(*w)
+}
+
+func queryWorkspaces(ctx context.Context, a *API, reg *nodes.Registry, cat *catalog.Catalog) ([]workspaceRecord, error) {
 	rows, err := a.S.DB.Query(`SELECT id,name,path,host,os,kind,labels,note,created_at FROM dispatch_workspaces ORDER BY created_at`)
 	if err != nil {
 		return nil, err
@@ -468,19 +702,17 @@ func queryWorkspaces(ctx context.Context, a *API, reg *nodes.Registry) ([]worksp
 			return nil, err
 		}
 		w.Labels = splitLabels(labelsRaw)
-		w.Git = dispatch.IsGit(w.Path) || w.Kind == "repo"
-		w.Status = workspaceStatus(w)
 		out = append(out, w)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	if list, _ := reg.List(ctx); len(list) > 0 {
-		now := time.Now()
-		for i := range out {
-			applyNodeStatus(&out[i], list, now)
-		}
+	live, _ := cat.List(ctx, false)
+	list, _ := reg.List(ctx)
+	now := time.Now()
+	for i := range out {
+		resolveWorkspace(&out[i], list, live, now)
 	}
 	return out, nil
 }
@@ -501,32 +733,18 @@ func getWorkspaceByID(a *API, id string) (workspaceRecord, error) {
 	return w, nil
 }
 
-func pingWorkspaceRecord(ctx context.Context, a *API, reg *nodes.Registry, w workspaceRecord) workspaceRecord {
+func pingWorkspaceRecord(ctx context.Context, a *API, reg *nodes.Registry, cat *catalog.Catalog, w workspaceRecord) workspaceRecord {
 	start := time.Now()
-
-	// A node that lists this path is the machine that will run the task; its
-	// heartbeat decides liveness, not a stat() on the control plane host.
-	if list, _ := reg.List(ctx); len(list) > 0 {
-		if applyNodeStatus(&w, list, time.Now()) {
-			w.LatencyMs = time.Since(start).Milliseconds()
-			if w.LatencyMs == 0 {
-				w.LatencyMs = 1
-			}
-			return w
-		}
+	live, _ := cat.List(ctx, false)
+	list, _ := reg.List(ctx)
+	resolveWorkspace(&w, list, live, time.Now())
+	if w.Status != "unknown" {
+		w.LatencyMs = max(1, time.Since(start).Milliseconds())
+		return w
 	}
 
 	if w.Host == "" || w.Host == "localhost" || w.Host == "127.0.0.1" {
-		if _, err := os.Stat(w.Path); err == nil {
-			w.Status = "local"
-			w.Git = dispatch.IsGit(w.Path)
-		} else {
-			w.Status = "unreachable"
-		}
-		w.LatencyMs = time.Since(start).Milliseconds()
-		if w.LatencyMs == 0 {
-			w.LatencyMs = 1
-		}
+		w.LatencyMs = max(1, time.Since(start).Milliseconds())
 		return w
 	}
 	var workerURL string
@@ -537,7 +755,7 @@ func pingWorkspaceRecord(ctx context.Context, a *API, reg *nodes.Registry, w wor
 	if workerURL != "" {
 		client := &http.Client{Timeout: 2 * time.Second}
 		resp, err := client.Get(strings.TrimRight(workerURL, "/") + "/healthz")
-		w.LatencyMs = time.Since(start).Milliseconds()
+		w.LatencyMs = max(1, time.Since(start).Milliseconds())
 		if err == nil && resp != nil {
 			_ = resp.Body.Close()
 			if resp.StatusCode < 500 {

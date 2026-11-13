@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Apple,
+  AtSign,
   Check,
   ChevronRight,
-  GitBranch,
   HardDrive,
   Laptop,
   Link2,
@@ -56,6 +56,12 @@ import {
 import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { Textarea } from "@/components/ui/textarea";
 import { MetaChip } from "@/components/board/taskDetailParts";
+import {
+  BranchField,
+  PromptOmnibox,
+  SaasRulesBanner,
+  TaskContextPicker,
+} from "@/components/board/TaskContextFields";
 
 export const EXECUTORS = ["claude", "codex", "commandcode", "omp", "dsh"] as const;
 export const EFFORTS = ["low", "medium", "high"] as const;
@@ -83,7 +89,6 @@ function PlatformIcon({ platform, className }: { platform: PlatformKey; classNam
 }
 
 const DEFAULT_SENTINEL = "__default__";
-const CURRENT_BRANCH_SENTINEL = "__current__";
 const SCRATCH_SENTINEL = "__scratch__";
 
 export type StartMode = "manual" | "queue" | "now";
@@ -195,8 +200,11 @@ export function TaskDialog({
   const [blockedBy, setBlockedBy] = useState<string[]>([]);
   const [depId, setDepId] = useState("");
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [paths, setPaths] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
   const [depsOpen, setDepsOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
 
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -239,10 +247,14 @@ export function TaskDialog({
     queryKey: ["ws", workspace],
     enabled: workspace.trim().length > 1,
     queryFn: () =>
-      apiOr<{ is_git?: boolean; branches?: string[] }>(
-        `/api/v1/workspaces/inspect?path=${encodeURIComponent(workspace.trim())}`,
-        {}
-      ),
+      apiOr<{
+        is_git?: boolean;
+        branches?: string[];
+        current?: string;
+        warning?: string;
+        local?: boolean;
+        saas?: boolean;
+      }>(`/api/v1/workspaces/inspect?path=${encodeURIComponent(workspace.trim())}`, {}),
   });
 
   const isGit = wsInspect.data?.is_git === true;
@@ -251,6 +263,12 @@ export function TaskDialog({
     () => (savedWorkspaces.data ?? []).find((w) => w.path === workspace),
     [savedWorkspaces.data, workspace]
   );
+
+  /** The backend owns the rule; the path check is a graceful fallback. */
+  const saasActive =
+    wsInspect.data?.saas === true ||
+    /gadjian|hadirr|baktiku|\/saas\//i.test(workspace.replace(/\\/g, "/")) ||
+    (selectedWsObj?.labels ?? []).some((l) => ["work", "saas", "fast-8", "fast8"].includes(l.toLowerCase()));
 
   const groupedWorkspaces = useMemo(() => {
     const order: PlatformKey[] = ["mac", "windows", "current", "linux"];
@@ -335,7 +353,9 @@ export function TaskDialog({
         executor,
         model: model.trim(),
         effort,
-        branch: isGit ? branch : "",
+        branch: isGit || branch ? branch : "",
+        paths: paths.length ? paths : undefined,
+        skills: skills.length ? skills : undefined,
         blocked_by: blockedBy.length ? blockedBy : undefined,
       });
 
@@ -461,6 +481,7 @@ export function TaskDialog({
 
           <DialogBody className="flex flex-col">
             <ErrorBox error={create.error} />
+            <SaasRulesBanner active={saasActive} />
 
             <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_268px]">
               {/* -------------------------------------------------- content */}
@@ -505,12 +526,17 @@ export function TaskDialog({
                       </Button>
                     </div>
                   </div>
-                  <Textarea
-                    ref={promptRef}
+                  <PromptOmnibox
                     id="task-prompt"
+                    inputRef={promptRef}
                     rows={7}
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    onChange={setPrompt}
+                    workspace={workspace.trim()}
+                    paths={paths}
+                    onPathsChange={setPaths}
+                    skills={skills}
+                    onSkillsChange={setSkills}
                     placeholder="Detailed instructions for the agent — context, constraints, files to touch…"
                     className="min-h-[160px]"
                   />
@@ -570,37 +596,13 @@ export function TaskDialog({
                     </p>
                   )}
 
-                  {isGit && (
-                    <div className="space-y-1.5 pt-1">
-                      <Label htmlFor="task-branch" className="text-[11px]">
-                        <GitBranch className="size-3 text-ink-3" />
-                        Base branch
-                      </Label>
-                      {wsInspect.data?.branches?.length ? (
-                        <SearchSelect
-                          id="task-branch"
-                          value={branch || CURRENT_BRANCH_SENTINEL}
-                          onValueChange={(v) => setBranch(v === CURRENT_BRANCH_SENTINEL ? "" : v)}
-                          options={[
-                            { value: CURRENT_BRANCH_SENTINEL, label: "(current HEAD)" },
-                            ...wsInspect.data.branches.map((b) => ({ value: b, label: b })),
-                          ]}
-                          placeholder="Select branch…"
-                          searchPlaceholder="Search branches…"
-                          ariaLabel="Base branch"
-                          size="sm"
-                        />
-                      ) : (
-                        <Input
-                          id="task-branch"
-                          value={branch}
-                          onChange={(e) => setBranch(e.target.value)}
-                          placeholder="(current HEAD)"
-                          className="font-mono text-[11px]"
-                        />
-                      )}
-                    </div>
-                  )}
+                  <BranchField
+                    workspace={workspace.trim()}
+                    isGit={isGit}
+                    inspect={wsInspect.data}
+                    value={branch}
+                    onChange={setBranch}
+                  />
                 </RailGroup>
 
                 <RailGroup label="Execution">
@@ -713,6 +715,23 @@ export function TaskDialog({
               </aside>
             </div>
 
+            {/* ------------------------------------- context & references */}
+            <CollapsibleSection
+              title="Workspace Context & References"
+              icon={<AtSign className="size-3 text-ink-3" />}
+              count={paths.length + skills.length}
+              open={contextOpen}
+              onToggle={() => setContextOpen((v) => !v)}
+            >
+              <TaskContextPicker
+                workspace={workspace.trim()}
+                paths={paths}
+                onPathsChange={setPaths}
+                skills={skills}
+                onSkillsChange={setSkills}
+              />
+            </CollapsibleSection>
+
             {/* ------------------------------------------------- supporting */}
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <button
@@ -726,8 +745,9 @@ export function TaskDialog({
               </button>
               <span className="text-ink-4">·</span>
               <span className="text-[11px] text-ink-4">
-                {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} · {blockedBy.length} blocker
-                {blockedBy.length === 1 ? "" : "s"}
+                {paths.length} reference{paths.length === 1 ? "" : "s"} · {skills.length} skill
+                {skills.length === 1 ? "" : "s"} · {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} ·{" "}
+                {blockedBy.length} blocker{blockedBy.length === 1 ? "" : "s"}
               </span>
             </div>
 

@@ -36,17 +36,13 @@ export function OverviewScreen() {
       ),
   });
 
-  const events = useQuery({
-    queryKey: ["events", "recent"],
-    refetchInterval: 5000,
-    queryFn: () =>
-      apiOr<{ id: number; task_id: string; kind: string; created_at: number }[]>("/api/v1/events?limit=12", []),
-  });
-
   return (
     <div>
       <div className="bar">
         <h2>Overview</h2>
+        <a href="#/logs" className="chip inline-flex items-center gap-1" title="Open the Logs page">
+          Live Activity Stream → Logs
+        </a>
         {(boards.data?.length ?? 0) > 0 && (
           <button
             type="button"
@@ -136,39 +132,12 @@ export function OverviewScreen() {
         </>
       )}
 
-      {events.data && events.data.length > 0 && (
-        <Panel title="Live Activity Stream">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Task / Run</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...events.data].reverse().slice(0, 8).map((ev) => (
-                <tr key={ev.id}>
-                  <td>
-                    <span className="badge mono">{ev.kind}</span>
-                  </td>
-                  <td>
-                    <code>{ev.task_id || "—"}</code>
-                  </td>
-                  <td className="muted">
-                    {new Date(ev.created_at * (ev.created_at > 1e12 ? 1 : 1000)).toLocaleTimeString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
-      )}
     </div>
   );
 }
 
 export { WorkspacesPage as WorkspacesScreen } from "@/components/workspaces/WorkspacesPage";
+export { LogsPage as LogsScreen } from "@/components/logs/LogsPage";
 
 export function WorkersScreen() {
   const qc = useQueryClient();

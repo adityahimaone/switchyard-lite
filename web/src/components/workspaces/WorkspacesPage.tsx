@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Apple,
+  CloudDownload,
   FolderGit2,
   GitBranch,
   HardDrive,
+  Info,
   Laptop,
   Monitor,
   Pencil,
@@ -20,11 +22,13 @@ import {
   platformOfWorkspace,
   post,
   put,
+  type LiveWorkspace,
   type PlatformKey,
   type Task,
   type Worker,
   type Workspace,
 } from "@/api";
+import { toast, toastError } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { ErrorBox } from "@/ui";
 import { Badge } from "@/components/ui/badge";
@@ -198,18 +202,30 @@ function WorkspaceSheet({
   onSaved: () => void;
 }) {
   const editing = !!initial;
-  const initialTransport = initial?.host ? "ssh" : "local";
+  /**
+   * Machine identity comes from the live kanban-board registry (backend field
+   * `machine`) and the path shape — never from a stale "mac: " name or an empty
+   * host column. Imported Windows checkouts like D:\xampp\htdocs\portal-hadirr
+   * have no host/os saved locally, so the old `initial.host ? ssh : local`
+   * check opened the edit sheet on "This machine". Resolving here fixes that.
+   */
+  const resolvedMachine = platformOfWorkspace(initial ?? null);
+  const initialTransport: "local" | "ssh" = resolvedMachine === "current" ? "local" : "ssh";
+  const initialOs = resolvedMachine === "mac" ? "mac" : resolvedMachine === "windows" ? "windows" : "linux";
+  const initialHost =
+    initial?.host ||
+    (resolvedMachine === "mac" ? "mac-tailscale" : resolvedMachine === "windows" ? "windows-tailscale" : "");
   const [transport, setTransport] = useState<"local" | "ssh">(initialTransport);
   const [id, setId] = useState(initial?.id ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [path, setPath] = useState(initial?.path ?? "");
-  const [host, setHost] = useState(initial?.host ?? "");
-  const [os, setOs] = useState(initial?.os ?? (initialTransport === "local" ? "linux" : "mac"));
+  const [host, setHost] = useState(initialHost);
+  const [os, setOs] = useState(initialOs);
   const [kind, setKind] = useState(initial?.kind || (initial?.git ? "repo" : "dir"));
   const [labels, setLabels] = useState(initial?.labels?.join(", ") ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
   const [customHost, setCustomHost] = useState<boolean>(
-    Boolean(initial?.host && !SSH_PRESETS[initial.host] && !workers.some((w) => w.name === initial.host))
+    Boolean(initialHost && !SSH_PRESETS[initialHost] && !workers.some((w) => w.name === initialHost))
   );
   const [err, setErr] = useState<string | null>(null);
 
@@ -320,6 +336,13 @@ function WorkspaceSheet({
     ...workers.map((w) => w.name || w.id).filter((n) => n && !SSH_PRESETS[n]),
   ];
 
+  /** Always derived from the form so the highlighted preset is never stale. */
+  const activePreset: "current" | "mac" | "windows" | "remote-linux" =
+    transport === "local" ? "current" : os === "mac" ? "mac" : os === "windows" ? "windows" : "remote-linux";
+
+  const machineLabel =
+    resolvedMachine === "current" ? "This machine" : PLATFORM_META[resolvedMachine].label;
+
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent>
@@ -338,9 +361,10 @@ function WorkspaceSheet({
                 <button
                   type="button"
                   onClick={() => applyMachinePreset("current")}
+                  aria-pressed={activePreset === "current"}
                   className={cn(
                     "flex items-center justify-center gap-1.5 rounded-control border px-2 py-1.5 text-xs font-medium transition-colors",
-                    transport === "local"
+                    activePreset === "current"
                       ? "border-accent/50 bg-accent/14 text-accent-text"
                       : "border-line bg-well/50 text-ink-2 hover:border-line-strong"
                   )}
@@ -351,9 +375,10 @@ function WorkspaceSheet({
                 <button
                   type="button"
                   onClick={() => applyMachinePreset("mac")}
+                  aria-pressed={activePreset === "mac"}
                   className={cn(
                     "flex items-center justify-center gap-1.5 rounded-control border px-2 py-1.5 text-xs font-medium transition-colors",
-                    transport === "ssh" && os === "mac"
+                    activePreset === "mac"
                       ? "border-accent/50 bg-accent/14 text-accent-text"
                       : "border-line bg-well/50 text-ink-2 hover:border-line-strong"
                   )}
@@ -364,9 +389,10 @@ function WorkspaceSheet({
                 <button
                   type="button"
                   onClick={() => applyMachinePreset("windows")}
+                  aria-pressed={activePreset === "windows"}
                   className={cn(
                     "flex items-center justify-center gap-1.5 rounded-control border px-2 py-1.5 text-xs font-medium transition-colors",
-                    transport === "ssh" && os === "windows"
+                    activePreset === "windows"
                       ? "border-accent/50 bg-accent/14 text-accent-text"
                       : "border-line bg-well/50 text-ink-2 hover:border-line-strong"
                   )}
@@ -375,6 +401,13 @@ function WorkspaceSheet({
                   Windows
                 </button>
               </div>
+              {editing && (
+                <p className="mt-1.5 mb-0 flex items-start gap-1 text-[10px] leading-relaxed text-ink-4">
+                  <Info className="mt-px size-2.5 shrink-0" />
+                  Auto-selected from the workspace's machine: <strong className="font-medium text-ink-3">{machineLabel}</strong>
+                  {initial?.live && " (kanban-board live registry)"}. The path shape and live metadata take priority over the name.
+                </p>
+              )}
             </div>
 
             {!editing && (
@@ -575,6 +608,31 @@ export function WorkspacesPage() {
     queryFn: () => apiOr<Worker[]>("/api/v1/workers", []),
   });
 
+  /** kanban-board's live registry, served by node-agent from workspaces.json. */
+  const liveCatalog = useQuery({
+    queryKey: ["workspaces-live"],
+    refetchInterval: 60000,
+    queryFn: () =>
+      apiOr<{ workspaces: LiveWorkspace[]; count: number }>("/api/v1/workspaces/live", {
+        workspaces: [],
+        count: 0,
+      }),
+  });
+
+  const syncLive = useMutation({
+    mutationFn: () => post<{ imported: number; updated: number; live: number }>("/api/v1/workspaces/sync"),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+      qc.invalidateQueries({ queryKey: ["workspaces-live"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+      toast("Live workspaces synced", {
+        tone: "success",
+        description: `${res.imported} imported · ${res.updated} machine records repaired · ${res.live} in kanban-board registry`,
+      });
+    },
+    onError: (e) => toastError(e, "Could not sync live workspaces"),
+  });
+
   const runningWorkspaces = useQuery({
     queryKey: ["ws-running"],
     refetchInterval: 6000,
@@ -751,6 +809,20 @@ export function WorkspacesPage() {
         </Button>
         <Button
           type="button"
+          variant="outline"
+          size="sm"
+          loading={syncLive.isPending}
+          onClick={() => syncLive.mutate()}
+          title="Import machine identity (name, OS, host, labels) from kanban-board's live workspaces.json"
+        >
+          <CloudDownload className="size-3.5" />
+          Sync live
+          {(liveCatalog.data?.count ?? 0) > 0 && (
+            <span className="font-mono text-[10px] opacity-70">{liveCatalog.data?.count}</span>
+          )}
+        </Button>
+        <Button
+          type="button"
           variant="signal"
           size="sm"
           onClick={() => setSheet({ open: true, edit: null })}
@@ -758,6 +830,23 @@ export function WorkspacesPage() {
           <Plus className="size-3.5" />
           New workspace
         </Button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface/60 px-3 py-2 text-[11px] text-ink-3">
+        <Radio className={cn("size-3.5", (liveCatalog.data?.count ?? 0) > 0 && "text-success-text")} />
+        <span>
+          <strong className="font-medium text-ink-2">kanban-board live registry</strong>
+          {" · "}
+          {(liveCatalog.data?.count ?? 0) > 0
+            ? `${liveCatalog.data?.count} workspaces reported by node-agent`
+            : "node-agent registry unavailable — showing local records"}
+        </span>
+        <span className="h-3 w-px bg-line" aria-hidden />
+        <span>
+          Machine type is resolved from the live OS/host and the path shape (
+          <code className="font-mono">D:\…</code> → Windows), so stale <code className="font-mono">mac: </code>
+          prefixes no longer decide the preset.
+        </span>
       </div>
 
       {/* Filter bar */}
@@ -892,6 +981,20 @@ export function WorkspacesPage() {
                                 <Badge variant="outline" className="px-1.5 py-0 font-mono text-[10px]">
                                   {meta.badge}
                                 </Badge>
+                                {w.live && (
+                                  <Badge
+                                    variant="success"
+                                    className="px-1.5 py-0 font-mono text-[10px]"
+                                    title={`From kanban-board live registry${w.live_id ? ` · ${w.live_id}` : ""}`}
+                                  >
+                                    live · kanban-board
+                                  </Badge>
+                                )}
+                                {w.machine && w.machine !== pk && (
+                                  <Badge variant="outline" className="px-1.5 py-0 font-mono text-[10px]">
+                                    machine · {w.machine}
+                                  </Badge>
+                                )}
                                 {w.host && (
                                   <Badge variant="secondary" className="px-1.5 py-0 font-mono text-[10px]">
                                     ssh · {w.host}

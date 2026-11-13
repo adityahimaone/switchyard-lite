@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -235,7 +236,7 @@ func (d *Dispatcher) Start(ctx context.Context, taskID string) (string, error) {
 func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 	workspace := t.Workspace
 	if IsGit(workspace) {
-		wt, err := EnsureWorktree(workspace, t.ID)
+		wt, err := EnsureWorktreeFrom(workspace, t.ID, t.Branch)
 		if err != nil {
 			d.fail(t, runID, "worktree: "+err.Error())
 			return
@@ -245,8 +246,10 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 	}
 	var boardName string
 	_ = d.S.DB.QueryRow(`SELECT name FROM boards WHERE id=?`, t.BoardID).Scan(&boardName)
-	req := Request{TaskID: t.ID, Title: t.Title, Board: boardName, Message: t.Prompt, Workspace: workspace,
+	message := AugmentPrompt(t.Prompt, t.Workspace, d.workspaceLabels(t.Workspace), t.Paths, t.Skills)
+	req := Request{TaskID: t.ID, Title: t.Title, Board: boardName, Message: message, Workspace: workspace,
 		Model: t.Model, Effort: t.Effort, Executor: t.Executor, Acceptance: t.Acceptance,
+		Paths: t.Paths, Skills: t.Skills, Branch: t.Branch,
 		RunID: runID, TimeoutS: d.Cfg.TimeoutS}
 	if err := d.Client.Dispatch(ctx, req); err != nil {
 		d.fail(t, runID, err.Error())
@@ -270,6 +273,20 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 		case <-time.After(d.Cfg.Poll):
 		}
 	}
+}
+
+// workspaceLabels reads the labels attached to a workspace so the Fast-8
+// rules can be attached even when the prompt itself mentions no portal.
+func (d *Dispatcher) workspaceLabels(path string) []string {
+	var raw string
+	_ = d.S.DB.QueryRow(`SELECT labels FROM dispatch_workspaces WHERE path=? LIMIT 1`, path).Scan(&raw)
+	out := []string{}
+	for _, p := range strings.Split(raw, ",") {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func (d *Dispatcher) saveWorktree(id string, wt Worktree) {

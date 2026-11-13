@@ -8,13 +8,16 @@ import (
 
 // Patch holds optional task field updates; nil means unchanged.
 type Patch struct {
-	Title      *string `json:"title"`
-	Prompt     *string `json:"prompt"`
-	Acceptance *string `json:"acceptance"`
-	Workspace  *string `json:"workspace"`
-	Executor   *string `json:"executor"`
-	Model      *string `json:"model"`
-	Effort     *string `json:"effort"`
+	Title      *string   `json:"title"`
+	Prompt     *string   `json:"prompt"`
+	Acceptance *string   `json:"acceptance"`
+	Workspace  *string   `json:"workspace"`
+	Executor   *string   `json:"executor"`
+	Model      *string   `json:"model"`
+	Effort     *string   `json:"effort"`
+	Branch     *string   `json:"branch"`
+	Paths      *[]string `json:"paths"`
+	Skills     *[]string `json:"skills"`
 }
 
 // Update applies the non-nil fields of p to the task and records an event.
@@ -26,7 +29,7 @@ func (v *Service) Update(id string, p Patch) (Task, error) {
 		col string
 		val *string
 	}{{"title", p.Title}, {"prompt", p.Prompt}, {"acceptance", p.Acceptance}, {"workspace", p.Workspace},
-		{"executor", p.Executor}, {"model", p.Model}, {"effort", p.Effort}}
+		{"executor", p.Executor}, {"model", p.Model}, {"effort", p.Effort}, {"branch", p.Branch}}
 	tx, err := v.S.DB.Begin()
 	if err != nil {
 		return Task{}, err
@@ -45,6 +48,18 @@ func (v *Service) Update(id string, p Patch) (Task, error) {
 			continue
 		}
 		if _, err := tx.Exec(`UPDATE tasks SET `+s.col+`=? WHERE id=?`, *s.val, id); err != nil {
+			return Task{}, err
+		}
+		changed = append(changed, s.col)
+	}
+	for _, s := range []struct {
+		col string
+		val *[]string
+	}{{"paths", p.Paths}, {"skills", p.Skills}} {
+		if s.val == nil {
+			continue
+		}
+		if _, err := tx.Exec(`UPDATE tasks SET `+s.col+`=? WHERE id=?`, encodeList(*s.val), id); err != nil {
 			return Task{}, err
 		}
 		changed = append(changed, s.col)

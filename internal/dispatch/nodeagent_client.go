@@ -27,6 +27,11 @@ type Request struct {
 	Acceptance    string `json:"acceptance,omitempty"`
 	RunID         string `json:"run_id,omitempty"`
 	TimeoutS      int    `json:"timeout_s,omitempty"`
+	// Composer context. node-agent ignores unknown keys, but keeping them in
+	// the wire payload means a future agent can resolve skills itself.
+	Paths  []string `json:"paths,omitempty"`
+	Skills []string `json:"skills,omitempty"`
+	Branch string   `json:"branch,omitempty"`
 }
 
 // Result mirrors kanban NodeDispatchResult (shared subset).

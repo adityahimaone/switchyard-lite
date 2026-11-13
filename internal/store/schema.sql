@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   executor TEXT NOT NULL DEFAULT '',
   model TEXT NOT NULL DEFAULT '',
   effort TEXT NOT NULL DEFAULT '',
+  -- JSON arrays of @file references and $skill names attached at creation.
+  paths TEXT NOT NULL DEFAULT '[]',
+  skills TEXT NOT NULL DEFAULT '[]',
+  -- Base branch used when creating the isolated worktree (empty = HEAD).
+  branch TEXT NOT NULL DEFAULT '',
   retry_count INTEGER NOT NULL DEFAULT 0,
   error_sig TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,

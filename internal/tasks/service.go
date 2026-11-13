@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/adityahimaone/switchyard-lite/internal/store"
@@ -50,19 +51,24 @@ type Board struct {
 }
 
 type Task struct {
-	ID         string   `json:"id"`
-	BoardID    string   `json:"board_id"`
-	ParentID   string   `json:"parent_id,omitempty"`
-	RunID      string   `json:"run_id,omitempty"`
-	StageID    string   `json:"stage_id,omitempty"`
-	Title      string   `json:"title"`
-	Prompt     string   `json:"prompt"`
-	Acceptance string   `json:"acceptance,omitempty"`
-	Status     string   `json:"status"`
-	Workspace  string   `json:"workspace,omitempty"`
-	Executor   string   `json:"executor,omitempty"`
-	Model      string   `json:"model,omitempty"`
-	Effort     string   `json:"effort,omitempty"`
+	ID         string `json:"id"`
+	BoardID    string `json:"board_id"`
+	ParentID   string `json:"parent_id,omitempty"`
+	RunID      string `json:"run_id,omitempty"`
+	StageID    string `json:"stage_id,omitempty"`
+	Title      string `json:"title"`
+	Prompt     string `json:"prompt"`
+	Acceptance string `json:"acceptance,omitempty"`
+	Status     string `json:"status"`
+	Workspace  string `json:"workspace,omitempty"`
+	Executor   string `json:"executor,omitempty"`
+	Model      string `json:"model,omitempty"`
+	Effort     string `json:"effort,omitempty"`
+	// Paths / Skills are the @file and $skill references attached in the
+	// composer. Branch is the base branch for the isolated worktree.
+	Paths      []string `json:"paths"`
+	Skills     []string `json:"skills"`
+	Branch     string   `json:"branch,omitempty"`
 	RetryCount int      `json:"retry_count"`
 	BlockedBy  []string `json:"blocked_by"`
 	CreatedAt  int64    `json:"created_at"`
@@ -71,7 +77,41 @@ type Task struct {
 
 type NewTask struct {
 	BoardID, ParentID, Title, Prompt, Acceptance, Status, Workspace, Executor, Model, Effort string
-	BlockedBy                                                                                []string
+	Branch                                                                                   string
+	Paths, Skills, BlockedBy                                                                 []string
+}
+
+// encodeList stores a string slice as a compact JSON array; nil becomes [].
+func encodeList(v []string) string {
+	if len(v) == 0 {
+		return "[]"
+	}
+	clean := make([]string, 0, len(v))
+	seen := map[string]bool{}
+	for _, s := range v {
+		s = strings.TrimSpace(s)
+		if s == "" || seen[s] {
+			continue
+		}
+		seen[s] = true
+		clean = append(clean, s)
+	}
+	b, err := json.Marshal(clean)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
+}
+
+func decodeList(raw string) []string {
+	out := []string{}
+	if raw != "" {
+		_ = json.Unmarshal([]byte(raw), &out)
+	}
+	if out == nil {
+		out = []string{}
+	}
+	return out
 }
 
 type Service struct {
@@ -179,9 +219,10 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	if n.Status == Backlog {
 		initialStatus = Backlog
 	}
-	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,created_at,updated_at)
-		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?)`,
-		id, n.BoardID, n.ParentID, n.Title, n.Prompt, n.Acceptance, initialStatus, n.Workspace, n.Executor, n.Model, n.Effort, now, now)
+	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,paths,skills,branch,created_at,updated_at)
+		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		id, n.BoardID, n.ParentID, n.Title, n.Prompt, n.Acceptance, initialStatus, n.Workspace, n.Executor, n.Model, n.Effort,
+		encodeList(n.Paths), encodeList(n.Skills), strings.TrimSpace(n.Branch), now, now)
 	if err != nil {
 		return Task{}, err
 	}
@@ -202,13 +243,18 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	return v.Get(id)
 }
 
-const cols = `id,board_id,COALESCE(parent_id,''),run_id,stage_id,title,prompt,acceptance,status,workspace,executor,model,effort,retry_count,created_at,updated_at`
+const cols = `id,board_id,COALESCE(parent_id,''),run_id,stage_id,title,prompt,acceptance,status,workspace,executor,model,effort,
+	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(branch,''),retry_count,created_at,updated_at`
 
 func scan(r interface{ Scan(...any) error }) (Task, error) {
 	var t Task
+	var pathsRaw, skillsRaw string
 	err := r.Scan(&t.ID, &t.BoardID, &t.ParentID, &t.RunID, &t.StageID, &t.Title, &t.Prompt, &t.Acceptance,
-		&t.Status, &t.Workspace, &t.Executor, &t.Model, &t.Effort, &t.RetryCount, &t.CreatedAt, &t.UpdatedAt)
+		&t.Status, &t.Workspace, &t.Executor, &t.Model, &t.Effort, &pathsRaw, &skillsRaw, &t.Branch,
+		&t.RetryCount, &t.CreatedAt, &t.UpdatedAt)
 	t.BlockedBy = []string{}
+	t.Paths = decodeList(pathsRaw)
+	t.Skills = decodeList(skillsRaw)
 	return t, err
 }
 

@@ -40,6 +40,9 @@ func Open(path string) (*Store, error) {
 		}
 	}
 	for _, col := range []string{
+		`ALTER TABLE tasks ADD COLUMN paths TEXT NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE tasks ADD COLUMN skills TEXT NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE tasks ADD COLUMN branch TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE dispatch_workspaces ADD COLUMN host TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE dispatch_workspaces ADD COLUMN os TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE dispatch_workspaces ADD COLUMN kind TEXT NOT NULL DEFAULT 'dir'`,
