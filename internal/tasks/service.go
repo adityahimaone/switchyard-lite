@@ -70,8 +70,8 @@ type Task struct {
 }
 
 type NewTask struct {
-	BoardID, ParentID, Title, Prompt, Acceptance, Workspace, Executor, Model, Effort string
-	BlockedBy                                                                        []string
+	BoardID, ParentID, Title, Prompt, Acceptance, Status, Workspace, Executor, Model, Effort string
+	BlockedBy                                                                                []string
 }
 
 type Service struct {
@@ -95,12 +95,43 @@ func (v *Service) event(tx *sql.Tx, taskID, kind string, payload any) error {
 }
 
 func (v *Service) CreateBoard(name string) (Board, error) {
+	return v.CreateBoardWithDefaults(name, "", "")
+}
+
+func (v *Service) CreateBoardWithDefaults(name, defaultExecutor, defaultModel string) (Board, error) {
 	if name == "" {
 		return Board{}, fmt.Errorf("%w: name required", ErrBadRequest)
 	}
-	b := Board{ID: newID("b"), Name: name}
-	_, err := v.S.DB.Exec(`INSERT INTO boards(id,name,created_at) VALUES(?,?,?)`, b.ID, name, v.Now().Unix())
+	b := Board{ID: newID("b"), Name: name, DefaultExecutor: defaultExecutor, DefaultModel: defaultModel}
+	_, err := v.S.DB.Exec(`INSERT INTO boards(id,name,default_executor,default_model,created_at) VALUES(?,?,?,?,?)`,
+		b.ID, name, defaultExecutor, defaultModel, v.Now().Unix())
 	return b, err
+}
+
+func (v *Service) UpdateBoard(id, name, defaultExecutor, defaultModel string) (Board, error) {
+	if name == "" {
+		return Board{}, fmt.Errorf("%w: name required", ErrBadRequest)
+	}
+	res, err := v.S.DB.Exec(`UPDATE boards SET name=?, default_executor=?, default_model=? WHERE id=?`,
+		name, defaultExecutor, defaultModel, id)
+	if err != nil {
+		return Board{}, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return Board{}, fmt.Errorf("%w: board", ErrNotFound)
+	}
+	return Board{ID: id, Name: name, DefaultExecutor: defaultExecutor, DefaultModel: defaultModel}, nil
+}
+
+func (v *Service) DeleteBoard(id string) error {
+	res, err := v.S.DB.Exec(`DELETE FROM boards WHERE id=?`, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("%w: board", ErrNotFound)
+	}
+	return nil
 }
 
 func (v *Service) ListBoards() ([]Board, error) {
@@ -144,9 +175,13 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	}
 	id := newID("t")
 	now := v.Now().Unix()
+	initialStatus := Todo
+	if n.Status == Backlog {
+		initialStatus = Backlog
+	}
 	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,created_at,updated_at)
 		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?)`,
-		id, n.BoardID, n.ParentID, n.Title, n.Prompt, n.Acceptance, Todo, n.Workspace, n.Executor, n.Model, n.Effort, now, now)
+		id, n.BoardID, n.ParentID, n.Title, n.Prompt, n.Acceptance, initialStatus, n.Workspace, n.Executor, n.Model, n.Effort, now, now)
 	if err != nil {
 		return Task{}, err
 	}

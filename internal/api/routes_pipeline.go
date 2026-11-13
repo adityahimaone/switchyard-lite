@@ -144,6 +144,10 @@ func init() {
 			w.WriteHeader(201)
 			ok(w, map[string]string{"token": tok, "name": in.Name, "scope": in.Scope})
 		}))
+		m.HandleFunc("DELETE /api/v1/tokens/{id}", a.require("admin", func(w http.ResponseWriter, r *http.Request) {
+			_, _ = a.S.DB.Exec(`DELETE FROM api_tokens WHERE id=?`, r.PathValue("id"))
+			w.WriteHeader(204)
+		}))
 
 		// SSE live event stream (/api/v1/events/stream).
 		m.HandleFunc("GET /api/v1/events/stream", a.require("read", func(w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -36,6 +37,17 @@ func Open(path string) (*Store, error) {
 	for _, ddl := range []string{schema, schemaProjects, schemaPipeline} {
 		if _, err := db.Exec(ddl); err != nil {
 			return nil, fmt.Errorf("migrate: %w", err)
+		}
+	}
+	for _, col := range []string{
+		`ALTER TABLE dispatch_workspaces ADD COLUMN host TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE dispatch_workspaces ADD COLUMN os TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE dispatch_workspaces ADD COLUMN kind TEXT NOT NULL DEFAULT 'dir'`,
+		`ALTER TABLE dispatch_workspaces ADD COLUMN labels TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE dispatch_workspaces ADD COLUMN note TEXT NOT NULL DEFAULT ''`,
+	} {
+		if _, err := db.Exec(col); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+			return nil, fmt.Errorf("migrate column: %w", err)
 		}
 	}
 	return &Store{DB: db}, nil

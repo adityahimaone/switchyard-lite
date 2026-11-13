@@ -33,7 +33,16 @@ func TestDispatchRoutes(t *testing.T) {
 	if c := do(t, h, "POST", "/api/v1/tasks/nope/dispatch", wr, "").Code; c != 404 {
 		t.Fatalf("dispatch %d", c)
 	}
-	if c := do(t, h, "POST", "/api/v1/workspaces", wr, `{"path":"/tmp/x"}`).Code; c != 201 {
+	if c := do(t, h, "POST", "/api/v1/workspaces", wr, `{"id":"mac-dev","name":"Mac Dev","path":"/Users/dev/app","host":"mac-tailscale","os":"mac","kind":"repo","labels":["work"],"note":"Apple Silicon"}`).Code; c != 201 {
 		t.Fatalf("ws %d", c)
+	}
+	if w := do(t, h, "PUT", "/api/v1/workspaces/mac-dev", wr, `{"name":"Mac Mini","path":"/Users/dev/app","host":"mac-tailscale","os":"mac","kind":"repo","labels":["work","ios"],"note":"Updated"}`); w.Code != 200 {
+		t.Fatalf("ws update %d %s", w.Code, w.Body.String())
+	}
+	if w := do(t, h, "POST", "/api/v1/workspaces/mac-dev/ping", wr, ""); w.Code != 200 {
+		t.Fatalf("ws ping %d", w.Code)
+	}
+	if w := do(t, h, "GET", "/api/v1/tasks/t_none/worktree", wr, ""); w.Code != 200 {
+		t.Fatalf("worktree %d", w.Code)
 	}
 }
