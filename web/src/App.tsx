@@ -19,14 +19,13 @@ import {
 import { api, getToken, type Board, type Task } from "./api";
 import { BoardDialog, BoardScreen, TaskDialog, useBoardId } from "./Board";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
-import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskDrawer } from "./Drawer";
 import { Login } from "./Login";
 import { useLiveEvents } from "@/lib/live";
 import { ReviewScreen } from "./Review";
 import { Kbd } from "@/components/ui/kbd";
 import { Toaster } from "@/components/ui/toast";
-import { Tip, TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   AppHeader,
   AppInset,
@@ -39,7 +38,6 @@ import {
   AppSidebarItem,
   AppSidebarTrack,
 } from "@/components/ui/app-shell";
-import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/pill";
 import {
   FlowScreen,
@@ -82,6 +80,7 @@ export function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [boardDialog, setBoardDialog] = useState<{ mode: "new" | "edit"; board?: Board } | null>(null);
+
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
   const { boardId, activeBoard, boards, setBoardId } = useBoardId();
@@ -138,47 +137,6 @@ export function App() {
       <AppSidebar>
         <div className="side-top-pod">
           <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
-
-          {/* Sidebar Board Switcher & Quick Task */}
-          {(boards.data?.length ?? 0) > 0 && (
-            <div className="side-board-box flex flex-col gap-2 border-t border-line/70 pt-2">
-              <div className="flex items-center gap-1">
-                <BoardSwitcher
-                  boards={boards.data}
-                  value={boardId}
-                  onChange={(id) => {
-                    setBoardId(id);
-                    if (page !== "board" && page !== "flow" && page !== "review") go("board");
-                  }}
-                  ariaLabel="Active board"
-                  className="min-w-0 flex-1"
-                  triggerClassName="h-8 font-semibold"
-                />
-                <Tip label="New board">
-                  <button
-                    type="button"
-                    className="btn ghost icon shrink-0"
-                    style={{ height: 30, width: 30 }}
-                    onClick={() => setBoardDialog({ mode: "new" })}
-                    aria-label="New board"
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
-                </Tip>
-              </div>
-              <Button
-                type="button"
-                variant="prism"
-                size="sm"
-                className="w-full justify-center"
-                onClick={() => setTaskDialogOpen(true)}
-                disabled={!boardId}
-              >
-                <Plus className="size-3.5" />
-                <span>Quick task</span>
-              </Button>
-            </div>
-          )}
         </div>
 
         <AppSidebarTrack>
@@ -311,18 +269,6 @@ export function App() {
               <kbd>⌘K</kbd>
             </button>
 
-            {boardId && (
-              <Button
-                type="button"
-                variant="prism"
-                size="xs"
-                onClick={() => setTaskDialogOpen(true)}
-                className="hidden sm:inline-flex"
-              >
-                <Plus className="size-3" />
-                Quick task
-              </Button>
-            )}
           </div>
         </AppHeader>
 

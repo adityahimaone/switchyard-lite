@@ -89,6 +89,12 @@ function Button({
       data-slot="button"
       data-variant={variant ?? "default"}
       data-size={size ?? "default"}
+      data-kubai-trigger
+      data-tone={
+        variant && ["signal", "prism", "gradient", "obsidian", "destructive"].includes(variant)
+          ? "inherit"
+          : undefined
+      }
       aria-busy={loading || undefined}
       disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size }), className)}

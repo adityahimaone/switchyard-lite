@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Plus, Search, X } from "@/components/ui/icons";
+import { Plus, Search } from "@/components/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ function operatorByValue(field: FilterFieldDef | undefined, value: string) {
 }
 
 function summarize(options: FilterOption[] | undefined, values: string[]) {
-  if (!values.length) return { text: "Select…", empty: true, glyphs: [] as React.ReactNode[] };
+  if (!values.length) return { text: "Choose…", empty: true, glyphs: [] as React.ReactNode[] };
   const find = (v: string) => options?.find((o) => o.value === v);
   const label = (v: string) => find(v)?.label ?? v;
   const glyphs = values
@@ -212,7 +212,7 @@ function PickerList({
                       : "border-line-strong"
                   )}
                 >
-                  {item.selected && <Check className="size-2.5" />}
+                  {item.selected && <span className="text-[9px] leading-none font-bold">✓</span>}
                 </span>
               )}
               {item.glyph && (
@@ -224,7 +224,7 @@ function PickerList({
               {typeof item.count === "number" && (
                 <span className="font-mono text-[9px] tabular-nums text-ink-4">{item.count}</span>
               )}
-              {!multi && item.selected && <Check className="size-3 shrink-0 text-accent" />}
+              {!multi && item.selected && <span className="shrink-0 text-[10px] leading-none font-bold text-accent">✓</span>}
             </button>
           );
         })}
@@ -237,39 +237,40 @@ function PickerList({
 /* Token                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function Segment({
-  children,
-  onClick,
-  ariaLabel,
-  muted,
-  className,
-  active,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
+interface SegmentProps extends Omit<React.ComponentProps<"button">, "onClick"> {
   ariaLabel: string;
   muted?: boolean;
-  className?: string;
   active?: boolean;
-}) {
+}
+
+/**
+ * Must forward ref + props: Radix's `PopoverTrigger asChild` clones this button
+ * with its own onClick/aria/ref. Without forwarding, clicking a token segment
+ * silently did nothing (the "cannot click the select" bug).
+ */
+const Segment = React.forwardRef<HTMLButtonElement, SegmentProps>(function Segment(
+  { children, ariaLabel, muted, active, className, ...props },
+  ref
+) {
   return (
     <button
+      ref={ref}
       type="button"
       aria-label={ariaLabel}
-      aria-haspopup="listbox"
-      onClick={onClick}
+      data-kubai-trigger
       className={cn(
         "flex min-w-0 items-center gap-1 whitespace-nowrap px-1.5 transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus/50",
+        "focus-visible:outline-none focus-visible:bg-well",
         muted ? "text-ink-3" : "text-ink",
         active ? "bg-well" : "hover:bg-well/70",
         className
       )}
+      {...props}
     >
       {children}
     </button>
   );
-}
+});
 
 export function FilterBar({
   fields,
@@ -464,6 +465,7 @@ export function FilterBar({
                   >
                     {summary.text}
                   </span>
+                  <span aria-hidden className="shrink-0 text-[9px] leading-none text-ink-4">▾</span>
                 </Segment>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-[236px] p-0">
@@ -485,9 +487,10 @@ export function FilterBar({
               type="button"
               onClick={() => remove(filter.id)}
               aria-label={`Remove ${field?.label ?? filter.field} filter`}
+              data-kubai-trigger
               className="flex items-center px-1.5 text-ink-4 transition-colors hover:bg-danger-tint hover:text-danger-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus/50"
             >
-              <X className="size-3" />
+              <span aria-hidden className="text-[13px] leading-none">×</span>
             </button>
           </div>
         );
@@ -501,7 +504,8 @@ export function FilterBar({
           <button
             type="button"
             aria-label={value.length === 0 ? emptyLabel : addLabel}
-            className="inline-flex h-[27px] items-center gap-1 rounded-full border border-dashed border-line-strong px-2.5 text-[11px] font-medium text-ink-3 transition-colors hover:border-accent/50 hover:bg-accent-tint hover:text-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50"
+            data-kubai-trigger
+            className="inline-flex h-[27px] items-center gap-1 rounded-full border border-line bg-surface/70 px-2.5 text-[11px] font-medium text-ink-3 shadow-[var(--lift-1)] transition-colors hover:border-accent/45 hover:bg-accent-tint hover:text-accent-text focus-visible:outline-none focus-visible:bg-well"
           >
             <Plus className="size-3" />
             {value.length === 0 ? emptyLabel : addLabel}

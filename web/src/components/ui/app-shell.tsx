@@ -179,6 +179,7 @@ export function AppSidebarItem({
   return (
     <a
       data-slot="app-sidebar-item"
+      data-kubai-trigger
       aria-current={active ? "page" : undefined}
       className={cn("nav-item", className)}
       {...props}

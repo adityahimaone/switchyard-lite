@@ -496,24 +496,16 @@ export function BoardScreen({
             </Tip>
           )}
 
-          <button
-            className="btn primary"
-            onClick={() => setCreating({ startMode: "queue" })}
-            disabled={!boardId}
-          >
-            <Plus className="size-3.5" />
-            <span>New task</span>
-          </button>
         </div>
 
         {/* Compact filter & search bar: one row of tokens, no status strip. */}
         <div className="flex flex-wrap items-center gap-1.5" role="search" aria-label="Filter tasks">
-          <div className="relative flex h-[30px] w-[228px] items-center rounded-full border border-line bg-surface/90 pr-7 pl-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
-            <Search className="size-3 shrink-0 text-ink-4" aria-hidden />
+          <div className="relative flex h-[32px] w-[260px] items-center rounded-full border border-line bg-surface pr-7 pl-3 shadow-[var(--lift-1),var(--lift-inset)]">
+            <Search className="size-3.5 shrink-0 text-ink-3" aria-hidden />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search tasks, prompt, id…"
+              placeholder="Search tasks…"
               aria-label="Search tasks"
               className="ml-1.5 w-full bg-transparent text-[11px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
             />
@@ -548,7 +540,7 @@ export function BoardScreen({
 
           <button
             type="button"
-            className={"btn sm" + (bulkMode ? " primary" : " ghost")}
+            className={"btn sm" + (bulkMode ? " primary" : "")}
             aria-pressed={bulkMode}
             onClick={() => {
               setBulkMode((v) => !v);
@@ -557,6 +549,15 @@ export function BoardScreen({
           >
             <CheckCircle2 className="size-3" />
             Bulk select
+          </button>
+
+          <button
+            className="btn primary"
+            onClick={() => setCreating({ startMode: "queue" })}
+            disabled={!boardId}
+          >
+            <Plus className="size-3.5" />
+            <span>New task</span>
           </button>
         </div>
       </div>

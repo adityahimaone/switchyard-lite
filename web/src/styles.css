@@ -1813,3 +1813,19 @@ pre.diff {
     }
   }
 }
+
+/* ------------------------------------------------------------------------- */
+/* Kubai icon tones                                                           */
+/* ------------------------------------------------------------------------- */
+
+/* Kubai icons carry a semantic tone by default. Solid buttons and destructive
+   actions must keep the button's own foreground (usually white), so reset the
+   icon colour to currentColor inside them. */
+[data-tone="inherit"] svg.kubai-icon,
+.btn.primary svg.kubai-icon,
+.btn.prism svg.kubai-icon,
+.btn.obsidian svg.kubai-icon,
+.btn.danger svg.kubai-icon,
+.btn.signal svg.kubai-icon {
+  color: currentColor !important;
+}
