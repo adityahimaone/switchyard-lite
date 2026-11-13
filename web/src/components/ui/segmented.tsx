@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * Concept 1 Segmented Trough:
+ * 999px recessed well trough (`bg-well border-line shadow-[var(--well-inset)] p-1`)
+ * with raised porcelain pill active thumb (`bg-surface text-ink shadow-[var(--lift-1)]`).
+ */
 export function Segmented<T extends string>({
   label,
   value,
@@ -17,7 +22,10 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn("glass-flat inline-flex items-center gap-0.5 rounded-control border border-line p-0.5", className)}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border border-line bg-well p-1 shadow-[var(--well-inset)]",
+        className
+      )}
     >
       {options.map((opt) => {
         const active = value === opt.value;
@@ -29,10 +37,11 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex h-6 items-center justify-center rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,box-shadow] duration-150",
+              "inline-flex h-7 flex-1 items-center justify-center rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 active:scale-[0.972]",
               active
-                ? "glass-flat-strong bg-raised text-ink shadow-[0_1px_2px_rgb(0_0_0_/_0.14)]"
-                : "text-ink-3 hover:text-ink"
+                ? "border border-line/70 bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)]"
+                : "border border-transparent text-ink-3 hover:text-ink"
             )}
           >
             {opt.label}

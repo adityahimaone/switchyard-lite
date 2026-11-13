@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Lite luminance adaptive directional scrim">
+  <defs>
+    <linearGradient id="switchyard-lite-directional-scrim" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F1F4FB" stop-opacity="0.98"/>
+      <stop offset="38%" stop-color="#F1F4FB" stop-opacity="0.90"/>
+      <stop offset="68%" stop-color="#F1F4FB" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#F1F4FB" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="switchyard-lite-vertical-scrim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.80"/>
+      <stop offset="65%" stop-color="#F1F4FB" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#F1F4FB" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="#F1F4FB"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-vertical-scrim)"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-directional-scrim)"/>
+</svg>

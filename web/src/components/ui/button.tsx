@@ -4,47 +4,70 @@ import { Loader2 } from "lucide-react";
 import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
+/**
+ * Switchyard Lite Base Button Primitive
+ *
+ * Built directly from the 3 concept references:
+ *   - `prism` / `gradient`: Concept 1 ("Ask AI" & "Book a Call") — warm coral -> orchid -> royal cobalt capsule
+ *     with top specular inner sheen and ambient bloom (`--glow-brand`).
+ *   - `obsidian`: Concept 3 ("Book a Call") — glossy obsidian pill (`--grad-obsidian`) with top edge reflection.
+ *   - `default` / `plate`: Concept 1 ("Ella M. ×", "Filter · 2") — tactile white porcelain capsule plate
+ *     with `1px solid var(--c-line)` and soft physical elevation (`--lift-1`).
+ *   - `signal` / `primary`: Concept 2 ("Get Started", "Filter (1)") — solid Royal Switch Cobalt (`#2F5BFF`).
+ *   - `dashed`: Concept 1 ("Upload") — `1.5px dashed` capsule drop-zone button.
+ *   - `well` / `secondary`: Concept 1 ("Search" trough) — recessed cool-sky well surface.
+ *   - `ghost`, `destructive`, `link`.
+ */
 export const buttonVariants = cva(
   [
-    "relative inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap font-medium leading-none outline-none",
-    "transition-[background-color,border-color,box-shadow,transform,color] duration-150 ease-out",
-    "active:scale-[0.97]",
-    "focus-visible:ring-[3px] focus-visible:ring-focus/40",
-    "disabled:pointer-events-none disabled:opacity-50",
+    "relative inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-full font-semibold leading-none tracking-[-0.01em] outline-none",
+    "transition-[background-color,border-color,box-shadow,transform,color,filter] duration-150 ease-[var(--ease-out-expo)]",
+    "active:scale-[0.972] active:duration-[80ms]",
+    "focus-visible:ring-[3px] focus-visible:ring-focus/35",
+    "disabled:pointer-events-none disabled:opacity-45",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
   {
     variants: {
       variant: {
         default:
-          "glass-flat rounded-control border border-line text-ink-2 hover:-translate-y-px hover:shadow-lift data-[state=open]:shadow-lift motion-reduce:transform-none",
+          "border border-line bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)] hover:-translate-y-px hover:border-line-strong hover:bg-raised hover:shadow-[var(--lift-2),var(--lift-inset)] data-[state=open]:shadow-[var(--lift-2),var(--lift-inset)] motion-reduce:transform-none",
+        prism:
+          "sheen border border-white/25 bg-[image:var(--grad-prism)] text-white shadow-[var(--glow-brand),var(--lift-inset)] hover:-translate-y-px hover:brightness-[1.04] motion-reduce:transform-none",
+        gradient:
+          "sheen border border-white/25 bg-[image:var(--grad-prism)] text-white shadow-[var(--glow-brand),var(--lift-inset)] hover:-translate-y-px hover:brightness-[1.04] motion-reduce:transform-none",
+        obsidian:
+          "sheen border border-white/15 bg-[image:var(--grad-obsidian)] text-white shadow-[var(--glow-obsidian)] hover:-translate-y-px hover:brightness-110 motion-reduce:transform-none",
         signal:
-          "rounded-control border border-accent bg-accent text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255_/_0.18),0_1px_2px_rgb(0_0_0_/_0.25)] hover:brightness-95",
+          "sheen border border-accent bg-accent text-accent-ink shadow-[var(--glow-accent),var(--lift-inset)] hover:-translate-y-px hover:brightness-[1.05] motion-reduce:transform-none",
         secondary:
-          "glass-flat rounded-control border border-line text-ink",
+          "border border-line/80 bg-well text-ink-2 shadow-[var(--well-inset)] hover:border-line-strong hover:bg-surface hover:text-ink",
         outline:
-          "rounded-control border-[0.8px] border-line-strong bg-transparent text-ink hover:bg-raised",
-        ghost: "rounded-control text-ink-2 hover:bg-raised hover:text-ink",
+          "border border-line-strong bg-transparent text-ink hover:bg-surface hover:shadow-[var(--lift-1)]",
+        dashed:
+          "border-[1.5px] border-dashed border-line-strong bg-surface/65 text-ink-2 hover:border-accent hover:bg-surface hover:text-ink",
+        ghost:
+          "border border-transparent bg-transparent text-ink-2 hover:bg-well/80 hover:text-ink",
         destructive:
-          "rounded-control border-[0.8px] border-danger/30 bg-danger-tint text-danger-text hover:bg-danger/20",
-        link: "h-auto px-0 text-accent underline-offset-4 hover:underline",
+          "border border-danger/30 bg-danger-tint text-danger-text shadow-[var(--lift-1)] hover:bg-danger/18",
+        link: "h-auto rounded-none px-0 text-accent underline-offset-4 hover:underline",
       },
       size: {
-        xs: "h-6 gap-1 px-2 text-xs [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1.5 px-2.5 text-xs",
-        default: "h-8 gap-1.5 px-2.5 text-[13px]",
-        lg: "h-10 gap-2 px-4 text-sm",
-        "icon-xs": "size-6 p-1 [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-6 p-1",
-        icon: "size-8 p-2",
-        "icon-lg": "size-10 p-2",
+        xs: "h-6 gap-1 px-2.5 text-[11px] [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-8 gap-1.5 px-3 text-xs [&_svg:not([class*='size-'])]:size-3.5",
+        default: "h-9 gap-2 px-4 text-[13px]",
+        lg: "h-11 gap-2.5 px-5 text-sm",
+        "icon-xs": "size-6 p-0 [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-8 p-0 [&_svg:not([class*='size-'])]:size-3.5",
+        icon: "size-9 p-0",
+        "icon-lg": "size-11 p-0",
       },
     },
     defaultVariants: { variant: "default", size: "default" },
   }
 );
 
-type ButtonProps = React.ComponentProps<"button"> &
+export type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
     loading?: boolean;

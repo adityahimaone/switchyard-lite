@@ -38,8 +38,8 @@ export function Menu({
           aria-label={label}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "z-[220] min-w-[184px] overflow-hidden rounded-card border border-line-strong/80 bg-raised/97 p-1",
-            "text-ink shadow-float backdrop-blur-xl",
+            "z-[220] min-w-[196px] overflow-hidden rounded-[20px] border border-line-strong/80 bg-raised/97 p-1.5",
+            "text-ink shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-xl",
             "data-[state=closed]:opacity-0 data-[state=open]:opacity-100 transition-opacity duration-100"
           )}
         >
@@ -52,7 +52,7 @@ export function Menu({
 
 export function MenuLabel({ children }: { children: React.ReactNode }) {
   return (
-    <MenuPrimitive.Label className="px-2 pt-1.5 pb-1 text-[10px] font-semibold tracking-[0.12em] text-ink-4 uppercase">
+    <MenuPrimitive.Label className="px-2.5 pt-1.5 pb-1 font-mono text-[10px] font-semibold tracking-[0.12em] text-ink-4 uppercase">
       {children}
     </MenuPrimitive.Label>
   );
@@ -85,7 +85,7 @@ export function MenuItem({
         onSelect?.();
       }}
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 text-xs outline-none select-none",
+        "flex cursor-pointer items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-xs font-medium outline-none select-none",
         "transition-colors data-[highlighted]:bg-well data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
         danger ? "text-danger-text data-[highlighted]:bg-danger-tint" : "text-ink-2 data-[highlighted]:text-ink"
       )}

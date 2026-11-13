@@ -54,9 +54,15 @@
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
   --radius-panel: var(--radius-panel);
+  --radius-pill: var(--radius-pill);
+  --radius-concentric: var(--radius-concentric);
 
   --shadow-lift: var(--glass-lift);
   --shadow-float: var(--glass-lift-dialog);
+}
+
+@utility sheen {
+  background-image: var(--spec-sheen), var(--grad-prism);
 }
 
 @utility glass-dialog {
@@ -145,17 +151,19 @@ code, pre, .mono {
 }
 
 /* ==========================================================================
-   App Shell (Switchyard Inset Architecture + Ambient Glow Ground)
+   App Shell (Switchyard Lite Atmospheric Sky + Tactile Capsule Stage)
    ========================================================================== */
 .shell {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 236px minmax(0, 1fr);
   height: 100vh;
   overflow: hidden;
   background-color: var(--c-canvas);
   background-image:
-    radial-gradient(ellipse 70% 55% at 12% 0%, color-mix(in srgb, var(--c-accent) 14%, transparent) 0%, color-mix(in srgb, var(--c-accent) 4%, transparent) 40%, transparent 72%),
-    radial-gradient(ellipse 55% 45% at 88% 92%, color-mix(in srgb, var(--c-review) 10%, transparent) 0%, transparent 68%);
+    var(--bg-sky-radial),
+    linear-gradient(to right, var(--grid-hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-hairline) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
   transition: grid-template-columns 180ms var(--ease-out-expo);
 }
 
@@ -166,10 +174,10 @@ code, pre, .mono {
 /* Sidebar Navigation */
 nav.side {
   background: var(--glass-tint);
-  backdrop-filter: blur(18px) saturate(1.5);
-  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
   border-right: 1px solid var(--c-line);
-  padding: 10px;
+  padding: 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -182,15 +190,24 @@ nav.side {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 36px;
+  height: 38px;
   padding: 0 6px;
+}
+
+.brand-mark-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 9px;
+  box-shadow: var(--lift-1);
 }
 
 .brand-mark {
   width: 26px;
   height: 26px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, var(--c-accent), color-mix(in srgb, var(--c-accent) 70%, var(--c-review)));
+  border-radius: 8px;
+  background: var(--grad-prism);
   color: var(--c-accent-ink);
   display: inline-flex;
   align-items: center;
@@ -198,13 +215,14 @@ nav.side {
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--c-accent) 35%, transparent);
+  box-shadow: var(--glow-brand);
 }
 
 nav.side h1 {
+  font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   margin: 0;
   white-space: nowrap;
   display: flex;
@@ -214,28 +232,30 @@ nav.side h1 {
 
 .lite-badge {
   font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 500;
-  padding: 1px 5px;
-  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
   background: var(--c-accent-tint);
+  border: 1px solid color-mix(in srgb, var(--c-accent) 25%, transparent);
   color: var(--c-accent-text);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
 }
 
 .nav-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .nav-group-label {
+  font-family: var(--mono);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--c-ink-4);
-  padding: 4px 8px 2px;
+  padding: 4px 10px 2px;
   white-space: nowrap;
 }
 
@@ -248,7 +268,7 @@ nav.side h1 {
 }
 
 .shell.collapsed nav.side {
-  padding: 10px 8px;
+  padding: 12px 8px;
 }
 
 .shell.collapsed .side-brand {
@@ -260,14 +280,15 @@ nav.side a {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
   color: var(--c-ink-2);
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background-color 120ms, color 120ms, transform 120ms var(--ease-out);
+  transition: background-color 140ms, border-color 140ms, box-shadow 140ms, color 140ms, transform 120ms var(--ease-out);
 }
 
 .shell.collapsed nav.side a {
@@ -278,20 +299,28 @@ nav.side a {
 
 @media (hover: hover) and (pointer: fine) {
   nav.side a:hover {
-    background: color-mix(in srgb, var(--c-line) 55%, transparent);
+    background: var(--c-well);
     color: var(--c-ink);
   }
 }
 
 nav.side a:active {
-  transform: scale(0.97);
+  transform: scale(0.972);
 }
 
 nav.side a[aria-current="page"] {
-  background: var(--c-accent-tint);
+  background: var(--c-surface);
+  border-color: var(--c-line);
   color: var(--c-accent-text);
   font-weight: 600;
-  box-shadow: inset 2.5px 0 0 var(--c-accent);
+  box-shadow: var(--lift-1), var(--lift-inset);
+}
+
+.nav-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .nav-icon {
@@ -305,11 +334,12 @@ nav.side a[aria-current="page"] {
   margin-left: auto;
   font-family: var(--mono);
   font-size: 10px;
-  padding: 1px 6px;
+  font-weight: 700;
+  padding: 1px 7px;
   border-radius: 999px;
-  background: var(--c-well);
-  border: 1px solid var(--c-line);
-  color: var(--c-ink-3);
+  background: var(--c-accent-tint);
+  border: 1px solid color-mix(in srgb, var(--c-accent) 25%, transparent);
+  color: var(--c-accent-text);
 }
 
 .side-footer {
@@ -340,6 +370,8 @@ header.top-header {
   gap: 12px;
   padding: 0 20px;
   background: var(--glass-tint);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border-bottom: 1px solid var(--c-line);
   z-index: 15;
 }
@@ -370,30 +402,34 @@ header.top-header {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 30px;
-  min-width: 210px;
-  padding: 0 10px;
-  border-radius: var(--radius);
+  height: 32px;
+  min-width: 220px;
+  padding: 0 12px;
+  border-radius: 999px;
   border: 1px solid var(--c-line);
   background: var(--c-well);
+  box-shadow: var(--well-inset);
   color: var(--c-ink-3);
   font-size: 12px;
-  transition: border-color 120ms, background-color 120ms;
+  font-weight: 500;
+  transition: border-color 140ms, background-color 140ms, box-shadow 140ms;
 }
 
 .cmd-trigger:hover {
   border-color: var(--c-line-strong);
+  background: var(--c-surface);
   color: var(--c-ink);
+  box-shadow: var(--lift-1);
 }
 
 kbd, .kbd {
   font-family: var(--mono);
   font-size: 10px;
   line-height: 1;
-  padding: 3px 5px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: 999px;
   background: var(--c-surface);
-  border: 1px solid var(--c-line-strong);
+  border: 1px solid var(--c-line);
   color: var(--c-ink-3);
   margin-left: auto;
 }
@@ -467,18 +503,27 @@ main.bleed {
 
 .search-box {
   position: relative;
-  width: 220px;
+  width: 240px;
 }
 
 .search-box input {
-  padding-left: 28px;
-  height: 30px;
+  padding-left: 32px;
+  padding-right: 28px;
+  height: 32px;
   font-size: 12px;
+  border-radius: 999px;
+  background: var(--c-well);
+  box-shadow: var(--well-inset);
+}
+
+.search-box input:focus {
+  background: var(--c-surface);
+  box-shadow: 0 0 0 3px var(--c-accent-tint), var(--lift-1);
 }
 
 .search-box > svg {
   position: absolute;
-  left: 8px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   width: 13px;
@@ -490,7 +535,7 @@ main.bleed {
 .chip-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
@@ -498,19 +543,21 @@ main.bleed {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 26px;
-  padding: 0 9px;
+  height: 28px;
+  padding: 0 11px;
   border-radius: 999px;
   border: 1px solid var(--c-line);
   background: var(--c-surface);
   color: var(--c-ink-2);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: var(--lift-1), var(--lift-inset);
   transition: all 120ms;
 }
 
 .chip:hover {
   border-color: var(--c-line-strong);
+  color: var(--c-ink);
 }
 
 .chip.active, .chip[aria-pressed="true"] {
@@ -520,45 +567,62 @@ main.bleed {
 }
 
 /* ==========================================================================
-   Buttons & Inputs
+   Buttons & Inputs (Tactile Capsule System)
    ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: var(--c-raised);
-  border: 1px solid var(--c-line-strong);
-  border-radius: var(--radius);
-  padding: 5px 11px;
-  height: 30px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 999px;
+  padding: 5px 13px;
+  height: 32px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
-  transition: border-color 120ms, background-color 120ms, transform 140ms var(--ease-out), box-shadow 120ms;
+  box-shadow: var(--lift-1), var(--lift-inset);
+  transition: border-color 140ms, background-color 140ms, transform 140ms var(--ease-out-expo), box-shadow 140ms, filter 140ms;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .btn:hover:not(:disabled) {
-    background: var(--c-well);
-    border-color: var(--c-ink-4);
+    background: var(--c-raised);
+    border-color: var(--c-line-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--lift-2), var(--lift-inset);
   }
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.972);
 }
 
 .btn.primary {
-  background: var(--c-accent);
-  color: var(--c-accent-ink);
-  border-color: transparent;
+  background: var(--spec-sheen), var(--grad-prism);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.25);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+  box-shadow: var(--glow-brand), var(--lift-inset);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--c-accent) 90%, #fff);
+  filter: brightness(1.04);
+}
+
+.btn.obsidian {
+  background: var(--grad-obsidian);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--glow-obsidian);
+}
+
+.btn.dashed {
+  background: color-mix(in srgb, var(--c-surface) 70%, transparent);
+  border: 1.5px dashed var(--c-line-strong);
+  color: var(--c-ink-2);
+  box-shadow: none;
 }
 
 .btn.danger {
@@ -574,21 +638,23 @@ main.bleed {
   background: transparent;
   border-color: transparent;
   color: var(--c-ink-2);
+  box-shadow: none;
 }
 
 .btn.ghost:hover:not(:disabled) {
   background: var(--c-well);
   color: var(--c-ink);
+  box-shadow: none;
 }
 
 .btn.sm {
-  height: 24px;
-  padding: 2px 8px;
+  height: 26px;
+  padding: 2px 10px;
   font-size: 11px;
 }
 
 .btn.icon {
-  width: 30px;
+  width: 32px;
   padding: 0;
 }
 
@@ -700,10 +766,10 @@ label.f {
 }
 
 .track-line {
-  height: 2px;
-  border-radius: 2px;
+  height: 3px;
+  border-radius: 999px;
   background: var(--lamp, var(--c-ink-4));
-  opacity: 0.75;
+  opacity: 0.88;
   transform-origin: left center;
   animation: track-draw 500ms var(--ease-out-expo) both;
 }
@@ -723,7 +789,8 @@ label.f {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--c-line);
+  box-shadow: var(--well-inset);
   transition: border-color 120ms, background-color 120ms;
 }
 
@@ -750,12 +817,12 @@ label.f {
   color: var(--c-ink-4);
 }
 
-/* Task Card */
+/* Task Card (Concentric 14px porcelain plate inside 20px column well) */
 .card {
   position: relative;
-  background: var(--glass-tint);
+  background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: var(--radius-card);
+  border-radius: 14px;
   padding: var(--card-pad) var(--card-pad) var(--card-pad) 14px;
   cursor: pointer;
   box-shadow: var(--glass-lift-card);
@@ -832,9 +899,10 @@ label.f {
   gap: 4px;
   font-family: var(--mono);
   font-size: 10px;
+  font-weight: 500;
   line-height: 1.2;
-  padding: 2px 6px;
-  border-radius: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
   background: var(--c-well);
   border: 1px solid var(--c-line);
   color: var(--c-ink-2);

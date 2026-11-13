@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Lite crisp ordered Bayer matrix field">
+  <defs>
+    <pattern id="switchyard-lite-bayer-4x4" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#F1F4FB"/>
+      <rect x="0" y="0" width="2" height="2" fill="#0D1526" fill-opacity="0.16"/>
+      <rect x="4" y="0" width="2" height="2" fill="#2F5BFF" fill-opacity="0.24"/>
+      <rect x="2" y="2" width="2" height="2" fill="#0D1526" fill-opacity="0.10"/>
+      <rect x="6" y="2" width="2" height="2" fill="#4A5878" fill-opacity="0.30"/>
+      <rect x="0" y="4" width="2" height="2" fill="#4A5878" fill-opacity="0.30"/>
+      <rect x="4" y="4" width="2" height="2" fill="#0D1526" fill-opacity="0.14"/>
+      <rect x="2" y="6" width="2" height="2" fill="#2F5BFF" fill-opacity="0.20"/>
+      <rect x="6" y="6" width="2" height="2" fill="#0D1526" fill-opacity="0.18"/>
+    </pattern>
+    <pattern id="switchyard-lite-halftone-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="8" r="1.75" fill="#2F5BFF" fill-opacity="0.14"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="#F1F4FB"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-bayer-4x4)"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-halftone-dots)"/>
+</svg>

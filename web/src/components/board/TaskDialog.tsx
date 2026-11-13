@@ -5,6 +5,7 @@ import {
   AtSign,
   Check,
   ChevronRight,
+  CloudUpload,
   HardDrive,
   Laptop,
   Link2,
@@ -116,11 +117,25 @@ function fileToBase64(file: File): Promise<string> {
 
 function RailGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.12em] text-ink-4 uppercase">
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.12em] text-ink-4 uppercase">
         <span>{label}</span>
         <span className="h-px flex-1 bg-line" aria-hidden />
       </div>
+      {children}
+    </div>
+  );
+}
+
+function RailField({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label
+        htmlFor={htmlFor}
+        className="block text-[11px] font-medium text-ink-3 select-none"
+      >
+        {label}
+      </label>
       {children}
     </div>
   );
@@ -147,7 +162,7 @@ function CollapsibleSection({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="group flex w-full items-center gap-2 rounded py-1 text-left text-xs font-medium text-ink-3 transition-colors hover:text-ink"
+        className="group flex w-full items-center gap-2 rounded-full py-1 text-left text-xs font-medium text-ink-3 transition-colors hover:text-ink"
       >
         <ChevronRight
           className={cn(
@@ -469,10 +484,13 @@ export function TaskDialog({
             <div className="flex flex-wrap items-center gap-2">
               <DialogTitle id="task-dialog-title">New task</DialogTitle>
               {board && (
-                <Badge variant="secondary" className="font-mono text-[11px]">
+                <Badge variant="default" className="font-mono text-[11px]">
                   {board.name}
                 </Badge>
               )}
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                {startLabel}
+              </Badge>
             </div>
             <DialogDescription>
               Describe the work, choose where it runs, and how it should start. Press ⌘↵ to create.
@@ -483,11 +501,13 @@ export function TaskDialog({
             <ErrorBox error={create.error} />
             <SaasRulesBanner active={saasActive} />
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_268px]">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_276px]">
               {/* -------------------------------------------------- content */}
               <div className="min-w-0 space-y-3.5">
                 <div className="space-y-1.5">
-                  <Label htmlFor="task-title">Title</Label>
+                  <Label htmlFor="task-title" className="font-semibold text-ink-2">
+                    Title
+                  </Label>
                   <Input
                     id="task-title"
                     required
@@ -510,16 +530,18 @@ export function TaskDialog({
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-prompt">Prompt</Label>
+                    <Label htmlFor="task-prompt" className="font-semibold text-ink-2">
+                      Prompt
+                    </Label>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] text-ink-4">{prompt.length} chars</span>
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="secondary"
                         size="xs"
                         onClick={applyFastTemplate}
                         title="Insert a structured prompt template"
-                        className="h-6 border-accent/35 text-[11px] text-accent-text hover:bg-accent/10"
+                        className="h-6 border-accent/35 bg-accent-tint text-[11px] text-accent-text hover:bg-accent-tint/80"
                       >
                         <Sparkles className="size-3" />
                         Template
@@ -544,7 +566,9 @@ export function TaskDialog({
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="task-acceptance">Acceptance criteria</Label>
+                    <Label htmlFor="task-acceptance" className="font-semibold text-ink-2">
+                      Acceptance criteria
+                    </Label>
                     <span className="font-mono text-[10px] text-ink-4">{acceptance.length} chars</span>
                   </div>
                   <Textarea
@@ -553,32 +577,38 @@ export function TaskDialog({
                     value={acceptance}
                     onChange={(e) => setAcceptance(e.target.value)}
                     placeholder="How should we verify this is done? Tests, checks, expected output…"
-                    className="min-h-14"
+                    className="min-h-16"
                   />
                 </div>
               </div>
 
               {/* --------------------------------------------------- routing */}
-              <aside className="space-y-3.5 rounded-card border border-line bg-well/25 p-3" aria-label="Task routing">                <RailGroup label="Workspace">
-                  <SearchSelect
-                    id="task-workspace"
-                    value={selectValue}
-                    onValueChange={(v) => {
-                      setWsUserEdited(true);
-                      setBranch("");
-                      setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
-                    }}
-                    options={workspaceOptions}
-                    placeholder="Select workspace…"
-                    searchPlaceholder="Search workspaces by name, path, host…"
-                    emptyMessage="No matching workspaces"
-                    ariaLabel="Workspace"
-                    size="sm"
-                    showTriggerBadge
-                  />
+              <aside
+                className="space-y-4 rounded-[20px] border border-line bg-well/65 p-3.5 shadow-[var(--well-inset)]"
+                aria-label="Task routing"
+              >
+                <RailGroup label="Target Workspace">
+                  <RailField label="Repository / Checkout">
+                    <SearchSelect
+                      id="task-workspace"
+                      value={selectValue}
+                      onValueChange={(v) => {
+                        setWsUserEdited(true);
+                        setBranch("");
+                        setWorkspace(v === SCRATCH_SENTINEL ? "" : v);
+                      }}
+                      options={workspaceOptions}
+                      placeholder="Select workspace…"
+                      searchPlaceholder="Search workspaces by name, path, host…"
+                      emptyMessage="No matching workspaces"
+                      ariaLabel="Workspace"
+                      size="sm"
+                      showTriggerBadge
+                    />
+                  </RailField>
 
                   {selectedWsObj ? (
-                    <div className="flex flex-wrap items-center gap-1 text-[10px] text-ink-3">
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-line bg-surface/80 px-2.5 py-1 text-[10px] text-ink-3">
                       <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
                       <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
                         {selectedWsObj.path}
@@ -590,7 +620,7 @@ export function TaskDialog({
                         ? "No saved workspaces yet — add one from the Workspaces page."
                         : "Scratch runs have no repository, branch, or diff."}
                       {" "}
-                      <a href="#/workspaces" className="text-accent-text underline-offset-2 hover:underline">
+                      <a href="#/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
                         Manage workspaces
                       </a>
                     </p>
@@ -605,66 +635,70 @@ export function TaskDialog({
                   />
                 </RailGroup>
 
-                <RailGroup label="Execution">
-                  <Select
-                    value={executor || DEFAULT_SENTINEL}
-                    onValueChange={(v) => {
-                      setExecutor(v === DEFAULT_SENTINEL ? "" : v);
-                      setModel("");
-                    }}
-                  >
-                    <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={DEFAULT_SENTINEL}>
-                        {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
-                      </SelectItem>
-                      {EXECUTORS.map((ex) => (
-                        <SelectItem key={ex} value={ex}>
-                          {EXECUTOR_LABELS[ex] ?? ex}
+                <RailGroup label="Agent Execution">
+                  <RailField label="Executor" htmlFor="task-executor">
+                    <Select
+                      value={executor || DEFAULT_SENTINEL}
+                      onValueChange={(v) => {
+                        setExecutor(v === DEFAULT_SENTINEL ? "" : v);
+                        setModel("");
+                      }}
+                    >
+                      <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DEFAULT_SENTINEL}>
+                          {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        {EXECUTORS.map((ex) => (
+                          <SelectItem key={ex} value={ex}>
+                            {EXECUTOR_LABELS[ex] ?? ex}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </RailField>
 
-                  {modelList.length > 0 ? (
-                    <SearchSelect
-                      id="task-model"
-                      value={model || DEFAULT_SENTINEL}
-                      onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
-                      disabled={!effectiveExecutor}
-                      options={[
-                        {
-                          value: DEFAULT_SENTINEL,
-                          label: "(executor default)",
-                          sublabel: board?.default_model || undefined,
-                        },
-                        ...modelList.map((m) => ({
-                          value: m.id,
-                          label: m.name,
-                          sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
-                          badge: m.badge,
-                          keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
-                        })),
-                      ]}
-                      placeholder="Select model…"
-                      searchPlaceholder="Search models…"
-                      ariaLabel="Model"
-                      size="sm"
-                      contentClassName="min-w-[22rem]"
-                    />
-                  ) : (
-                    <Input
-                      id="task-model"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      disabled={!effectiveExecutor}
-                      placeholder="(executor default)"
-                      className="font-mono text-[11px]"
-                      aria-label="Model"
-                    />
-                  )}
+                  <RailField label="Model" htmlFor="task-model">
+                    {modelList.length > 0 ? (
+                      <SearchSelect
+                        id="task-model"
+                        value={model || DEFAULT_SENTINEL}
+                        onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
+                        disabled={!effectiveExecutor}
+                        options={[
+                          {
+                            value: DEFAULT_SENTINEL,
+                            label: "(executor default)",
+                            sublabel: board?.default_model || undefined,
+                          },
+                          ...modelList.map((m) => ({
+                            value: m.id,
+                            label: m.name,
+                            sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
+                            badge: m.badge,
+                            keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
+                          })),
+                        ]}
+                        placeholder="Select model…"
+                        searchPlaceholder="Search models…"
+                        ariaLabel="Model"
+                        size="sm"
+                        contentClassName="min-w-[22rem]"
+                      />
+                    ) : (
+                      <Input
+                        id="task-model"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        disabled={!effectiveExecutor}
+                        placeholder="(executor default)"
+                        className="h-8 rounded-full font-mono text-[11px]"
+                        aria-label="Model"
+                      />
+                    )}
+                  </RailField>
 
                   {effectiveExecutor && modelList.length === 0 && (
                     <p className="m-0 text-[10px] leading-relaxed text-ink-4">
@@ -674,25 +708,27 @@ export function TaskDialog({
                     </p>
                   )}
 
-                  <Select
-                    value={effort || DEFAULT_SENTINEL}
-                    onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
-                  >
-                    <SelectTrigger id="task-effort" size="sm" aria-label="Effort">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
-                      {EFFORTS.map((ef) => (
-                        <SelectItem key={ef} value={ef}>
-                          {ef.charAt(0).toUpperCase() + ef.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <RailField label="Reasoning Effort" htmlFor="task-effort">
+                    <Select
+                      value={effort || DEFAULT_SENTINEL}
+                      onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
+                    >
+                      <SelectTrigger id="task-effort" size="sm" aria-label="Effort">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
+                        {EFFORTS.map((ef) => (
+                          <SelectItem key={ef} value={ef}>
+                            {ef.charAt(0).toUpperCase() + ef.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </RailField>
                 </RailGroup>
 
-                <RailGroup label="Start">
+                <RailGroup label="Dispatch Mode">
                   <Segmented
                     label="Start mode"
                     value={startMode}
@@ -733,42 +769,57 @@ export function TaskDialog({
             </CollapsibleSection>
 
             {/* ------------------------------------------------- supporting */}
-            <div className="mt-1 flex flex-wrap items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  void handleFilePick(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="dashed"
+                size="xs"
+                onClick={() => fileRef.current?.click()}
+              >
+                <CloudUpload className="size-3.5" />
+                Upload files
+                {pendingFiles.length > 0 && (
+                  <span className="rounded-full bg-accent-tint px-1.5 font-mono text-[10px] text-accent-text">
+                    {pendingFiles.length}
+                  </span>
+                )}
+              </Button>
+
               <button
                 type="button"
                 aria-expanded={advancedOpen}
                 onClick={() => setAdvancedOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-3 transition-colors hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
               >
-                <SlidersHorizontal className="size-3" />
+                <SlidersHorizontal className="size-3 text-ink-3" />
                 {advancedOpen ? "Hide" : "Show"} advanced
               </button>
-              <span className="text-ink-4">·</span>
-              <span className="text-[11px] text-ink-4">
-                {paths.length} reference{paths.length === 1 ? "" : "s"} · {skills.length} skill
+
+              <span className="font-mono text-[11px] text-ink-4">
+                {paths.length} ref{paths.length === 1 ? "" : "s"} · {skills.length} skill
                 {skills.length === 1 ? "" : "s"} · {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} ·{" "}
                 {blockedBy.length} blocker{blockedBy.length === 1 ? "" : "s"}
               </span>
             </div>
 
-            {advancedOpen && (
-              <div className="mt-2 rounded-card border border-line bg-surface/60 p-3">
-                <input
-                  ref={fileRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    void handleFilePick(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
+            {(advancedOpen || pendingFiles.length > 0) && (
+              <div className="mt-2.5 rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-xs text-ink-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2">
                     <Paperclip className="size-3.5 text-ink-3" />
-                    Attachments
+                    Attachments ({pendingFiles.length})
                   </span>
-                  <Button type="button" variant="outline" size="xs" onClick={() => fileRef.current?.click()}>
+                  <Button type="button" variant="dashed" size="xs" onClick={() => fileRef.current?.click()}>
                     <Plus className="size-3" />
                     Choose files
                   </Button>
@@ -778,7 +829,7 @@ export function TaskDialog({
                     {pendingFiles.map((pf) => (
                       <span
                         key={pf.id}
-                        className="inline-flex items-center gap-1 rounded-full border border-line bg-well px-2.5 py-0.5 text-[11px] text-ink-2"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well px-2.5 py-1 text-[11px] font-medium text-ink-2"
                       >
                         <Paperclip className="size-3 text-ink-3" />
                         <span className="max-w-[160px] truncate">{pf.name}</span>
@@ -786,7 +837,7 @@ export function TaskDialog({
                         <button
                           type="button"
                           onClick={() => setPendingFiles((p) => p.filter((x) => x.id !== pf.id))}
-                          className="ml-0.5 rounded-full p-0.5 hover:bg-raised"
+                          className="ml-0.5 rounded-full p-0.5 hover:bg-surface"
                           aria-label={`Remove ${pf.name}`}
                         >
                           <X className="size-2.5" />
@@ -833,14 +884,14 @@ export function TaskDialog({
                           return (
                             <span
                               key={id}
-                              className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/14 px-2.5 py-1 text-[11px] font-medium text-accent-text"
+                              className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent-tint px-2.5 py-1 text-[11px] font-medium text-accent-text"
                             >
                               <Check className="size-3" />
                               <span className="max-w-[200px] truncate">{c?.title ?? id}</span>
                               <button
                                 type="button"
                                 onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))}
-                                className="ml-0.5 rounded-full p-0.5 hover:bg-raised"
+                                className="ml-0.5 rounded-full p-0.5 hover:bg-surface"
                                 aria-label={`Remove blocker ${c?.title ?? id}`}
                               >
                                 <X className="size-2.5" />
@@ -873,16 +924,22 @@ export function TaskDialog({
             <Button type="button" variant="outline" size="sm" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="signal" size="sm" loading={create.isPending} disabled={!submitReady}>
+            <Button
+              type="submit"
+              variant={startMode === "now" ? "prism" : "signal"}
+              size="sm"
+              loading={create.isPending}
+              disabled={!submitReady}
+            >
               {startMode === "now" ? (
-                <Play className="size-3" />
+                <Play className="size-3 fill-current" />
               ) : startMode === "manual" ? (
                 <Plus className="size-3" />
               ) : (
                 <Send className="size-3" />
               )}
               {startMode === "now" ? "Create & dispatch" : startMode === "manual" ? "Save to backlog" : "Create task"}
-              <Kbd className="ml-1 border-black/20 bg-black/10 text-current">⌘↵</Kbd>
+              <Kbd className="ml-1 border-white/25 bg-white/15 text-white shadow-none">⌘↵</Kbd>
             </Button>
           </DialogFooter>
         </form>

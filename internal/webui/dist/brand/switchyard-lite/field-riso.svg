@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Lite dual-drum risograph field">
+  <defs>
+    <filter id="switchyard-lite-riso-grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0" in="noise" result="grain"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="#F1F4FB"/>
+  <g transform="translate(-2, 1.5)" opacity="0.88">
+    <circle cx="800" cy="500" r="380" fill="#2F5BFF" fill-opacity="0.22"/>
+    <rect x="240" y="160" width="1120" height="680" rx="12" fill="none" stroke="#2F5BFF" stroke-width="3" stroke-dasharray="12 6"/>
+  </g>
+  <g transform="translate(2, -1.5)" opacity="0.92" style="mix-blend-mode: multiply;">
+    <circle cx="800" cy="500" r="380" fill="none" stroke="#0D1526" stroke-width="3"/>
+    <rect x="240" y="160" width="1120" height="680" rx="12" fill="none" stroke="#0D1526" stroke-width="3"/>
+  </g>
+  <rect width="1600" height="1000" filter="url(#switchyard-lite-riso-grain)"/>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Lite mesh field">
+  <defs>
+    <radialGradient id="switchyard-lite-mesh-a" cx="78%" cy="22%" r="62%">
+      <stop offset="0%" stop-color="#2F5BFF" stop-opacity="0.28"/>
+      <stop offset="52%" stop-color="#c6d2fc" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#F1F4FB" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="switchyard-lite-mesh-b" cx="18%" cy="82%" r="68%">
+      <stop offset="0%" stop-color="#4A5878" stop-opacity="0.65"/>
+      <stop offset="60%" stop-color="#d1d5dd" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#F1F4FB" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="switchyard-lite-mesh-base" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="55%" stop-color="#F1F4FB"/>
+      <stop offset="100%" stop-color="#4A5878"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-mesh-base)"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-mesh-b)"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-mesh-a)"/>
+</svg>
