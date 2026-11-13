@@ -24,6 +24,11 @@ CREATE TABLE IF NOT EXISTS dispatch_workspaces (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   path TEXT NOT NULL UNIQUE,
+  host TEXT NOT NULL DEFAULT '',
+  os TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'dir',
+  labels TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS dispatch_settings (

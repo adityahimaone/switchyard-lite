@@ -1,9 +1,13 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -11,7 +15,14 @@ func init() {
 	registrars = append(registrars, func(m *http.ServeMux, a *API) {
 		m.HandleFunc("GET /api/v1/overview", a.require("read", func(w http.ResponseWriter, r *http.Request) {
 			counts := map[string]int{}
-			rows, err := a.S.DB.Query(`SELECT status, COUNT(*) FROM tasks GROUP BY status`)
+			q := `SELECT status, COUNT(*) FROM tasks`
+			var args []any
+			if bid := r.URL.Query().Get("board_id"); bid != "" {
+				q += ` WHERE board_id=?`
+				args = append(args, bid)
+			}
+			q += ` GROUP BY status`
+			rows, err := a.S.DB.Query(q, args...)
 			if err != nil {
 				fail(w, 500, err.Error())
 				return
@@ -28,15 +39,25 @@ func init() {
 				counts[s] = n
 				total += n
 			}
-			var boards int
+			var boards, workspaces, workers, pipelines int
 			_ = a.S.DB.QueryRow(`SELECT COUNT(*) FROM boards`).Scan(&boards)
+			_ = a.S.DB.QueryRow(`SELECT COUNT(*) FROM dispatch_workspaces`).Scan(&workspaces)
+			_ = a.S.DB.QueryRow(`SELECT COUNT(*) FROM dispatch_workers`).Scan(&workers)
+			_ = a.S.DB.QueryRow(`SELECT COUNT(*) FROM pipeline_runs`).Scan(&pipelines)
 			dbOK := a.S.DB.Ping() == nil
 			status := "ok"
 			if !dbOK {
 				status = "degraded"
 			}
-			ok(w, map[string]any{"counts": counts, "total": total, "boards": boards,
-				"health": map[string]any{"status": status, "db": dbOK}})
+			ok(w, map[string]any{
+				"counts":     counts,
+				"total":      total,
+				"boards":     boards,
+				"workspaces": workspaces,
+				"workers":    workers,
+				"pipelines":  pipelines,
+				"health":     map[string]any{"status": status, "db": dbOK},
+			})
 		}))
 
 		m.HandleFunc("GET /api/v1/tasks/{id}/attachments", a.require("read", func(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +118,35 @@ func init() {
 			id, _ := res.LastInsertId()
 			w.WriteHeader(201)
 			ok(w, map[string]any{"id": id, "name": in.Name, "mime": in.Mime, "size": len(raw), "created_at": now})
+		}))
+
+		m.HandleFunc("GET /api/v1/tasks/{id}/attachments/{attId}", a.require("read", func(w http.ResponseWriter, r *http.Request) {
+			var name, mime string
+			var raw []byte
+			err := a.S.DB.QueryRow(
+				`SELECT name,mime,content FROM attachments WHERE id=? AND task_id=?`,
+				r.PathValue("attId"), r.PathValue("id"),
+			).Scan(&name, &mime, &raw)
+			if errors.Is(err, sql.ErrNoRows) {
+				fail(w, 404, "attachment not found")
+				return
+			}
+			if err != nil {
+				fail(w, 500, err.Error())
+				return
+			}
+			if mime == "" {
+				mime = "application/octet-stream"
+			}
+			safe := strings.ReplaceAll(name, `"`, "")
+			w.Header().Set("Content-Type", mime)
+			w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, safe))
+			_, _ = w.Write(raw)
+		}))
+
+		m.HandleFunc("DELETE /api/v1/tasks/{id}/attachments/{attId}", a.require("write", func(w http.ResponseWriter, r *http.Request) {
+			_, _ = a.S.DB.Exec(`DELETE FROM attachments WHERE id=? AND task_id=?`, r.PathValue("attId"), r.PathValue("id"))
+			w.WriteHeader(204)
 		}))
 	})
 }

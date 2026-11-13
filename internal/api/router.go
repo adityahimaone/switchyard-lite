@@ -55,15 +55,43 @@ func (a *API) Handler() http.Handler {
 		ok(w, b)
 	}))
 	m.HandleFunc("POST /api/v1/boards", a.require("write", func(w http.ResponseWriter, r *http.Request) {
-		var in struct{ Name string }
+		var in struct {
+			Name            string `json:"name"`
+			DefaultExecutor string `json:"default_executor"`
+			DefaultModel    string `json:"default_model"`
+		}
 		_ = json.NewDecoder(r.Body).Decode(&in)
-		b, err := a.Tasks.CreateBoard(in.Name)
+		b, err := a.Tasks.CreateBoardWithDefaults(in.Name, in.DefaultExecutor, in.DefaultModel)
 		if err != nil {
 			fromErr(w, err)
 			return
 		}
 		w.WriteHeader(201)
 		ok(w, b)
+	}))
+	m.HandleFunc("PATCH /api/v1/boards/{id}", a.require("write", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Name            string `json:"name"`
+			DefaultExecutor string `json:"default_executor"`
+			DefaultModel    string `json:"default_model"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			fail(w, 400, "invalid json")
+			return
+		}
+		b, err := a.Tasks.UpdateBoard(r.PathValue("id"), in.Name, in.DefaultExecutor, in.DefaultModel)
+		if err != nil {
+			fromErr(w, err)
+			return
+		}
+		ok(w, b)
+	}))
+	m.HandleFunc("DELETE /api/v1/boards/{id}", a.require("write", func(w http.ResponseWriter, r *http.Request) {
+		if err := a.Tasks.DeleteBoard(r.PathValue("id")); err != nil {
+			fromErr(w, err)
+			return
+		}
+		w.WriteHeader(204)
 	}))
 	m.HandleFunc("GET /api/v1/boards/{id}/tasks", a.require("read", func(w http.ResponseWriter, r *http.Request) {
 		t, err := a.Tasks.List(r.PathValue("id"), r.URL.Query().Get("status"))
@@ -80,6 +108,7 @@ func (a *API) Handler() http.Handler {
 			Title      string   `json:"title"`
 			Prompt     string   `json:"prompt"`
 			Acceptance string   `json:"acceptance"`
+			Status     string   `json:"status"`
 			Workspace  string   `json:"workspace"`
 			Executor   string   `json:"executor"`
 			Model      string   `json:"model"`
@@ -91,7 +120,7 @@ func (a *API) Handler() http.Handler {
 			return
 		}
 		t, err := a.Tasks.Create(tasks.NewTask{BoardID: in.BoardID, ParentID: in.ParentID, Title: in.Title, Prompt: in.Prompt,
-			Acceptance: in.Acceptance, Workspace: in.Workspace, Executor: in.Executor, Model: in.Model, Effort: in.Effort, BlockedBy: in.BlockedBy})
+			Acceptance: in.Acceptance, Status: in.Status, Workspace: in.Workspace, Executor: in.Executor, Model: in.Model, Effort: in.Effort, BlockedBy: in.BlockedBy})
 		if err != nil {
 			fromErr(w, err)
 			return

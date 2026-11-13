@@ -1,51 +1,117 @@
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, apiOr, NEXT, post, type Comment, type Task, type TaskEvent } from "./api";
-import { ErrorBox, Lamp } from "./ui";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Maximize2 } from "lucide-react";
+import { api, apiOr, type Task, type Workspace } from "@/api";
+import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
+import { TaskHeader } from "@/components/board/taskDetailParts";
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 
-export function TaskDrawer({ id, onClose, review }: { id: string; onClose: () => void; review: (id: string) => void }) {
-  const qc = useQueryClient();
-  const task = useQuery({ queryKey: ["task", id], queryFn: () => api<Task>(`/api/v1/tasks/${id}`), refetchInterval: 4000 });
-  const comments = useQuery({ queryKey: ["comments", id], queryFn: () => api<Comment[]>(`/api/v1/tasks/${id}/comments`) });
-  const events = useQuery({ queryKey: ["events", id], refetchInterval: 4000, queryFn: () => api<TaskEvent[]>(`/api/v1/events?task_id=${id}`) });
-  const attachments = useQuery({ queryKey: ["attachments", id], queryFn: () => apiOr<{ id: number; name: string; size: number }[]>(`/api/v1/tasks/${id}/attachments`, []) });
-  const [body, setBody] = useState("");
-  const inval = () => qc.invalidateQueries();
-  const add = useMutation({ mutationFn: () => post(`/api/v1/tasks/${id}/comments`, { author: "web", body }), onSuccess: () => { setBody(""); inval(); } });
-  const move = useMutation({ mutationFn: (to: string) => post(`/api/v1/tasks/${id}/move`, { status: to }), onSuccess: inval });
-  const dispatch = useMutation({ mutationFn: () => post(`/api/v1/tasks/${id}/dispatch`), onSuccess: inval });
+export function TaskDrawer({
+  id,
+  onClose,
+  review,
+  onOpenPage,
+}: {
+  id: string;
+  onClose: () => void;
+  review: (id: string) => void;
+  onOpenPage?: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+
+  const task = useQuery({
+    queryKey: ["task", id],
+    queryFn: () => api<Task>(`/api/v1/tasks/${id}`),
+    refetchInterval: 4000,
+  });
+
+  const workspaces = useQuery({
+    queryKey: ["workspaces"],
+    queryFn: () => apiOr<Workspace[]>("/api/v1/workspaces", []),
+  });
+
+  useEffect(() => {
+    setEditing(false);
+  }, [id]);
+
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      prev?.focus?.();
+    };
+  }, [onClose]);
+
   const t = task.data;
+  const matchedWs = workspaces.data?.find((w) => w.path === t?.workspace);
+
+  const openFullPage = () => {
+    if (onOpenPage) onOpenPage(id);
+    else {
+      onClose();
+      location.hash = `#/task/${id}`;
+    }
+  };
+
   return (
-    <aside className="drawer" aria-label="Task detail">
-      <div className="bar"><h2>{t?.title ?? "Task"}</h2><button className="btn" onClick={onClose} aria-label="Close">✕</button></div>
-      <ErrorBox error={task.error ?? move.error ?? dispatch.error ?? add.error} />
-      {t && <>
-        <p><Lamp status={t.status} /> <span className="muted">{t.executor || "default"}{t.model ? ` · ${t.model}` : ""}{t.effort ? ` · ${t.effort}` : ""} · retries {t.retry_count}</span></p>
-        <pre style={{ whiteSpace: "pre-wrap" }}>{t.prompt}</pre>
-        {t.acceptance && <p><b>Acceptance:</b> {t.acceptance}</p>}
-        {t.workspace && <p className="muted">Workspace: <code>{t.workspace}</code></p>}
-        <div className="moves">
-          {t.status === "todo" && <button className="btn primary" onClick={() => dispatch.mutate()}>Dispatch</button>}
-          {t.status === "review" && <button className="btn primary" onClick={() => review(id)}>Open review</button>}
-          {NEXT[t.status].map((n) => <button key={n} className="btn" onClick={() => move.mutate(n)}>→ {n}</button>)}
+    <div className="drawer-backdrop" onClick={onClose}>
+      <aside
+        id="task-detail-drawer"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t?.title ? `Task ${id}: ${t.title}` : `Task ${id}`}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className="drawer-panel outline-none"
+      >
+        <TaskHeader
+          id={id}
+          task={t}
+          matchedWs={matchedWs}
+          variant="drawer"
+          editing={editing}
+          onToggleEdit={() => setEditing((v) => !v)}
+          onClose={onClose}
+          onOpenPage={openFullPage}
+        />
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+          <TaskDetailPanels
+            id={id}
+            variant="drawer"
+            editing={editing}
+            setEditing={setEditing}
+            onDeleted={onClose}
+            onReviewPage={(taskId) => {
+              onClose();
+              review(taskId);
+            }}
+          />
         </div>
-        <h3>Dependencies</h3>
-        {t.blocked_by.length ? <ul>{t.blocked_by.map((d) => <li key={d}><code>{d}</code></li>)}</ul> : <p className="muted">None.</p>}
-        <h3>Attachments</h3>
-        {attachments.data?.length ? <ul>{attachments.data.map((a) => <li key={a.id}>{a.name} <span className="muted">({a.size} B)</span></li>)}</ul> : <p className="muted">None.</p>}
-        <h3>Comments</h3>
-        {comments.data?.map((c, i) => <p key={c.id ?? i}><b>{c.author}</b>: {c.body}</p>)}
-        <form onSubmit={(e) => { e.preventDefault(); if (body.trim()) add.mutate(); }}>
-          <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Add a comment" />
-          <button className="btn" style={{ marginTop: 6 }}>Comment</button>
-        </form>
-        <h3>Timeline</h3>
-        <ol style={{ paddingLeft: 18 }}>
-          {events.data?.map((e) => <li key={e.id}><b>{e.kind}</b> <span className="muted">{new Date(e.created_at * (e.created_at > 1e12 ? 1 : 1000)).toLocaleString()}</span></li>)}
-        </ol>
-      </>}
-    </aside>
+
+        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface/60 px-5 py-2.5">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-4">
+            <Kbd>esc</Kbd>
+            <span>to close</span>
+            <span className="mx-1 h-3 w-px bg-line" aria-hidden />
+            <Kbd>⌘</Kbd>
+            <Kbd>↵</Kbd>
+            <span>to comment</span>
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={openFullPage}>
+            <Maximize2 className="size-3.5" />
+            Open full page
+          </Button>
+        </footer>
+      </aside>
+    </div>
   );
 }
-
-export { apiOr };
