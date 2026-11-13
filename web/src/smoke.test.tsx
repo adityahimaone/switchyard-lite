@@ -70,8 +70,11 @@ test("board screen allows switching between multiple boards", async () => {
   );
 
   expect(await screen.findByText("Alpha Task")).toBeTruthy();
-  const switcher = screen.getByLabelText("Switch board") as HTMLSelectElement;
-  fireEvent.change(switcher, { target: { value: "b_beta" } });
+  const switcher = screen.getByLabelText("Switch board");
+  fireEvent.pointerDown(switcher);
+  fireEvent.click(switcher);
+  const betaOption = await screen.findByRole("option", { name: /Beta Board/i });
+  fireEvent.click(betaOption);
   expect(await screen.findByText("Beta Task")).toBeTruthy();
 });
 
@@ -224,8 +227,7 @@ test("task drawer and full detail page render all 4 detail tabs", async () => {
   expect(screen.getByRole("button", { name: /Back to board/i })).toBeTruthy();
 });
 
-test("task detail page exposes a properties rail and lifecycle actions", async () => {
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+test("task detail page exposes a properties rail and lifecycle actions", async () => {  globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith("/api/v1/tasks/t_rail")) {
       return new Response(
@@ -259,4 +261,77 @@ test("task detail page exposes a properties rail and lifecycle actions", async (
   expect(screen.getByText("Lifecycle")).toBeTruthy();
   expect(screen.getByText("Execution")).toBeTruthy();
   expect(screen.getByRole("button", { name: /Review diff/i })).toBeTruthy();
+});
+
+test("task dialog uses the searchable workspace picker with no inline path creation", async () => {
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/boards")) {
+      return new Response(JSON.stringify([{ id: "b_1", name: "Main Board" }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/workspaces")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "ws_1",
+            name: "Switchyard Lite",
+            path: "/Users/dev/switchyard-lite",
+            host: "dev@box",
+            os: "linux",
+            kind: "ssh",
+            status: "connected",
+            labels: ["go", "react"],
+          },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <BoardScreen open={() => {}} />
+    </QueryClientProvider>
+  );
+
+  const btn = await screen.findByRole("button", { name: "New task" });
+  await waitFor(() => expect((btn as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(btn);
+
+  expect(await screen.findByRole("dialog")).toBeTruthy();
+  const ws = await screen.findByLabelText("Workspace");
+  expect(ws.tagName).toBe("BUTTON");
+
+  fireEvent.pointerDown(ws);
+  fireEvent.click(ws);
+  expect(await screen.findByRole("option", { name: /No workspace \(scratch\)/i })).toBeTruthy();
+  // Workspace creation belongs to the Workspaces page only.
+  expect(screen.queryByText(/Custom path/i)).toBeNull();
+  expect(screen.queryByLabelText(/Custom workspace path/i)).toBeNull();
+});
+
+test("no native select elements remain in the board flow", async () => {
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/boards")) {
+      return new Response(JSON.stringify([{ id: "b_1", name: "Main Board" }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const { container } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <BoardScreen open={() => {}} />
+    </QueryClientProvider>
+  );
+
+  await screen.findByRole("button", { name: "New task" });
+  expect(container.querySelectorAll("select")).toHaveLength(0);
 });

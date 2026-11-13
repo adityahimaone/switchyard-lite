@@ -36,6 +36,7 @@ import {
   type Workspace,
 } from "./api";
 import { OsIcon } from "@/components/board/taskDetailParts";
+import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
 import { relativeTime } from "@/lib/time";
 import { Button } from "@/components/ui/button";
@@ -268,18 +269,12 @@ export function BoardScreen({
           <div className="bar-spacer" />
 
           {(boards.data?.length ?? 0) > 0 && (
-            <select
-              aria-label="Switch board"
-              className="board-switcher"
-              value={boardId ?? ""}
-              onChange={(e) => setBoardId(e.target.value)}
-            >
-              {boards.data?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  📋 {b.name}
-                </option>
-              ))}
-            </select>
+            <BoardSwitcher
+              boards={boards.data}
+              value={boardId}
+              onChange={setBoardId}
+              className="w-auto min-w-[180px]"
+            />
           )}
 
           <Tip label="Create a new board">

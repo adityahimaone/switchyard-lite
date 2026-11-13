@@ -28,7 +28,9 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-full items-center justify-between gap-2 whitespace-nowrap overflow-hidden rounded-control border border-line bg-surface/70 px-3 py-1.5 text-sm text-ink tracking-[-0.01em] shadow-[0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-[border-color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)] hover:border-line-strong hover:bg-surface dark:bg-well/40 dark:hover:bg-well/70 focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger data-[placeholder]:text-ink-4 data-[size=default]:h-8 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-ink-3 [&[data-state=open]>svg]:rotate-180",
+        /* Apple Design §12 & §1: Subtle translucent control surface with instant
+           touch feedback, hairline border, and optical tracking. */
+        "flex w-full items-center justify-between gap-2 whitespace-nowrap overflow-hidden rounded-control border border-line/60 bg-surface/50 px-3 py-2 text-sm text-ink tracking-[-0.01em] shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-none transition-[border-color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)] hover:border-line-strong hover:bg-surface/80 dark:bg-well/30 dark:hover:bg-well/60 focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-danger/20 data-[placeholder]:text-ink-4 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:whitespace-nowrap *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-ink-3 [&[data-state=open]>svg]:rotate-180",
         className
       )}
       {...props}
@@ -56,9 +58,15 @@ function SelectContent({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         className={cn(
-          "border border-line-strong bg-raised/95 text-ink shadow-float backdrop-blur-2xl saturate-150 dark:bg-raised/92 relative z-[110] max-h-[min(300px,calc(100dvh-4rem))] max-w-[calc(100vw-1rem)] min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-hidden rounded-panel outline-none",
-          "transition-[transform,opacity] duration-150 ease-[var(--ease-out-expo)]",
+          // Apple Translucent Glass Popover Material.
+          // z-[110] keeps the dropdown above modal dialogs (z-overlay = 100).
+          "border border-line/60 bg-raised/95 text-ink shadow-float backdrop-blur-2xl saturate-150 dark:bg-raised/90 relative z-[110] max-h-[min(300px,calc(100dvh-4rem))] max-w-[calc(100vw-1rem)] min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-hidden rounded-panel outline-none",
+          "transition-[transform,opacity] duration-180 ease-[var(--ease-out-expo)]",
           "data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+          "data-[side=bottom]:data-[state=closed]:translate-y-[-4px] data-[side=bottom]:data-[state=open]:translate-y-0",
+          "data-[side=top]:data-[state=closed]:translate-y-[4px] data-[side=top]:data-[state=open]:translate-y-0",
+          "data-[side=left]:data-[state=closed]:translate-x-[-4px] data-[side=left]:data-[state=open]:translate-x-0",
+          "data-[side=right]:data-[state=closed]:translate-x-[4px] data-[side=right]:data-[state=open]:translate-x-0",
           "data-[state=closed]:scale-[0.97] data-[state=open]:scale-100",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
@@ -75,7 +83,7 @@ function SelectContent({
           onTouchMove={(e) => e.stopPropagation()}
           style={{ touchAction: "pan-y" }}
           className={cn(
-            "min-h-0 max-h-[min(300px,var(--radix-select-content-available-height))] overflow-y-auto overscroll-contain p-1.5 [scrollbar-width:thin]",
+            "min-h-0 max-h-[min(300px,var(--radix-select-content-available-height))] overflow-y-auto overscroll-contain p-1.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-line-strong/40",
             position === "popper" &&
               "w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
           )}
@@ -111,8 +119,8 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-pointer items-center gap-2 rounded-control py-1.5 pr-8 pl-2.5 text-xs text-ink outline-none select-none transition-colors duration-100",
-        "focus:bg-accent/12 focus:text-ink hover:bg-accent/10 data-[state=checked]:font-medium data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
-        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 [&_svg:not([class*='text-'])]:text-accent",
+        "focus:bg-accent/10 focus:text-ink hover:bg-accent/10 data-[state=checked]:font-medium data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 [&_svg:not([class*='text-'])]:text-accent *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
@@ -185,3 +193,5 @@ export {
   SelectTrigger,
   SelectValue,
 };
+
+export { SearchSelect, type SearchSelectOption, type SearchSelectProps } from "./search-select";
