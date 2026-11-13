@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import {
   apiOr,
-  normalizeModels,
+  parseModelCatalog,
   platformOfWorkspace,
   post,
   type Board,
@@ -228,8 +228,12 @@ export function TaskDialog({
     queryKey: ["models", effectiveExecutor],
     enabled: !!effectiveExecutor,
     queryFn: async () =>
-      normalizeModels(await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(effectiveExecutor)}`, [])),
+      parseModelCatalog(
+        await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(effectiveExecutor)}`, {})
+      ),
   });
+  const modelList = models.data?.models ?? [];
+  const modelHint = models.data?.detail ?? "";
 
   const wsInspect = useQuery({
     queryKey: ["ws", workspace],
@@ -278,7 +282,7 @@ export function TaskDialog({
           label: w.name,
           sublabel: w.path,
           icon: <PlatformIcon platform={pk} />,
-          badge: w.host ? "ssh" : "local",
+          badge: w.host ? "ssh" : (w.node ?? "local"),
           badgeNode: (
             <span className="inline-flex items-center gap-1">
               <span
@@ -286,7 +290,7 @@ export function TaskDialog({
                 style={{ background: live ? "var(--c-success)" : "var(--c-line-strong)" }}
                 aria-hidden
               />
-              <span className="font-mono text-[9px] text-ink-3">{w.host || "local"}</span>
+              <span className="font-mono text-[9px] text-ink-3">{w.host || w.node || "local"}</span>
             </span>
           ),
           keywords: [
@@ -298,7 +302,7 @@ export function TaskDialog({
             w.status ?? "",
             PLATFORM_LABELS[pk],
             ...(w.labels ?? []),
-            w.host ? "ssh remote" : "local",
+            w.host ? "ssh remote" : (w.node ?? "local"),
           ],
         });
       }
@@ -622,7 +626,7 @@ export function TaskDialog({
                     </SelectContent>
                   </Select>
 
-                  {models.data && models.data.length > 0 ? (
+                  {modelList.length > 0 ? (
                     <SearchSelect
                       id="task-model"
                       value={model || DEFAULT_SENTINEL}
@@ -634,17 +638,19 @@ export function TaskDialog({
                           label: "(executor default)",
                           sublabel: board?.default_model || undefined,
                         },
-                        ...models.data.map((m) => ({
+                        ...modelList.map((m) => ({
                           value: m.id,
                           label: m.name,
-                          sublabel: m.id === m.name ? undefined : m.id,
-                          keywords: [m.id, m.name],
+                          sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
+                          badge: m.badge,
+                          keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
                         })),
                       ]}
                       placeholder="Select model…"
                       searchPlaceholder="Search models…"
                       ariaLabel="Model"
                       size="sm"
+                      contentClassName="min-w-[22rem]"
                     />
                   ) : (
                     <Input
@@ -656,6 +662,14 @@ export function TaskDialog({
                       className="font-mono text-[11px]"
                       aria-label="Model"
                     />
+                  )}
+
+                  {effectiveExecutor && modelList.length === 0 && (
+                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
+                      {modelHint
+                        ? `No catalog yet — ${modelHint}`
+                        : `No model catalog reported for ${EXECUTOR_LABELS[effectiveExecutor] ?? effectiveExecutor}. Type a model id, or leave blank for the executor default.`}
+                    </p>
                   )}
 
                   <Select

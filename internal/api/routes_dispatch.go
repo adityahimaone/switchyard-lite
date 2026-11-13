@@ -13,6 +13,7 @@ import (
 
 	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
 	"github.com/adityahimaone/switchyard-lite/internal/models"
+	"github.com/adityahimaone/switchyard-lite/internal/nodes"
 	"github.com/adityahimaone/switchyard-lite/internal/review"
 	"github.com/adityahimaone/switchyard-lite/internal/tasks"
 )
@@ -21,6 +22,7 @@ type dispatchDeps struct {
 	d *dispatch.Dispatcher
 	r *review.Service
 	m *models.Catalog
+	n *nodes.Registry
 }
 
 var (
@@ -33,7 +35,7 @@ func UseDispatcher(a *API, d *dispatch.Dispatcher) {
 	depsMu.Lock()
 	defer depsMu.Unlock()
 	r, _ := review.New(a.S)
-	deps[a] = &dispatchDeps{d: d, r: r, m: models.New(d.Cfg.NodeAgentURL, d.Cfg.Token)}
+	deps[a] = &dispatchDeps{d: d, r: r, m: models.New(d.Cfg.NodeAgentURL, d.Cfg.Token), n: nodes.New(d.Cfg.NodeAgentURL, d.Cfg.Token)}
 }
 
 func getDeps(a *API) (*dispatchDeps, error) {
@@ -51,7 +53,7 @@ func getDeps(a *API) (*dispatchDeps, error) {
 	if err != nil {
 		return nil, err
 	}
-	x := &dispatchDeps{d: d, r: r, m: models.New(cfg.NodeAgentURL, cfg.Token)}
+	x := &dispatchDeps{d: d, r: r, m: models.New(cfg.NodeAgentURL, cfg.Token), n: nodes.New(cfg.NodeAgentURL, cfg.Token)}
 	deps[a] = x
 	return x, nil
 }
@@ -156,7 +158,7 @@ func init() {
 			ok(w, map[string]string{"id": id, "name": in.Name, "url": in.URL})
 		}))
 		m.HandleFunc("GET /api/v1/workspaces", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
-			list, err := queryWorkspaces(a)
+			list, err := queryWorkspaces(r.Context(), a, x.n)
 			if err != nil {
 				fail(w, 500, err.Error())
 				return
@@ -266,13 +268,13 @@ func init() {
 		m.HandleFunc("PUT /api/v1/workspaces/{id}", updateWorkspace)
 		m.HandleFunc("PATCH /api/v1/workspaces/{id}", updateWorkspace)
 		m.HandleFunc("POST /api/v1/workspaces/ping", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
-			list, err := queryWorkspaces(a)
+			list, err := queryWorkspaces(r.Context(), a, x.n)
 			if err != nil {
 				fail(w, 500, err.Error())
 				return
 			}
 			for i := range list {
-				list[i] = pingWorkspaceRecord(a, list[i])
+				list[i] = pingWorkspaceRecord(r.Context(), a, x.n, list[i])
 			}
 			ok(w, list)
 		}))
@@ -286,7 +288,7 @@ func init() {
 				fail(w, 500, err.Error())
 				return
 			}
-			ok(w, pingWorkspaceRecord(a, ws))
+			ok(w, pingWorkspaceRecord(r.Context(), a, x.n, ws))
 		}))
 		m.HandleFunc("GET /api/v1/tasks/{id}/worktree", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			var repo, path, branch, baseSHA string
@@ -384,18 +386,22 @@ type workspaceInput struct {
 }
 
 type workspaceRecord struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Path      string   `json:"path"`
-	Host      string   `json:"host"`
-	OS        string   `json:"os"`
-	Kind      string   `json:"kind"`
-	Labels    []string `json:"labels"`
-	Note      string   `json:"note"`
-	Git       bool     `json:"git"`
-	Status    string   `json:"status"`
-	LatencyMs int64    `json:"latency_ms,omitempty"`
-	CreatedAt int64    `json:"created_at"`
+	ID     string   `json:"id"`
+	Name   string   `json:"name"`
+	Path   string   `json:"path"`
+	Host   string   `json:"host"`
+	OS     string   `json:"os"`
+	Kind   string   `json:"kind"`
+	Labels []string `json:"labels"`
+	Note   string   `json:"note"`
+	Git    bool     `json:"git"`
+	Status string   `json:"status"`
+	// Node / Hostname come from the node-agent's live report and say which
+	// machine can actually serve this path. Empty when nothing claims it.
+	Node      string `json:"node,omitempty"`
+	Hostname  string `json:"hostname,omitempty"`
+	LatencyMs int64  `json:"latency_ms,omitempty"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 func joinLabels(labels []string) string {
@@ -431,7 +437,24 @@ func workspaceStatus(w workspaceRecord) string {
 	return "unknown"
 }
 
-func queryWorkspaces(a *API) ([]workspaceRecord, error) {
+// applyNodeStatus lets the node-agent override the local guess. A node that
+// lists this path is the machine that will actually run the task, so its
+// heartbeat — not a stat() on the control plane — decides liveness.
+func applyNodeStatus(w *workspaceRecord, list []nodes.Node, now time.Time) bool {
+	n, ok := nodes.Match(list, w.Path)
+	if !ok {
+		return false
+	}
+	w.Node, w.Hostname = n.NodeID, n.Hostname
+	if n.Fresh(now) {
+		w.Status = "connected"
+	} else {
+		w.Status = "unreachable"
+	}
+	return true
+}
+
+func queryWorkspaces(ctx context.Context, a *API, reg *nodes.Registry) ([]workspaceRecord, error) {
 	rows, err := a.S.DB.Query(`SELECT id,name,path,host,os,kind,labels,note,created_at FROM dispatch_workspaces ORDER BY created_at`)
 	if err != nil {
 		return nil, err
@@ -449,7 +472,17 @@ func queryWorkspaces(a *API) ([]workspaceRecord, error) {
 		w.Status = workspaceStatus(w)
 		out = append(out, w)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if list, _ := reg.List(ctx); len(list) > 0 {
+		now := time.Now()
+		for i := range out {
+			applyNodeStatus(&out[i], list, now)
+		}
+	}
+	return out, nil
 }
 
 func getWorkspaceByID(a *API, id string) (workspaceRecord, error) {
@@ -468,8 +501,21 @@ func getWorkspaceByID(a *API, id string) (workspaceRecord, error) {
 	return w, nil
 }
 
-func pingWorkspaceRecord(a *API, w workspaceRecord) workspaceRecord {
+func pingWorkspaceRecord(ctx context.Context, a *API, reg *nodes.Registry, w workspaceRecord) workspaceRecord {
 	start := time.Now()
+
+	// A node that lists this path is the machine that will run the task; its
+	// heartbeat decides liveness, not a stat() on the control plane host.
+	if list, _ := reg.List(ctx); len(list) > 0 {
+		if applyNodeStatus(&w, list, time.Now()) {
+			w.LatencyMs = time.Since(start).Milliseconds()
+			if w.LatencyMs == 0 {
+				w.LatencyMs = 1
+			}
+			return w
+		}
+	}
+
 	if w.Host == "" || w.Host == "localhost" || w.Host == "127.0.0.1" {
 		if _, err := os.Stat(w.Path); err == nil {
 			w.Status = "local"

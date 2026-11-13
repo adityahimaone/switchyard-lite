@@ -7,7 +7,7 @@ import { BoardScreen } from "./Board";
 import { TaskDrawer } from "./Drawer";
 import { WorkspacesPage } from "@/components/workspaces/WorkspacesPage";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
-import { normalizeModels } from "./api";
+import { normalizeModels, parseModelCatalog } from "./api";
 
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -334,4 +334,41 @@ test("no native select elements remain in the board flow", async () => {
 
   await screen.findByRole("button", { name: "New task" });
   expect(container.querySelectorAll("select")).toHaveLength(0);
+});
+
+test("models normalize the node-agent value/label shape", () => {
+  const raw = {
+    executor: "dsh",
+    detail: "",
+    source: "probed",
+    models: [
+      { value: "adit-9router/kiro-cheap-combo-2", label: "kiro-cheap-combo-2", badge: "adit-9router" },
+      {
+        value: "deepseek/deepseek-v4-pro",
+        label: "deepseek/deepseek-v4-pro",
+        sublabel: "hybrid-attention long-context reasoning",
+        badge: "deepseek",
+      },
+    ],
+  };
+  const list = normalizeModels(raw);
+  expect(list.map((m) => m.id)).toEqual([
+    "adit-9router/kiro-cheap-combo-2",
+    "deepseek/deepseek-v4-pro",
+  ]);
+  expect(list[0].name).toBe("kiro-cheap-combo-2");
+  expect(list[0].badge).toBe("adit-9router");
+  expect(list.every((m) => m.id !== "undefined" && m.name !== "undefined")).toBe(true);
+});
+
+test("empty model catalog surfaces the upstream reason", () => {
+  const cat = parseModelCatalog({
+    executor: "claude",
+    detail: "node has not reported this catalog yet",
+    models: [],
+    source: "pending",
+  });
+  expect(cat.models).toEqual([]);
+  expect(cat.detail).toMatch(/has not reported/);
+  expect(cat.source).toBe("pending");
 });

@@ -25,7 +25,7 @@ import {
   del,
   getSavedBoardId,
   NEXT,
-  normalizeModels,
+  parseModelCatalog,
   patch,
   post,
   setSavedBoardId,
@@ -677,7 +677,7 @@ export function BoardDialog({
     queryKey: ["models", defaultExecutor],
     enabled: !!defaultExecutor,
     queryFn: async () =>
-      normalizeModels(await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(defaultExecutor)}`, [])),
+      parseModelCatalog(await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(defaultExecutor)}`, {})).models,
   });
 
   const save = useMutation({

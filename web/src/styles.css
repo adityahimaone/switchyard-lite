@@ -617,6 +617,16 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--c-accent-tint);
 }
 
+/* Borderless inline-search inputs (picker headers). This rule lives outside a
+   @layer so it beats the focus ring above without !important. */
+input.field-flat,
+input.field-flat:focus {
+  border: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
 label.f {
   display: flex;
   flex-direction: column;
