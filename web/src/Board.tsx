@@ -40,6 +40,7 @@ import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
 import { relativeTime } from "@/lib/time";
 import { Button } from "@/components/ui/button";
+import { FilterPill } from "@/components/ui/pill";
 import {
   Dialog,
   DialogBody,
@@ -250,7 +251,7 @@ export function BoardScreen({
     );
   }
 
-  const filtersActive = q.trim() !== "" || fExec !== "" || fStatus !== "";
+  const activeFilterCount = (q.trim() !== "" ? 1 : 0) + (fExec !== "" ? 1 : 0) + (fStatus !== "" ? 1 : 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0 }}>
@@ -311,7 +312,7 @@ export function BoardScreen({
           </button>
         </div>
 
-        {/* Filter & search toolbar */}
+        {/* Filter & search toolbar (Concept 1 Tactile Capsule Bar) */}
         <div className="toolbar-row" role="search" aria-label="Filter tasks">
           <div className="search-box">
             <Search className="size-3.5" />
@@ -326,12 +327,26 @@ export function BoardScreen({
                 type="button"
                 onClick={() => setQ("")}
                 aria-label="Clear search"
-                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-ink-4 hover:bg-raised hover:text-ink"
+                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full p-0.5 text-ink-4 hover:bg-raised hover:text-ink"
               >
                 <X className="size-3" />
               </button>
             )}
           </div>
+
+          <FilterPill
+            count={activeFilterCount}
+            active={activeFilterCount > 0}
+            onClear={
+              activeFilterCount > 0
+                ? () => {
+                    setQ("");
+                    setFExec("");
+                    setFStatus("");
+                  }
+                : undefined
+            }
+          />
 
           <div className="chip-row">
             {executorsOnBoard.map((ex) => (
@@ -352,21 +367,6 @@ export function BoardScreen({
               ? `${allTasks.length} ${allTasks.length === 1 ? "task" : "tasks"}`
               : `${filtered.length} of ${allTasks.length} tasks`}
           </span>
-
-          {filtersActive && (
-            <button
-              type="button"
-              className="btn ghost sm"
-              onClick={() => {
-                setQ("");
-                setFExec("");
-                setFStatus("");
-              }}
-            >
-              <X className="size-3" />
-              Clear
-            </button>
-          )}
 
           <div className="bar-spacer" />
 
@@ -483,7 +483,7 @@ export function BoardScreen({
                           type="button"
                           onClick={() => setCreating({ startMode: quickAdd })}
                           aria-label={`Add task to ${LABEL[s]}`}
-                          className="ml-1 inline-flex size-5 items-center justify-center rounded text-ink-4 transition-colors hover:bg-raised hover:text-ink"
+                          className="ml-1 inline-flex size-5 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-raised hover:text-ink"
                         >
                           <Plus className="size-3.5" />
                         </button>
@@ -506,7 +506,7 @@ export function BoardScreen({
                         <button
                           type="button"
                           onClick={() => setCreating({ startMode: quickAdd })}
-                          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+                          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-semibold text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
                         >
                           <Plus className="size-3" />
                           Add task
@@ -551,7 +551,7 @@ export function BoardScreen({
                                   <button
                                     type="button"
                                     aria-label={`Actions for ${t.title}`}
-                                    className="-mt-0.5 -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-raised hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
+                                    className="-mt-0.5 -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-well hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
                                   >
                                     <MoreHorizontal className="size-3.5" />
                                   </button>
@@ -635,7 +635,7 @@ export function BoardScreen({
                                 <span>Dispatch</span>
                               </button>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
                                 Open
                                 <ArrowRight className="size-2.5" />
                               </span>
@@ -802,7 +802,7 @@ export function BoardDialog({
                     onChange={(e) => setDefaultModel(e.target.value)}
                     placeholder="(executor default)"
                     disabled={!defaultExecutor}
-                    className="font-mono text-xs"
+                    className="h-8 rounded-full font-mono text-xs"
                   />
                 )}
               </div>

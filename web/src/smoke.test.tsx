@@ -8,6 +8,11 @@ import { TaskDrawer } from "./Drawer";
 import { WorkspacesPage } from "@/components/workspaces/WorkspacesPage";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
 import { normalizeModels, parseModelCatalog } from "./api";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SearchSelect } from "@/components/ui/select";
+import { AvatarChip, CompoundActionPill, FilterPill, SearchField, StatusPill } from "@/components/ui/pill";
+import { AppHeader, AppInset, AppMain, AppShell, AppSidebar, AppSidebarBrand, AppSidebarGroup, AppSidebarItem } from "@/components/ui/app-shell";
+import { BrandLockup, BrandMark } from "@/components/ui/brand";
 
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -371,4 +376,57 @@ test("empty model catalog surfaces the upstream reason", () => {
   expect(cat.models).toEqual([]);
   expect(cat.detail).toMatch(/has not reported/);
   expect(cat.source).toBe("pending");
+});
+
+test("switchyard-lite brandkit base components (Button, Select, Pill, AppShell, BrandMark) render cleanly", () => {
+  const { container } = render(
+    <AppShell defaultCollapsed={false}>
+      <AppSidebar>
+        <AppSidebarBrand name="Switchyard" tag="LITE" />
+        <AppSidebarGroup label="Work">
+          <AppSidebarItem href="#/board" active badge={4}>
+            Board
+          </AppSidebarItem>
+        </AppSidebarGroup>
+      </AppSidebar>
+      <AppInset>
+        <AppHeader>
+          <BrandLockup size={24} />
+          <BrandMark size={16} />
+          <StatusPill status="online" />
+          <StatusPill status="working" />
+        </AppHeader>
+        <AppMain>
+          <Button variant="prism">Ask AI</Button>
+          <Button variant="obsidian">Book a Call</Button>
+          <Button variant="dashed">Upload</Button>
+          <FilterPill label="Filter" count={2} onClear={() => {}} />
+          <AvatarChip name="Ella M." onRemove={() => {}} />
+          <SearchField defaultValue="" placeholder="Search" />
+          <CompoundActionPill valueLabel="30" unitLabel="mins" actionLabel="Book a Call" />
+          <Select defaultValue="claude">
+            <SelectTrigger aria-label="Executor select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="claude">Claude Sonnet</SelectItem>
+            </SelectContent>
+          </Select>
+          <SearchSelect
+            ariaLabel="Model picker"
+            value="sonnet"
+            options={[{ value: "sonnet", label: "Claude 4 Sonnet", badge: "fast" }]}
+          />
+        </AppMain>
+      </AppInset>
+    </AppShell>
+  );
+
+  expect(screen.getByRole("button", { name: "Ask AI" }).getAttribute("data-variant")).toBe("prism");
+  expect(screen.getByRole("button", { name: "Upload" }).getAttribute("data-variant")).toBe("dashed");
+  expect(screen.getByText("In progress")).toBeTruthy();
+  expect(screen.getByText("Ella M.")).toBeTruthy();
+  expect(container.querySelector('[data-slot="app-shell"]')).toBeTruthy();
+  expect(container.querySelector('[data-slot="select-trigger"]')).toBeTruthy();
+  expect(container.querySelector('[data-slot="search-select-trigger"]')).toBeTruthy();
 });

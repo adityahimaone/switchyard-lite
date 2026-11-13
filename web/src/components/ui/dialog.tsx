@@ -51,8 +51,8 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-overlay flex w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col",
-          "glass-dialog dialog-bloom rounded-panel outline-none",
+          "fixed left-1/2 top-1/2 z-overlay flex w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
+          "glass-dialog dialog-bloom rounded-[28px] outline-none",
           "max-h-[calc(100dvh-2.5rem)]",
           "transition-[transform,opacity] duration-200 ease-[var(--ease-out-expo)]",
           "data-[state=closed]:scale-[0.96] data-[state=closed]:opacity-0",
@@ -67,8 +67,8 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className={cn(
-              "absolute top-3.5 right-3.5 z-10 flex size-7 items-center justify-center rounded-full text-ink-3 outline-none",
-              "bg-raised/70 border border-line/40 transition-[colors,transform] duration-150 hover:bg-raised hover:text-ink active:scale-95",
+              "absolute top-4 right-4 z-10 flex size-8 items-center justify-center rounded-full text-ink-3 outline-none",
+              "border border-line bg-surface shadow-[var(--lift-1)] transition-[colors,transform,box-shadow] duration-150 hover:border-line-strong hover:text-ink active:scale-95",
               "focus-visible:ring-2 focus-visible:ring-focus/40"
             )}
           >
@@ -85,7 +85,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex shrink-0 flex-col gap-1 border-b border-line/60 px-6 py-4.5 pr-12", className)}
+      className={cn("flex shrink-0 flex-col gap-1 border-b border-line bg-surface/65 px-6 py-4 pr-14", className)}
       {...props}
     />
   );
@@ -110,7 +110,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex shrink-0 flex-col-reverse gap-2 border-t border-line/60 bg-well/30 dark:bg-well/20 px-6 py-3.5 sm:flex-row sm:justify-end",
+        "flex shrink-0 flex-col-reverse gap-2 border-t border-line bg-well/45 px-6 py-3.5 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
@@ -122,7 +122,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-base font-semibold tracking-[-0.015em] text-ink", className)}
+      className={cn("font-[var(--font-display)] text-base font-bold tracking-[-0.02em] text-ink", className)}
       {...props}
     />
   );
@@ -132,7 +132,7 @@ function DialogDescription({ className, ...props }: React.ComponentProps<typeof 
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("max-w-[56ch] text-xs leading-relaxed text-ink-3", className)}
+      className={cn("max-w-[58ch] text-xs leading-relaxed text-ink-3", className)}
       {...props}
     />
   );

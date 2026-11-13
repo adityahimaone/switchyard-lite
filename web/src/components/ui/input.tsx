@@ -7,13 +7,14 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "glass-flat h-8 w-full min-w-0 rounded-control border border-line px-3 py-1 text-sm text-ink outline-none",
-        "shadow-[inset_0_1px_2px_rgb(0_0_0_/_0.08)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0_/_0.25)]",
-        "transition-[border-color,background-color] duration-100",
-        "placeholder:text-ink-3 selection:bg-accent selection:text-on-accent",
-        "focus-visible:border-accent focus-visible:shadow-[inset_0_1px_2px_rgb(0_0_0_/_0.12),0_0_0_3px_rgb(from_var(--c-focus)_r_g_b_/_0.18)]",
+        "h-9 w-full min-w-0 rounded-[12px] border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink outline-none",
+        "shadow-[var(--lift-1),var(--lift-inset)]",
+        "transition-[border-color,background-color,box-shadow] duration-120 ease-[var(--ease-out-quint)]",
+        "placeholder:font-normal placeholder:text-ink-4 selection:bg-accent selection:text-on-accent",
+        "hover:border-line-strong",
+        "focus-visible:border-focus focus-visible:ring-[3px] focus-visible:ring-focus/25",
         "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
-        "aria-invalid:border-danger",
+        "aria-invalid:border-danger aria-invalid:ring-danger/20",
         className
       )}
       {...props}

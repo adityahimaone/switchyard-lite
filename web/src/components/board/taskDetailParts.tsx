@@ -37,19 +37,19 @@ import { Tip } from "@/components/ui/tooltip";
 
 export const STATUS_CHIP: Record<Status, string> = {
   backlog: "border-line bg-well text-ink-3",
-  todo: "border-line-strong bg-raised/70 text-ink-2",
+  todo: "border-line-strong bg-surface text-ink-2 shadow-[var(--lift-1)]",
   blocked: "border-danger/30 bg-danger-tint text-danger-text",
-  in_progress: "border-accent/35 bg-accent-tint text-accent-text",
+  in_progress: "border-accent/35 bg-surface text-accent-text shadow-[var(--lift-1)]",
   review: "border-review/35 bg-review-tint text-review-text",
-  done: "border-success/35 bg-success-tint text-success-text",
+  done: "border-success/30 bg-[var(--c-mint-wash)] text-success-text",
   failed: "border-danger/40 bg-danger-tint text-danger-text",
 };
 
 const STATUS_DOT: Record<Status, string> = {
-  backlog: "bg-[var(--c-st-backlog)]",
-  todo: "bg-[var(--c-st-todo)]",
+  backlog: "border-[1.5px] border-[var(--c-st-backlog)] bg-transparent",
+  todo: "border-[1.5px] border-[var(--c-st-todo)] bg-transparent",
   blocked: "bg-[var(--c-st-blocked)]",
-  in_progress: "bg-[var(--c-st-in_progress)]",
+  in_progress: "size-2.5 border-[1.75px] border-dashed border-[var(--c-st-in_progress)] bg-transparent animate-spin",
   review: "bg-[var(--c-st-review)]",
   done: "bg-[var(--c-st-done)]",
   failed: "bg-[var(--c-st-failed)]",
@@ -61,13 +61,13 @@ export function StatusBadge({ status }: { status: Status | string }) {
     <Badge
       variant="outline"
       className={cn(
-        "gap-1.5 px-2 py-0.5 text-[11px] font-medium capitalize leading-none",
+        "gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize leading-none",
         STATUS_CHIP[s] ?? STATUS_CHIP.todo
       )}
     >
       <span
         aria-hidden
-        className={cn("size-1.5 rounded-full", STATUS_DOT[s] ?? "bg-ink-4", s === "in_progress" && "animate-pulse")}
+        className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[s] ?? "bg-ink-4")}
       />
       {LABEL[status] ?? status.replace("_", " ")}
     </Badge>
@@ -94,7 +94,7 @@ export function SectionTitle({ children, className }: { children: ReactNode; cla
   return (
     <h2
       className={cn(
-        "m-0 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-ink-3 uppercase",
+        "m-0 flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-ink-3 uppercase",
         className
       )}
     >
@@ -117,7 +117,12 @@ export function Section({
   bodyClassName?: string;
 }) {
   return (
-    <section className={cn("min-w-0 rounded-card border border-line bg-surface/85 p-3.5", className)}>
+    <section
+      className={cn(
+        "min-w-0 rounded-[20px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]",
+        className
+      )}
+    >
       {(title || action) && (
         <div className="flex items-center justify-between gap-2">
           {title && <SectionTitle>{title}</SectionTitle>}
@@ -133,7 +138,7 @@ export function Field({ label, children }: { label: ReactNode; children: ReactNo
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
       <dt className="shrink-0 text-ink-3">{label}</dt>
-      <dd className="m-0 min-w-0 truncate text-right text-ink-2">{children}</dd>
+      <dd className="m-0 min-w-0 truncate text-right font-medium text-ink-2">{children}</dd>
     </div>
   );
 }
@@ -154,16 +159,16 @@ export function EmptyNote({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-control border border-dashed border-line px-3 py-5 text-center">
+    <div className="flex flex-col items-center gap-1 rounded-[16px] border border-dashed border-line-strong/80 bg-well/35 px-3 py-5 text-center">
       {icon && <span className="text-ink-3">{icon}</span>}
-      <p className="m-0 text-xs font-medium text-ink-3">{title}</p>
+      <p className="m-0 text-xs font-semibold text-ink-2">{title}</p>
       {hint && <p className="m-0 max-w-[38ch] text-[11px] leading-relaxed text-ink-4">{hint}</p>}
       {action && <div className="mt-1.5">{action}</div>}
     </div>
   );
 }
 
-/** Compact metadata chip used in headers and cards. */
+/** Compact capsule metadata chip used in headers and cards. */
 export function MetaChip({
   icon,
   children,
@@ -181,8 +186,8 @@ export function MetaChip({
     <span
       title={title}
       className={cn(
-        "inline-flex max-w-[220px] items-center gap-1 rounded-[5px] border px-1.5 py-0.5 text-[11px] leading-none",
-        tone === "default" && "border-line bg-well/70 text-ink-2",
+        "inline-flex max-w-[220px] items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none",
+        tone === "default" && "border-line bg-well text-ink-2",
         tone === "accent" && "border-accent/30 bg-accent-tint text-accent-text",
         tone === "warn" && "border-warning/30 bg-warning-tint text-warning-text",
         tone === "review" && "border-review/30 bg-review-tint text-review-text",
@@ -210,8 +215,8 @@ export function FactTile({
   tone?: "default" | "accent" | "success" | "danger" | "review";
 }) {
   return (
-    <div className="min-w-0 rounded-card border border-line bg-surface/70 px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.1em] text-ink-4 uppercase">
+    <div className="min-w-0 rounded-[20px] border border-line bg-surface px-3.5 py-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
+      <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-ink-4 uppercase">
         {icon}
         <span className="truncate">{label}</span>
       </div>
@@ -300,7 +305,7 @@ export function TaskHeader({
   return (
     <header
       className={cn(
-        "shrink-0 border-b border-line bg-surface/70 backdrop-blur-xl",
+        "shrink-0 border-b border-line bg-surface/80 backdrop-blur-xl",
         sticky && "sticky top-0 z-20",
         variant === "page" ? "px-4 pt-3 pb-2.5 sm:px-6" : "px-5 py-3.5"
       )}
@@ -316,7 +321,7 @@ export function TaskHeader({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <TitleTag
               className={cn(
-                "m-0 min-w-0 max-w-full truncate font-semibold tracking-[-0.01em] text-ink",
+                "m-0 min-w-0 max-w-full truncate font-[var(--font-display)] font-bold tracking-[-0.02em] text-ink",
                 variant === "page" ? "text-lg" : "text-base"
               )}
               title={task?.title ?? id}
@@ -327,7 +332,7 @@ export function TaskHeader({
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-3">
-            <span className="inline-flex items-center gap-1 rounded-[5px] border border-line bg-well/60 py-0.5 pr-0.5 pl-1.5 font-mono text-[11px] text-ink-2">
+            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-well py-0.5 pr-1 pl-2 font-mono text-[11px] text-ink-2">
               {id}
               <CopyButton value={id} label="Copy task id" />
             </span>
@@ -431,8 +436,8 @@ export function TaskActions({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {task.status === "todo" && (
-        <Button type="button" variant="signal" size="xs" loading={dispatchPending} onClick={onDispatch}>
-          <Play className="size-3" />
+        <Button type="button" variant="prism" size="xs" loading={dispatchPending} onClick={onDispatch}>
+          <Play className="size-3 fill-current" />
           Dispatch now
         </Button>
       )}

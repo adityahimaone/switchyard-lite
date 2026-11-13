@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Switchyard Lite — Brand Identity &amp; Tactile Capsule Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ==========================================================================
+       Layer 1 — Brand Primitives (--sy-*)
+       ========================================================================== */
+    :root {
+      --sy-ground:  #F1F4FB;
+      --sy-plate:   #FFFFFF;
+      --sy-well:    #E4EAF7;
+      --sy-ink:     #0D1526;
+      --sy-slate:   #4A5878;
+      --sy-muted:   #8C9AB8;
+      --sy-line:    #DCE3F4;
+      --sy-accent:  #2F5BFF;
+      --sy-coral:   #FF8B6A;
+      --sy-orchid:  #D966FF;
+      --sy-success: #13794B;
+      --sy-mint:    #BCEFD4;
+      --sy-warning: #965600;
+      --sy-danger:  #C8322B;
+      --sy-night:   #080D1A;
+
+      --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-sans:    "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+      --grad-prism: linear-gradient(128deg, #FF9E68 0%, #FF6B9E 34%, #C86BFF 67%, #2F5BFF 100%);
+      --grad-obsidian: linear-gradient(180deg, #27324C 0%, #101729 52%, #080D1A 100%);
+      --spec-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0) 56%);
+
+      --radius-pill:       999px;
+      --radius-card:       20px;
+      --radius-panel:      28px;
+      --radius-concentric: 12px;
+
+      /* Scope 1: Daylight Cloud & Periwinkle Sky */
+      --c-canvas:      var(--sy-ground);
+      --c-surface:     var(--sy-plate);
+      --c-raised:      #FFFFFF;
+      --c-well:        var(--sy-well);
+      --c-ink:         var(--sy-ink);
+      --c-ink-2:       var(--sy-slate);
+      --c-ink-3:       #637294;
+      --c-ink-4:       var(--sy-muted);
+      --c-line:        var(--sy-line);
+      --c-line-strong: #C3CFEA;
+      --c-accent:      var(--sy-accent);
+      --c-accent-text: #1E44D9;
+      --c-accent-tint: rgba(47, 91, 255, 0.10);
+      --c-success:     var(--sy-success);
+      --c-success-tint:var(--sy-mint);
+      --c-warning:     var(--sy-warning);
+      --c-warning-tint:#FDE8C4;
+      --c-danger:      var(--sy-danger);
+      --c-danger-tint: #FADCD9;
+
+      --bg-sky: radial-gradient(125% 90% at 50% 0%, #FFFFFF 0%, #EEF3FF 44%, #DCE5FA 100%);
+      --grid-line: rgba(47, 91, 255, 0.055);
+      --lift-1: 0 2px 5px rgba(13, 21, 38, 0.04), 0 10px 24px -6px rgba(25, 45, 95, 0.07);
+      --lift-2: 0 6px 14px rgba(13, 21, 38, 0.06), 0 22px 44px -10px rgba(25, 45, 95, 0.12);
+      --lift-3: 0 14px 32px rgba(13, 21, 38, 0.09), 0 36px 76px -14px rgba(25, 45, 95, 0.18);
+      --lift-inset: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+      --well-inset: inset 0 1.5px 3px rgba(13, 21, 38, 0.06), inset 0 0 0 1px rgba(13, 21, 38, 0.03);
+      --glow-brand: 0 10px 26px -4px rgba(47, 91, 255, 0.36), 0 4px 12px -2px rgba(255, 107, 158, 0.28);
+    }
+
+    :root.dark {
+      /* Scope 2: Night Control Plane */
+      --c-canvas:      #080D1A;
+      --c-surface:     #101729;
+      --c-raised:      #172038;
+      --c-well:        #0B1120;
+      --c-ink:         #F2F5FC;
+      --c-ink-2:       #A6B3D0;
+      --c-ink-3:       #7B8AA8;
+      --c-ink-4:       #566482;
+      --c-line:        #1E2946;
+      --c-line-strong: #2C3B63;
+      --c-accent:      #5C82FF;
+      --c-accent-text: #8CA6FF;
+      --c-accent-tint: rgba(92, 130, 255, 0.16);
+      --c-success:     #3DD68C;
+      --c-success-tint:rgba(61, 214, 140, 0.16);
+      --c-warning:     #F5A524;
+      --c-warning-tint:rgba(245, 165, 36, 0.16);
+      --c-danger:      #F2645A;
+      --c-danger-tint: rgba(242, 100, 90, 0.16);
+
+      --bg-sky: radial-gradient(120% 85% at 50% 0%, #15203B 0%, #0C1326 52%, #080D1A 100%);
+      --grid-line: rgba(92, 130, 255, 0.065);
+      --lift-1: 0 2px 6px rgba(0, 0, 0, 0.45), 0 10px 24px -6px rgba(0, 0, 0, 0.55);
+      --lift-2: 0 8px 20px rgba(0, 0, 0, 0.55), 0 24px 48px -8px rgba(0, 0, 0, 0.7);
+      --lift-3: 0 18px 42px rgba(0, 0, 0, 0.72), 0 40px 84px -12px rgba(0, 0, 0, 0.85);
+      --lift-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --well-inset: inset 0 1.5px 3px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--c-ink);
+      background-color: var(--c-canvas);
+      background-image:
+        var(--bg-sky),
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    /* ==========================================================================
+       Floating Pill Topbar (Concept 2 Reference)
+       ========================================================================== */
+    .topbar-wrap {
+      position: sticky;
+      top: 16px;
+      z-index: 60;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .topbar {
+      height: 56px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c-surface) 88%, transparent);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      border: 1px solid var(--c-line);
+      box-shadow: var(--lift-2), var(--lift-inset);
+      padding: 0 10px 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--c-ink);
+    }
+    .brand-lockup strong {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .lite-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--c-accent-tint);
+      color: var(--c-accent-text);
+      border: 1px solid color-mix(in srgb, var(--c-accent) 25%, transparent);
+    }
+    .top-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .top-links a {
+      text-decoration: none;
+      color: var(--c-ink-2);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 999px;
+      transition: background-color 140ms, color 140ms;
+    }
+    .top-links a:hover {
+      background: var(--c-well);
+      color: var(--c-ink);
+    }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ==========================================================================
+       Tactile Pill Primitives (Concept 1 Reference)
+       ========================================================================== */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 38px;
+      padding: 0 16px;
+      border-radius: 999px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      border: 1px solid var(--c-line);
+      background: var(--c-surface);
+      color: var(--c-ink);
+      box-shadow: var(--lift-1), var(--lift-inset);
+      cursor: pointer;
+      user-select: none;
+      text-decoration: none;
+      transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 140ms, border-color 140ms, filter 140ms;
+    }
+    .pill:hover {
+      transform: translateY(-1px);
+      border-color: var(--c-line-strong);
+      box-shadow: var(--lift-2), var(--lift-inset);
+    }
+    .pill:active {
+      transform: scale(0.972);
+    }
+    .pill.sm { height: 32px; padding: 0 12px; font-size: 12px; }
+    .pill.lg { height: 44px; padding: 0 20px; font-size: 14px; }
+    .pill.prism {
+      background: var(--spec-sheen), var(--grad-prism);
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: var(--glow-brand), var(--lift-inset);
+    }
+    .pill.obsidian {
+      background: var(--grad-obsidian);
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 10px 24px -4px rgba(8, 13, 26, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+    .pill.signal {
+      background: var(--c-accent);
+      color: #FFFFFF;
+      border-color: var(--c-accent);
+      box-shadow: 0 8px 20px -4px rgba(47, 91, 255, 0.42), var(--lift-inset);
+    }
+    .pill.dashed {
+      border: 1.5px dashed var(--c-line-strong);
+      background: color-mix(in srgb, var(--c-surface) 65%, transparent);
+      color: var(--c-ink-2);
+      box-shadow: none;
+    }
+    .pill.mint {
+      background: var(--c-success-tint);
+      border-color: color-mix(in srgb, var(--c-success) 25%, transparent);
+      color: var(--c-success);
+    }
+    .pill.cobalt {
+      background: var(--c-surface);
+      border-color: color-mix(in srgb, var(--c-accent) 30%, var(--c-line));
+      color: var(--c-accent-text);
+    }
+    .pill.well {
+      background: var(--c-well);
+      border-color: var(--c-line);
+      color: var(--c-ink-2);
+      box-shadow: var(--well-inset);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ring-spin {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1.8px dashed var(--c-accent);
+      animation: spin 5s linear infinite;
+      display: inline-block;
+    }
+    .dot-emerald {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--c-success);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-success) 20%, transparent);
+    }
+
+    /* ==========================================================================
+       Hero Variant C — Live Demo On Top (Concept 1 + Concept 2 + Concept 3)
+       ========================================================================== */
+    .hero-c {
+      max-width: 1320px;
+      margin: 28px auto 0;
+      padding: 0 24px 56px;
+    }
+    .hero-head {
+      text-align: center;
+      max-width: 860px;
+      margin: 0 auto 28px;
+    }
+    .hero-head h1 {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 5vw, 60px);
+      font-weight: 700;
+      line-height: 1.04;
+      letter-spacing: -0.038em;
+      margin: 14px 0 14px;
+    }
+    .seamless-box {
+      display: inline-block;
+      padding: 2px 14px 6px;
+      border-radius: 16px;
+      border: 2px dashed var(--c-accent);
+      background: var(--c-accent-tint);
+      color: var(--c-accent);
+      transform: rotate(-1.5deg);
+      position: relative;
+    }
+    .cursor-tag {
+      position: absolute;
+      left: -68px;
+      bottom: -22px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--c-accent);
+      color: #FFFFFF;
+      box-shadow: 0 6px 14px rgba(47, 91, 255, 0.35);
+      transform: rotate(1.5deg);
+      white-space: nowrap;
+    }
+    .hero-sub {
+      font-size: 16.5px;
+      color: var(--c-ink-2);
+      max-width: 60ch;
+      margin: 0 auto 22px;
+    }
+    .split-cta {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c-surface) 78%, var(--c-well));
+      border: 1px solid var(--c-line);
+      box-shadow: var(--lift-2), var(--lift-inset);
+      gap: 4px;
+    }
+
+    /* Concept 1 Interactive Tactile Pill Cluster Ribbon */
+    .pill-kit-stage {
+      background: color-mix(in srgb, var(--c-surface) 75%, transparent);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--c-line);
+      border-radius: 26px;
+      padding: 20px 24px;
+      margin-bottom: 22px;
+      box-shadow: var(--lift-2), var(--lift-inset);
+    }
+    .pill-kit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--c-ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .pill-kit-rows {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .seg-trough {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 40px;
+      padding: 4px;
+      border-radius: 999px;
+      background: var(--c-well);
+      border: 1px solid var(--c-line);
+      box-shadow: var(--well-inset);
+    }
+    .seg-btn {
+      height: 30px;
+      width: 36px;
+      border-radius: 999px;
+      border: 0;
+      background: transparent;
+      color: var(--c-ink-2);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 140ms;
+    }
+    .seg-btn.active {
+      background: var(--c-surface);
+      color: var(--c-ink);
+      box-shadow: var(--lift-1);
+    }
+    .stepper-compound {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 42px;
+      padding: 4px 5px 4px 16px;
+      border-radius: 999px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      box-shadow: var(--lift-1), var(--lift-inset);
+      font-size: 13px;
+    }
+    .search-trough {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 42px;
+      padding: 4px 5px 4px 16px;
+      border-radius: 999px;
+      background: var(--c-well);
+      border: 1px solid var(--c-line);
+      box-shadow: var(--well-inset);
+    }
+    .search-trough input {
+      border: 0;
+      background: transparent;
+      color: var(--c-ink);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      width: 120px;
+      outline: none;
+    }
+    .search-lens {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--c-line);
+      background: var(--c-surface);
+      color: var(--c-ink-2);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--lift-1);
+      cursor: pointer;
+    }
+
+    /* Concept 2 Double-Framed Stage Bezel */
+    .double-bezel {
+      padding: 14px;
+      border-radius: 34px;
+      background: color-mix(in srgb, var(--c-surface) 84%, transparent);
+      border: 1px solid var(--c-line);
+      box-shadow: var(--lift-3), var(--lift-inset);
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 1040px) {
+      .double-bezel { grid-template-columns: 1fr; }
+    }
+    .tilted-stage {
+      background: var(--c-well);
+      border: 1px solid var(--c-line);
+      border-radius: 22px;
+      padding: 22px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+      box-shadow: var(--well-inset);
+      overflow: hidden;
+    }
+    .tilt-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 18px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      box-shadow: var(--lift-2), var(--lift-inset);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tilt-pill:nth-child(1) { transform: rotate(-2.4deg) translateX(-4px); }
+    .tilt-pill:nth-child(2) { transform: rotate(1.8deg) translateX(8px); }
+    .tilt-pill:nth-child(3) { transform: rotate(-1.4deg) translateX(-2px); }
+    .tilt-pill:nth-child(4) { transform: rotate(2.1deg) translateX(6px); }
+    .tilt-pill:hover { transform: rotate(0deg) scale(1.02); border-color: var(--c-accent); }
+
+    /* Live App Shell Preview inside Hero C */
+    .app-stage {
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      border-radius: 22px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 204px minmax(0, 1fr);
+      min-height: 470px;
+      box-shadow: var(--lift-1);
+    }
+    @media (max-width: 780px) {
+      .app-stage { grid-template-columns: 1fr; }
+    }
+    .app-side {
+      background: color-mix(in srgb, var(--c-canvas) 65%, var(--c-surface));
+      border-right: 1px solid var(--c-line);
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .app-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--c-ink-2);
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .app-nav-item.active {
+      background: var(--c-surface);
+      border-color: var(--c-line);
+      color: var(--c-accent-text);
+      box-shadow: var(--lift-1);
+    }
+    .app-workspace {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .app-topbar {
+      height: 50px;
+      border-bottom: 1px solid var(--c-line);
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .kanban-grid {
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+      background: color-mix(in srgb, var(--c-canvas) 55%, var(--c-surface));
+      flex: 1;
+    }
+    .k-col {
+      background: var(--c-well);
+      border: 1px solid var(--c-line);
+      border-radius: 16px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .k-bar {
+      height: 3px;
+      border-radius: 99px;
+      margin-bottom: 2px;
+    }
+    .k-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .k-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      border-radius: 12px;
+      padding: 10px 11px;
+      box-shadow: var(--lift-1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .k-card h4 {
+      margin: 0;
+      font-size: 12.5px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .k-card p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--c-ink-3);
+      line-height: 1.4;
+    }
+
+    /* ==========================================================================
+       Rail A — 176px Sticky Per-Section Architecture (Sections 01 .. 07)
+       ========================================================================== */
+    .showcase-section {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 56px 24px;
+      border-top: 1px solid var(--c-line);
+      display: grid;
+      grid-template-columns: 176px minmax(0, 1fr);
+      gap: 36px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .showcase-section { grid-template-columns: 1fr; gap: 16px; }
+    }
+    .rail-a {
+      position: sticky;
+      top: 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+    }
+    .rail-num {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--c-accent);
+      letter-spacing: 0.08em;
+    }
+    .rail-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--c-ink);
+    }
+    .rail-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--c-ink-3);
+    }
+
+    .sec-body {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-width: 0;
+    }
+    .sec-lead h2 {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 8px;
+    }
+    .sec-lead p {
+      margin: 0;
+      color: var(--c-ink-2);
+      font-size: 15px;
+      max-width: 68ch;
+    }
+
+    .plate-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: var(--lift-1), var(--lift-inset);
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 860px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    /* Swatches & Contrast Table */
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 12px;
+    }
+    .swatch {
+      background: var(--c-surface);
+      border: 1px solid var(--c-line);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: var(--lift-1);
+    }
+    .swatch-chip {
+      height: 68px;
+      border-radius: 12px;
+      border: 1px solid rgba(13, 21, 38, 0.08);
+      margin-bottom: 10px;
+    }
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .ledger-table th, .ledger-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--c-line);
+    }
+    .ledger-table th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--c-ink-3);
+    }
+    .pass-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      background: var(--c-success-tint);
+      color: var(--c-success);
+    }
+    .fail-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      background: var(--c-danger-tint);
+      color: var(--c-danger);
+    }
+
+    /* Custom Select Demo */
+    .select-demo-pop {
+      border-radius: 20px;
+      border: 1px solid var(--c-line);
+      background: var(--c-raised);
+      padding: 8px;
+      box-shadow: var(--lift-2), var(--lift-inset);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .select-demo-opt {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .select-demo-opt.selected {
+      background: var(--c-accent-tint);
+      color: var(--c-accent-text);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Capsule Topbar -->
+  <div class="topbar-wrap">
+    <header class="topbar">
+      <a href="#top" class="brand-lockup">
+        <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="15" fill="#0D1526"/>
+          <path d="M10 38 H54 V50 H10 Z" fill="#FFFFFF"/>
+          <path d="M10 20 H25 L38 7 H54 V19 H42 L29 32 H10 Z" fill="#5C82FF"/>
+          <circle cx="50" cy="29" r="3.5" fill="#FF8B6A"/>
+        </svg>
+        <strong>Switchyard</strong>
+        <span class="lite-tag">LITE · v2.0</span>
+      </a>
+      <nav class="top-links" aria-label="Showcase sections">
+        <a href="#s01">01 Premise</a>
+        <a href="#s02">02 Mark &amp; Cast</a>
+        <a href="#s03">03 Colour &amp; CVD</a>
+        <a href="#s04">04 Type Scale</a>
+        <a href="#s05">05 Base UI Kit</a>
+        <a href="#s06">06 Field Art</a>
+        <a href="#s07">07 Tokens</a>
+        <a href="./anatomy.html">Anatomy Sheet ↗</a>
+      </nav>
+      <div class="top-actions">
+        <button type="button" class="pill sm" id="themeBtn" onclick="document.documentElement.classList.toggle('dark')">
+          <span>◐ Day / Night</span>
+        </button>
+        <a href="#s05" class="pill sm obsidian">Explore UI Kit →</a>
+      </div>
+    </header>
+  </div>
+
+  <!-- ========================================================================
+       HERO VARIANT C — Live Interactive Pill Kit & Kanban App Shell Stage
+       ======================================================================== -->
+  <section class="hero-c" id="top">
+    <div class="hero-head">
+      <span class="pill sm" style="gap:6px;">
+        <span class="dot-emerald"></span>
+        <span>Standalone Go + SQLite + React Control Plane</span>
+      </span>
+      <h1>
+        Your Daily Control Plane for<br />
+        <span class="seamless-box">
+          Autonomous
+          <span class="cursor-tag">node-agent · 4ms</span>
+        </span>
+        Agent Dispatch
+      </h1>
+      <p class="hero-sub">
+        Queue tasks, isolate every run inside a dedicated <code class="mono">sy/&lt;task-id&gt;</code> git worktree,
+        and approve clean diffs from one tactile porcelain-and-sky control surface.
+      </p>
+      <div class="split-cta">
+        <a href="#s05" class="pill signal">Inspect Base Components</a>
+        <a href="./anatomy.html" class="pill" style="border-color:transparent; box-shadow:none; background:transparent;">View Redline Anatomy →</a>
+      </div>
+    </div>
+
+    <!-- Concept 1: Live Interactive Tactile Pill Cluster -->
+    <div class="pill-kit-stage" aria-label="Tactile Capsule UI Kit">
+      <div class="pill-kit-header">
+        <span>Tactile Capsule Primitives · Concept 01 Live Stage</span>
+        <span>Radius: 999px Capsule · Concentric: 20px − 8px = 12px</span>
+      </div>
+      <div class="pill-kit-rows">
+        <!-- 1. Ask AI Prism Gradient Pill -->
+        <button type="button" class="pill prism" onclick="this.querySelector('.lbl').textContent = this.querySelector('.lbl').textContent === 'Ask AI' ? 'Synthesizing DAG…' : 'Ask AI'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z"/></svg>
+          <span class="lbl">Ask AI</span>
+        </button>
+
+        <!-- 2. Avatar Chip (Ella M. ×) -->
+        <span class="pill" style="padding-left:6px; padding-right:10px;">
+          <span style="width:26px;height:26px;border-radius:999px;background:var(--grad-prism);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">EM</span>
+          <span>Ella M.</span>
+          <span style="color:var(--c-ink-4);font-size:15px;padding:0 2px;">×</span>
+        </span>
+
+        <!-- 3. Dashed Upload Pill -->
+        <button type="button" class="pill dashed">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/></svg>
+          <span>Upload Patch</span>
+        </button>
+
+        <!-- 4. Filter · 2 | × Pill -->
+        <span class="pill" id="demoFilterPill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4-2v-4L3 5z"/></svg>
+          <span>Filter</span>
+          <span style="color:var(--c-ink-4);">·</span>
+          <span class="mono" style="color:var(--c-accent);font-weight:700;" id="filterCount">2</span>
+          <span style="width:1px;height:16px;background:var(--c-line);margin:0 2px;"></span>
+          <span style="color:var(--c-ink-3);cursor:pointer;" onclick="document.getElementById('filterCount').textContent = document.getElementById('filterCount').textContent === '2' ? '0' : '2'">×</span>
+        </span>
+
+        <!-- 5. 3-Way Segmented Well Toggle -->
+        <div class="seg-trough" role="group" aria-label="View mode">
+          <button type="button" class="seg-btn active" onclick="for(const b of this.parentElement.children)b.classList.remove('active');this.classList.add('active')" title="Kanban columns">≡</button>
+          <button type="button" class="seg-btn" onclick="for(const b of this.parentElement.children)b.classList.remove('active');this.classList.add('active')" title="DAG graph">☍</button>
+          <button type="button" class="seg-btn" onclick="for(const b of this.parentElement.children)b.classList.remove('active');this.classList.add('active')" title="Worktree table">▤</button>
+        </div>
+
+        <!-- 6. Compound Stepper + Prism CTA (30 mins ⌄ [Book a Call / Dispatch]) -->
+        <div class="stepper-compound">
+          <span class="mono" style="font-weight:700;" id="leaseVal">30</span>
+          <span style="color:var(--c-ink-3);">mins</span>
+          <button type="button" style="border:0;background:transparent;color:var(--c-ink-3);cursor:pointer;padding:0 2px;" onclick="document.getElementById('leaseVal').textContent = document.getElementById('leaseVal').textContent === '30' ? '60' : '30'">⌄</button>
+          <button type="button" class="pill sm prism" style="height:32px;">Dispatch Lease</button>
+        </div>
+
+        <!-- 7. Sidebar Collapse Icon Pill -->
+        <button type="button" class="pill" style="width:38px;padding:0;" aria-label="Toggle sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+        </button>
+
+        <!-- 8. Online Mint Status Pill -->
+        <span class="pill mint">
+          <span class="dot-emerald"></span>
+          <span>Online</span>
+        </span>
+
+        <!-- 9. In Progress Dashed Spinning Ring Pill -->
+        <span class="pill cobalt">
+          <span class="ring-spin"></span>
+          <span>In progress</span>
+        </span>
+
+        <!-- 10. Recessed Search Well + Raised White Circular Lens Button -->
+        <div class="search-trough">
+          <input type="text" placeholder="Search tasks…" aria-label="Search tasks" />
+          <button type="button" class="search-lens" aria-label="Run search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concept 2 & 3: Double-Framed Stage Bezel with Tilted Status Pills + Kanban App Shell -->
+    <div class="double-bezel">
+      <!-- Left: Tilted Status Stack (Concept 2) -->
+      <div class="tilted-stage" aria-label="Status machine stack">
+        <div class="tilt-pill" onclick="filterHeroKanban('done')">
+          <span style="display:inline-flex;align-items:center;gap:10px;">
+            <span class="dot-emerald"></span>
+            <span>Done</span>
+          </span>
+          <span class="mono" style="color:var(--c-ink-3);font-size:12px;">+  ⋯</span>
+        </div>
+        <div class="tilt-pill" onclick="filterHeroKanban('review')">
+          <span style="display:inline-flex;align-items:center;gap:10px;">
+            <span style="width:9px;height:9px;border-radius:999px;background:var(--c-warning);"></span>
+            <span>Need Review</span>
+          </span>
+          <span class="mono" style="color:var(--c-ink-3);font-size:12px;">+  ⋯</span>
+        </div>
+        <div class="tilt-pill" onclick="filterHeroKanban('in_progress')">
+          <span style="display:inline-flex;align-items:center;gap:10px;">
+            <span style="width:9px;height:9px;border-radius:999px;background:var(--c-accent);"></span>
+            <span>In Progress</span>
+          </span>
+          <span class="mono" style="color:var(--c-ink-3);font-size:12px;">+  ⋯</span>
+        </div>
+        <div class="tilt-pill" onclick="filterHeroKanban('all')">
+          <span style="display:inline-flex;align-items:center;gap:10px;">
+            <span style="width:9px;height:9px;border-radius:999px;background:#FF8B6A;"></span>
+            <span>New Request (All)</span>
+          </span>
+          <span class="mono" style="color:var(--c-ink-3);font-size:12px;">+  ⋯</span>
+        </div>
+      </div>
+
+      <!-- Right: Live Switchyard Lite App Shell Stage -->
+      <div class="app-stage">
+        <aside class="app-side">
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 8px;">
+            <svg width="22" height="22" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0D1526"/><path d="M10 38 H54 V50 H10 Z" fill="#FFFFFF"/><path d="M10 20 H25 L38 7 H54 V19 H42 L29 32 H10 Z" fill="#5C82FF"/><circle cx="50" cy="29" r="3.5" fill="#FF8B6A"/></svg>
+            <strong style="font-family:var(--font-display);font-size:14px;">Switchyard</strong>
+            <span class="lite-tag">LITE</span>
+          </div>
+          <div class="app-nav-item active">
+            <span>☷ Board</span>
+            <span class="mono" style="font-size:10px;color:var(--c-accent);">8</span>
+          </div>
+          <div class="app-nav-item">
+            <span>⑂ Review Diffs</span>
+            <span class="mono" style="font-size:10px;padding:1px 6px;border-radius:999px;background:var(--c-warning-tint);color:var(--c-warning);">2</span>
+          </div>
+          <div class="app-nav-item"><span>☍ Pipelines DAG</span></div>
+          <div class="app-nav-item"><span>⌂ Workspaces</span></div>
+          <div class="app-nav-item"><span>⚙ Workers</span></div>
+          <div style="margin-top:auto;padding-top:10px;border-top:1px solid var(--c-line);font-family:var(--font-mono);font-size:10.5px;color:var(--c-ink-3);padding-left:8px;">
+            WAL · modernc/sqlite
+          </div>
+        </aside>
+
+        <div class="app-workspace">
+          <div class="app-topbar">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <strong style="font-family:var(--font-display);font-size:15px;">Core Control Plane</strong>
+              <span class="pill sm mint" style="height:24px;padding:0 9px;font-size:11px;">claude-sonnet-4</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="pill sm signal" style="height:26px;padding:0 10px;font-size:11px;">Filter (1)</span>
+              <span class="pill sm" style="height:26px;padding:0 10px;font-size:11px;">+ New Task</span>
+            </div>
+          </div>
+
+          <div class="kanban-grid" id="heroKanban">
+            <!-- Col 1: Todo -->
+            <div class="k-col" data-col="todo">
+              <div class="k-bar" style="background:var(--c-ink-3);"></div>
+              <div class="k-head"><span>To-do</span><span class="mono" style="color:var(--c-ink-3);">2</span></div>
+              <div class="k-card">
+                <span class="mono" style="font-size:10px;color:var(--c-ink-3);">sy/t_104 · claude</span>
+                <h4>Atomic lease reaper backoff</h4>
+                <p>Requeue expired node-agent claims cleanly to todo.</p>
+              </div>
+              <div class="k-card">
+                <span class="mono" style="font-size:10px;color:var(--c-ink-3);">sy/t_108 · codex</span>
+                <h4>Streamable HTTP /mcp health</h4>
+                <p>Expose 20 tools over stateless JSON-RPC.</p>
+              </div>
+            </div>
+
+            <!-- Col 2: In Progress -->
+            <div class="k-col" data-col="in_progress">
+              <div class="k-bar" style="background:var(--c-accent);"></div>
+              <div class="k-head"><span>In Progress</span><span class="mono" style="color:var(--c-accent);">2</span></div>
+              <div class="k-card" style="border-color:color-mix(in srgb, var(--c-accent) 45%, var(--c-line));">
+                <span class="pill sm cobalt" style="height:22px;padding:0 8px;font-size:10.5px;align-self:flex-start;">
+                  <span class="ring-spin" style="width:10px;height:10px;"></span>
+                  <span>In progress</span>
+                </span>
+                <h4>Per-task git worktree isolation</h4>
+                <p>Branching <code class="mono">sy/t_112</code> from base SHA <code class="mono">7aa2ad8</code>.</p>
+              </div>
+              <div class="k-card">
+                <span class="mono" style="font-size:10px;color:var(--c-accent);">sy/t_115 · gemini</span>
+                <h4>DAG cycle detector benchmark</h4>
+                <p>Verify topological sort under 500 task edges.</p>
+              </div>
+            </div>
+
+            <!-- Col 3: Need Review -->
+            <div class="k-col" data-col="review">
+              <div class="k-bar" style="background:var(--c-warning);"></div>
+              <div class="k-head"><span>Need Review</span><span class="mono" style="color:var(--c-warning);">2</span></div>
+              <div class="k-card">
+                <span class="mono" style="font-size:10px;color:var(--c-warning);">+142 −18 · sy/t_099</span>
+                <h4>Capsule Select &amp; AppShell kit</h4>
+                <p>Ready for worktree diff approval or auto-merge.</p>
+              </div>
+              <div class="k-card">
+                <span class="mono" style="font-size:10px;color:var(--c-warning);">+64 −9 · sy/t_101</span>
+                <h4>Model catalog cache proxy</h4>
+                <p>TTL cache for <code class="mono">GET /api/models?executor=</code>.</p>
+              </div>
+            </div>
+
+            <!-- Col 4: Done -->
+            <div class="k-col" data-col="done">
+              <div class="k-bar" style="background:var(--c-success);"></div>
+              <div class="k-head"><span>Done</span><span class="mono" style="color:var(--c-success);">2</span></div>
+              <div class="k-card">
+                <span class="pill sm mint" style="height:22px;padding:0 8px;font-size:10.5px;align-self:flex-start;">
+                  <span class="dot-emerald" style="width:6px;height:6px;"></span>
+                  <span>Completed</span>
+                </span>
+                <h4>SQLite WAL schema bootstrap</h4>
+                <p>Embedded <code class="mono">schema_dispatch.sql</code> &amp; <code class="mono">schema_pipeline.sql</code>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       01 — BRAND PREMISE (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s01">
+    <aside class="rail-a">
+      <span class="rail-num">01 / PREMISE</span>
+      <span class="rail-title">Atmospheric Sky &amp; Tactile Pill</span>
+      <span class="rail-meta">Contract #15 · Glass &amp; Capsule</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Industrial git orchestration, dressed in calm daylight porcelain.</h2>
+        <p>
+          Coding-agent control planes usually default to claustrophobic terminal black. Switchyard Lite inverts
+          the convention: an airy periwinkle blueprint sky (<code class="mono">#F1F4FB</code>) hosts tactile porcelain
+          capsule plates (<code class="mono">#FFFFFF</code>), recessed cool-sky wells (<code class="mono">#E4EAF7</code>),
+          and high-visibility status lamps that let an engineer read 40 concurrent agent worktrees at a glance.
+        </p>
+      </div>
+      <div class="grid-3">
+        <div class="plate-card">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);margin-bottom:6px;">PILLAR 01 · CAPSULE PHYSICS</div>
+          <h3 style="margin:0 0 8px;font-family:var(--font-display);">999px Tactile Plates</h3>
+          <p style="margin:0;color:var(--c-ink-2);font-size:13.5px;">
+            Every interactive trigger—Button, FilterPill, StatusPill, SearchField, and SelectTrigger—shares a unified
+            <code class="mono">999px</code> capsule silhouette with a <code class="mono">1px</code> top inner specular highlight
+            and <code class="mono">scale(0.972)</code> active press physics.
+          </p>
+        </div>
+        <div class="plate-card">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);margin-bottom:6px;">PILLAR 02 · CONCENTRIC NESTING</div>
+          <h3 style="margin:0 0 8px;font-family:var(--font-display);">R_outer − Padding = R_inner</h3>
+          <p style="margin:0;color:var(--c-ink-2);font-size:13.5px;">
+            Popovers, Kanban wells, and double-bezel stages obey strict concentric curvature: a <code class="mono">20px</code>
+            Select popover with <code class="mono">8px</code> viewport padding houses <code class="mono">12px</code> option rows.
+          </p>
+        </div>
+        <div class="plate-card">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);margin-bottom:6px;">PILLAR 03 · HONEST TELEMETRY</div>
+          <h3 style="margin:0 0 8px;font-family:var(--font-display);">CVD-Safe Status Lamps</h3>
+          <p style="margin:0;color:var(--c-ink-2);font-size:13.5px;">
+            Status pills never rely on hue alone: <code class="mono">Online</code> pairs a solid emerald dot, <code class="mono">In progress</code>
+            spins a dashed cobalt ring, and <code class="mono">Need Review</code> renders a thick hollow amber ring.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       02 — MARK & 6-MARK COMPANION CAST (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s02">
+    <aside class="rail-a">
+      <span class="rail-num">02 / MARK &amp; CAST</span>
+      <span class="rail-title">The Parallel Turnout Switch</span>
+      <span class="rail-meta">64×64 Grid + 16px Compact</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Two parallel rail tracks separated by a 6-unit insulating air gap.</h2>
+        <p>
+          Constructed on a <code class="mono">64×64</code> Kuwayama grid: the lower through-track (<code class="mono">y=38..50</code>)
+          anchors the main branch while the upper turnout track (<code class="mono">y=20..32</code>) climbs <code class="mono">45°</code>
+          into a per-task <code class="mono">sy/&lt;task-id&gt;</code> worktree siding, locked by a coral signal dot (<code class="mono">cx=50, cy=29</code>).
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="plate-card" style="display:flex;flex-direction:column;gap:14px;">
+          <div class="mono" style="font-size:11px;color:var(--c-ink-3);">PRIMARY CONSTRUCTION · 64×64 VIEWBOX</div>
+          <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+            <img src="./brand/switchyard-lite/logo-construction.svg" alt="Switchyard Lite mark construction grid" style="width:180px;height:180px;border-radius:18px;border:1px solid var(--c-line);background:#fff;padding:8px;" />
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <img src="./brand/switchyard-lite/logo-lockup.svg" alt="Switchyard Lite lockup" style="height:48px;width:auto;" />
+              <div style="display:flex;align-items:center;gap:14px;">
+                <span class="mono" style="font-size:11px;color:var(--c-ink-3);">64px / 32px / 16px compact swap:</span>
+                <img src="./brand/switchyard-lite/logo-mark.svg" alt="64px mark" width="44" height="44" />
+                <img src="./brand/switchyard-lite/logo-mark.svg" alt="28px mark" width="28" height="28" />
+                <img src="./brand/switchyard-lite/logo-compact.svg" alt="16px compact mark" width="16" height="16" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="plate-card">
+          <div class="mono" style="font-size:11px;color:var(--c-ink-3);margin-bottom:12px;">6-MARK COMPANION CAST (SUBSYSTEM GLYPHS)</div>
+          <div class="grid-3" style="gap:10px;">
+            <div style="padding:12px;border-radius:14px;background:var(--c-well);display:flex;align-items:center;gap:10px;">
+              <img src="./brand/switchyard-lite/cast-turnout.svg" alt="Turnout" width="32" height="32" />
+              <div><strong style="font-size:12px;display:block;">Turnout</strong><span class="mono" style="font-size:10px;color:var(--c-ink-3);">Core Switch</span></div>
+            </div>
+            <div style="padding:12px;border-radius:14px;background:var(--c-well);display:flex;align-items:center;gap:10px;">
+              <img src="./brand/switchyard-lite/cast-capsule.svg" alt="Capsule" width="32" height="32" />
+              <div><strong style="font-size:12px;display:block;">Capsule</strong><span class="mono" style="font-size:10px;color:var(--c-ink-3);">Pill UI Kit</span></div>
+            </div>
+            <div style="padding:12px;border-radius:14px;background:var(--c-well);display:flex;align-items:center;gap:10px;">
+              <img src="./brand/switchyard-lite/cast-worktree.svg" alt="Worktree" width="32" height="32" />
+              <div><strong style="font-size:12px;display:block;">Worktree</strong><span class="mono" style="font-size:10px;color:var(--c-ink-3);">sy/&lt;task&gt;</span></div>
+            </div>
+            <div style="padding:12px;border-radius:14px;background:var(--c-well);display:flex;align-items:center;gap:10px;">
+              <img src="./brand/switchyard-lite/cast-lease.svg" alt="Lease" width="32" height="32" />
+              <div><strong style="font-size:12px;display:block;">Lease</strong><span class="mono" style="font-size:10px;color:var(--c-ink-3);">Claim Timer</span></div>
+            </div>
+            <div style="padding:12px;border-radius:14px;background:var(--c-well);display:flex;align-items:center;gap:10px;">
+              <img src="./brand/switchyard-lite/cast-diff.svg" alt="Diff" width="32" height="32" />
+              <div><strong style="font-size:12px;display:block;">Diff Gate</strong><span class="mono" style="font-size:10px;color:var(--c-ink-3);">Review SHA</span></div>
+            </div>
+            <div style="padding:12px;border-radius:14px;background:var(--c-well);display:flex;align-items:center;gap:10px;">
+              <img src="./brand/switchyard-lite/cast-dag.svg" alt="DAG" width="32" height="32" />
+              <div><strong style="font-size:12px;display:block;">Pipeline</strong><span class="mono" style="font-size:10px;color:var(--c-ink-3);">DAG Stage</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       03 — COLOUR PALETTE, HONEST CONTRAST LEDGER & CVD GATE (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s03">
+    <aside class="rail-a">
+      <span class="rail-num">03 / COLOUR</span>
+      <span class="rail-title">15 Primitives &amp; Contrast Ledger</span>
+      <span class="rail-meta">min ΔE_OK = 0.061 ≥ 0.045</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Atmospheric cloud sky paired with high-chroma signal lamps.</h2>
+        <p>
+          All 15 <code class="mono">--sy-*</code> primitives are audited for WCAG 2.2 contrast and Brettel/Viénot
+          color-vision deficiency separation (<code class="mono">min ΔE_OK = 0.061</code> across protanopia, deuteranopia,
+          and tritanopia). Three decorative fills intentionally fail body-text contrast and are restricted by rule.
+        </p>
+      </div>
+
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-chip" style="background:#F1F4FB;"></div><strong class="mono">--sy-ground</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#F1F4FB · Cloud Sky</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#FFFFFF;"></div><strong class="mono">--sy-plate</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#FFFFFF · Porcelain</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#E4EAF7;"></div><strong class="mono">--sy-well</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#E4EAF7 · Recessed Trough</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#0D1526;"></div><strong class="mono">--sy-ink</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#0D1526 · Obsidian Ink</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#4A5878;"></div><strong class="mono">--sy-slate</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#4A5878 · Secondary Slate</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#2F5BFF;"></div><strong class="mono">--sy-accent</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#2F5BFF · Switch Cobalt</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:linear-gradient(128deg,#FF9E68,#FF6B9E,#C86BFF,#2F5BFF);"></div><strong class="mono">--grad-prism</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">Coral → Orchid → Cobalt</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#13794B;"></div><strong class="mono">--sy-success</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#13794B · Online Emerald</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#BCEFD4;"></div><strong class="mono">--sy-mint</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#BCEFD4 · Mint Pill Wash</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#965600;"></div><strong class="mono">--sy-warning</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#965600 · Lease Amber</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#C8322B;"></div><strong class="mono">--sy-danger</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#C8322B · Fault Crimson</div></div>
+        <div class="swatch"><div class="swatch-chip" style="background:#080D1A;"></div><strong class="mono">--sy-night</strong><div class="mono" style="font-size:11px;color:var(--c-ink-3);">#080D1A · Night Scope</div></div>
+      </div>
+
+      <div class="plate-card">
+        <div class="mono" style="font-size:11px;color:var(--c-ink-3);margin-bottom:10px;">MEASURED CONTRAST LEDGER (9 PASS · 3 PUBLISHED FAILS)</div>
+        <table class="ledger-table">
+          <thead>
+            <tr><th>Pair</th><th>Hex Pair</th><th>Measured Ratio</th><th>Gate</th><th>Usage Rule</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>ink on ground</strong></td><td class="mono">#0D1526 / #F1F4FB</td><td class="mono">16.32 : 1</td><td><span class="pass-pill">AAA PASS</span></td><td>Primary display &amp; body copy on sky canvas</td></tr>
+            <tr><td><strong>ink on plate</strong></td><td class="mono">#0D1526 / #FFFFFF</td><td class="mono">18.15 : 1</td><td><span class="pass-pill">AAA PASS</span></td><td>Card titles, pill labels &amp; dialog text</td></tr>
+            <tr><td><strong>slate on plate</strong></td><td class="mono">#4A5878 / #FFFFFF</td><td class="mono">7.08 : 1</td><td><span class="pass-pill">AAA PASS</span></td><td>Secondary UI copy &amp; descriptions</td></tr>
+            <tr><td><strong>plate on accent</strong></td><td class="mono">#FFFFFF / #2F5BFF</td><td class="mono">4.96 : 1</td><td><span class="pass-pill">AA PASS</span></td><td>Primary cobalt CTA button labels</td></tr>
+            <tr><td><strong>success on mint</strong></td><td class="mono">#13794B / #BCEFD4</td><td class="mono">4.51 : 1</td><td><span class="pass-pill">AA PASS</span></td><td>Concept 1 "● Online" mint status capsule</td></tr>
+            <tr><td><strong>warning on plate</strong></td><td class="mono">#965600 / #FFFFFF</td><td class="mono">5.76 : 1</td><td><span class="pass-pill">AA PASS</span></td><td>Need Review badge &amp; lease warning text</td></tr>
+            <tr><td><strong>danger on plate</strong></td><td class="mono">#C8322B / #FFFFFF</td><td class="mono">5.63 : 1</td><td><span class="pass-pill">AA PASS</span></td><td>Failed run &amp; destructive action labels</td></tr>
+            <tr><td><strong>muted on ground</strong></td><td class="mono">#8C9AB8 / #F1F4FB</td><td class="mono">2.55 : 1</td><td><span class="fail-pill">FAIL · DECO ONLY</span></td><td>Forbidden for body text; disabled placeholders &amp; dividers only</td></tr>
+            <tr><td><strong>coral on plate</strong></td><td class="mono">#FF8B6A / #FFFFFF</td><td class="mono">2.28 : 1</td><td><span class="fail-pill">FAIL · GRAD STOP</span></td><td>Prism gradient stop &amp; dark-ground signal dot only</td></tr>
+            <tr><td><strong>mint on plate</strong></td><td class="mono">#BCEFD4 / #FFFFFF</td><td class="mono">1.24 : 1</td><td><span class="fail-pill">FAIL · WASH FILL</span></td><td>Background wash only; always pair with <code class="mono">--sy-success</code> text</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       04 — TYPOGRAPHY & SCALES (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s04">
+    <aside class="rail-a">
+      <span class="rail-num">04 / TYPE SCALE</span>
+      <span class="rail-title">Space Grotesk + Plus Jakarta + JetBrains</span>
+      <span class="rail-meta">3-Role Orthogonal Stack</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Crisp geometric display, friendly capsule UI sans, and tabular mono telemetry.</h2>
+        <p>
+          Display headlines lock tight at <code class="mono">-0.038em</code> in <strong>Space Grotesk</strong>; dense Kanban cards
+          and capsule controls stay effortlessly legible at <code class="mono">12px–14px</code> in <strong>Plus Jakarta Sans</strong>;
+          worktree branches (<code class="mono">sy/t_42</code>), SHA hashes, and lease timers align in <strong>JetBrains Mono</strong>.
+        </p>
+      </div>
+
+      <div class="plate-card" style="display:flex;flex-direction:column;gap:18px;">
+        <div style="border-bottom:1px solid var(--c-line);padding-bottom:14px;">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);">ROLE 01 · DISPLAY · SPACE GROTESK 700 · clamp(38px, 5vw, 60px) / 1.04 / -0.038em</div>
+          <div style="font-family:var(--font-display);font-size:40px;font-weight:700;letter-spacing:-0.038em;line-height:1.06;margin-top:6px;">
+            Seamless Agent Orchestration
+          </div>
+        </div>
+        <div style="border-bottom:1px solid var(--c-line);padding-bottom:14px;">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);">ROLE 02 · UI &amp; READING · PLUS JAKARTA SANS 500/600/700 · 13px–16px / 1.5</div>
+          <div style="font-family:var(--font-sans);font-size:15px;color:var(--c-ink-2);margin-top:6px;">
+            Every task claim acquires an atomic SQLite lease, checks out an isolated git worktree branch, and streams structured events back to the board.
+          </div>
+        </div>
+        <div>
+          <div class="mono" style="font-size:11px;color:var(--c-accent);">ROLE 03 · TELEMETRY · JETBRAINS MONO 500/700 · tabular-nums</div>
+          <div class="mono" style="font-size:13px;margin-top:6px;padding:10px 14px;border-radius:12px;background:var(--c-well);">
+            branch: sy/t_042 · base_sha: 7aa2ad8c · lease_ttl: 00:29:41 · diff: +184 −22
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       05 — BASE DESIGN COMPONENTS: BUTTON, SELECT, PILL & APP SHELL (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s05">
+    <aside class="rail-a">
+      <span class="rail-num">05 / BASE UI KIT</span>
+      <span class="rail-title">Button, Select &amp; App Shell</span>
+      <span class="rail-meta">Production React Primitives</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Production React components wired into <code class="mono">web/src/components/ui/</code>.</h2>
+        <p>
+          Below are the interactive base components requested for Switchyard Lite: <strong>Button</strong>
+          (<code class="mono">button.tsx</code>), <strong>Select &amp; SearchSelect</strong> (<code class="mono">select.tsx</code>,
+          <code class="mono">search-select.tsx</code>), <strong>Pill Kit</strong> (<code class="mono">pill.tsx</code>),
+          and <strong>AppShell</strong> (<code class="mono">app-shell.tsx</code>).
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Base Component 1: Button Matrix -->
+        <div class="plate-card">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);margin-bottom:6px;">COMPONENT 01 · web/src/components/ui/button.tsx</div>
+          <h3 style="margin:0 0 14px;font-family:var(--font-display);">Capsule Button Variants &amp; Sizes</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+            <button type="button" class="pill prism">✦ Ask AI (prism)</button>
+            <button type="button" class="pill obsidian">Book a Call (obsidian)</button>
+            <button type="button" class="pill signal">Get Started (signal)</button>
+            <button type="button" class="pill">Default Plate</button>
+            <button type="button" class="pill well">Secondary Well</button>
+            <button type="button" class="pill dashed">↑ Upload (dashed)</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--c-line);">
+            <span class="mono" style="font-size:11px;color:var(--c-ink-3);">Sizes:</span>
+            <button type="button" class="pill" style="height:24px;padding:0 10px;font-size:11px;">xs · 24px</button>
+            <button type="button" class="pill sm">sm · 32px</button>
+            <button type="button" class="pill" style="height:36px;">default · 36px</button>
+            <button type="button" class="pill lg">lg · 44px</button>
+          </div>
+        </div>
+
+        <!-- Base Component 2: Capsule Select & SearchSelect -->
+        <div class="plate-card">
+          <div class="mono" style="font-size:11px;color:var(--c-accent);margin-bottom:6px;">COMPONENT 02 · web/src/components/ui/select.tsx</div>
+          <h3 style="margin:0 0 14px;font-family:var(--font-display);">Capsule Select &amp; Concentric Popover</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button type="button" class="pill" style="justify-content:space-between;width:100%;">
+              <span style="display:inline-flex;align-items:center;gap:8px;">
+                <span class="dot-emerald"></span>
+                <span>Executor: <strong>claude-sonnet-4</strong></span>
+              </span>
+              <span class="mono" style="font-size:11px;color:var(--c-ink-3);">999px Trigger ⌄</span>
+            </button>
+            <div class="select-demo-pop" role="listbox" aria-label="Executor options">
+              <div style="padding:6px 10px;border-radius:999px;background:var(--c-well);font-size:12px;color:var(--c-ink-3);margin-bottom:4px;">
+                🔍 Filter executors &amp; models…
+              </div>
+              <div class="select-demo-opt selected" role="option" aria-selected="true">
+                <span>claude · Claude 4 Sonnet</span>
+                <span class="mono" style="font-size:11px;">✓</span>
+              </div>
+              <div class="select-demo-opt" role="option" aria-selected="false">
+                <span>codex · GPT-5 Codex High</span>
+                <span class="mono" style="font-size:10px;color:var(--c-ink-3);">fast</span>
+              </div>
+              <div class="select-demo-opt" role="option" aria-selected="false">
+                <span>gemini · Gemini 2.5 Pro</span>
+                <span class="mono" style="font-size:10px;color:var(--c-ink-3);">1M ctx</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       06 — PROCEDURAL FIELD ART & 6-PANEL BOARD (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s06">
+    <aside class="rail-a">
+      <span class="rail-num">06 / FIELD ART</span>
+      <span class="rail-title">6-Panel Board &amp; SVG Fields</span>
+      <span class="rail-meta">3000×2250 @2x PNG</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Generated 6-panel brandkit board and 10 procedural SVG field plates.</h2>
+        <p>
+          Compiled deterministically from <code class="mono">brand/switchyard-lite.brand.json</code> via <code class="mono">forge.mjs</code>.
+        </p>
+      </div>
+      <div class="plate-card" style="padding:14px;">
+        <img src="./brand/switchyard-lite/switchyard-lite-brandkit.png" alt="Switchyard Lite 6-panel brandkit board" style="width:100%;height:auto;border-radius:14px;display:block;" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       07 — DUAL-SCOPE TOKENS (DAYLIGHT + NIGHT CONTROL PLANE) (Rail A)
+       ======================================================================== -->
+  <section class="showcase-section" id="s07">
+    <aside class="rail-a">
+      <span class="rail-num">07 / TOKENS</span>
+      <span class="rail-title">Day &amp; Night Scope Contract</span>
+      <span class="rail-meta">web/src/tokens.css</span>
+    </aside>
+    <div class="sec-body">
+      <div class="sec-lead">
+        <h2>Three-layer token cascade: Primitives → Semantic Scopes → Component Physics.</h2>
+        <p>
+          Both Daylight Cloud Sky (<code class="mono">:root</code>) and Night Control Plane (<code class="mono">:root.dark</code>)
+          are bound to the same semantic variables. Toggle Day/Night in the floating topbar to inspect every surface live.
+        </p>
+      </div>
+      <div class="grid-2">
+        <div class="plate-card" style="background:#F1F4FB;color:#0D1526;border-color:#DCE3F4;">
+          <div class="mono" style="font-size:11px;color:#2F5BFF;margin-bottom:8px;">SCOPE 01 · DAYLIGHT CLOUD SKY (:root)</div>
+          <pre class="mono" style="margin:0;font-size:12px;line-height:1.6;overflow-x:auto;">--c-canvas:  #F1F4FB;
+--c-surface: #FFFFFF;
+--c-well:    #E4EAF7;
+--c-ink:     #0D1526;
+--c-accent:  #2F5BFF;
+--c-success: #13794B; /* on #BCEFD4 mint */</pre>
+        </div>
+        <div class="plate-card" style="background:#080D1A;color:#F2F5FC;border-color:#1E2946;">
+          <div class="mono" style="font-size:11px;color:#5C82FF;margin-bottom:8px;">SCOPE 02 · NIGHT CONTROL PLANE (:root.dark)</div>
+          <pre class="mono" style="margin:0;font-size:12px;line-height:1.6;overflow-x:auto;">--c-canvas:  #080D1A;
+--c-surface: #101729;
+--c-well:    #0B1120;
+--c-ink:     #F2F5FC;
+--c-accent:  #5C82FF;
+--c-success: #3DD68C; /* on rgba(61,214,140,0.16) */</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function filterHeroKanban(col) {
+      const cols = document.querySelectorAll('#heroKanban .k-col');
+      cols.forEach((el) => {
+        if (col === 'all' || el.getAttribute('data-col') === col) {
+          el.style.opacity = '1';
+          el.style.transform = 'scale(1)';
+        } else {
+          el.style.opacity = '0.32';
+          el.style.transform = 'scale(0.98)';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

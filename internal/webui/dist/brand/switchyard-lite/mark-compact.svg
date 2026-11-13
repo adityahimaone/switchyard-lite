@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16" fill="none" role="img" aria-label="Switchyard Lite compact mark 16px">
+  <g color="#0D1526">
+    <rect x="6" y="37" width="52" height="15" rx="7.5" fill="currentColor"/>
+    <path d="M6 17H24C30 17 34 13 38 9H58V23H42L32 31H6V17Z" fill="#2F5BFF"/>
+  </g>
+</svg>

@@ -529,9 +529,10 @@ export function FlowScreen({ open }: { open: (id: string) => void }) {
 }
 
 const PALETTES = [
-  { id: "", label: "Signal Blue (Default)" },
-  { id: "lime", label: "Lime Forest" },
-  { id: "zen", label: "Zen Linen" },
+  { id: "", label: "Royal Switch Cobalt (Default)" },
+  { id: "prism", label: "Prism Orchid" },
+  { id: "emerald", label: "Signal Emerald" },
+  { id: "obsidian", label: "Obsidian Ink" },
 ] as const;
 
 export function SettingsScreen({ logout }: { logout: () => void }) {

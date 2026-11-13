@@ -1,215 +1,272 @@
 /* ==========================================================================
-   Switchyard-Lite Design Tokens (Signal Blue, Lime Forest, Zen Linen)
-   Inspired by Switchyard & Awwwards Precision Telemetry (Lidar / Viture / Bluejack)
+   SWITCHYARD LITE — Brand Design Tokens (v6.0 · Sunnyside Engine)
+   Mechanism: Parallel Turnout Switch & Tactile Porcelain Capsule Telemetry
+   Surface:   Atmospheric Cloud Sky Ground (#F1F4FB) + Porcelain Plates (#FFFFFF)
+   Accent:    Royal Switch Cobalt (#2F5BFF) + AI Prism Sweep (Coral → Orchid → Cobalt)
+   Scopes:    Day (:root) + Night (:root.dark)
    ========================================================================== */
 
 :root {
   color-scheme: light;
 
-  /* Ordered tonal ladder: well < canvas < surface < raised */
-  --c-canvas: #f2f4fd;
-  --c-well: #eaeefa;
-  --c-surface: #ffffff;
-  --c-raised: #ffffff;
-  --c-line: #e0e5f2;
-  --c-line-strong: #c7cee0;
+  /* ---- Layer 1 · Primitives (Physical Material — Never Flip in Night Scope) ---- */
+  --sy-ground: #f1f4fb;
+  --sy-plate: #ffffff;
+  --sy-well: #e4eaf7;
+  --sy-ink: #0d1526;
+  --sy-slate: #4a5878;
+  --sy-muted: #8c9ab8;
+  --sy-line: #dce3f4;
+  --sy-line-strong: #c2cde8;
+  --sy-accent: #2f5bff;
+  --sy-coral: #ff8b6a;
+  --sy-orchid: #d966ff;
+  --sy-success: #13794b;
+  --sy-mint: #bcefd4;
+  --sy-warning: #965600;
+  --sy-danger: #c8322b;
+  --sy-night: #080d1a;
 
-  --c-ink: #0f172a;
-  --c-ink-2: #334155;
-  --c-ink-3: #5c5f70;
-  --c-ink-4: #8b8fa3;
+  /* ---- Layer 2 · Semantic Scope (Daylight Cloud Sky) ------------------------- */
+  --c-canvas: var(--sy-ground);
+  --c-well: var(--sy-well);
+  --c-surface: var(--sy-plate);
+  --c-raised: var(--sy-plate);
+  --c-line: var(--sy-line);
+  --c-line-strong: var(--sy-line-strong);
 
-  --c-accent: #2f57c4;
-  --c-accent-text: #2449b8;
+  --c-ink: var(--sy-ink);
+  --c-ink-2: #24324f;
+  --c-ink-3: var(--sy-slate);
+  --c-ink-4: var(--sy-muted);
+
+  --c-accent: var(--sy-accent);
+  --c-accent-text: #2148e0;
   --c-accent-ink: #ffffff;
-  --c-accent-tint: rgb(47 87 196 / 0.12);
-  --c-focus: #2f57c4;
+  --c-accent-tint: rgb(47 91 255 / 0.10);
+  --c-accent-tint-strong: rgb(47 91 255 / 0.18);
+  --c-focus: var(--sy-accent);
 
-  --c-danger: #d94f4f;
-  --c-danger-text: #b91c1c;
-  --c-danger-tint: rgb(217 79 79 / 0.1);
-  --c-warning: #b45309;
-  --c-warning-text: #92400e;
-  --c-warning-tint: rgb(180 83 9 / 0.1);
-  --c-success: #2b8f5c;
-  --c-success-text: #1e7047;
-  --c-success-tint: rgb(43 143 92 / 0.1);
-  --c-review: #8b5cd6;
-  --c-review-text: #7440c4;
-  --c-review-tint: rgb(139 92 214 / 0.12);
+  --c-danger: var(--sy-danger);
+  --c-danger-text: #b2251e;
+  --c-danger-tint: rgb(200 50 43 / 0.10);
+  --c-warning: var(--sy-warning);
+  --c-warning-text: #854b00;
+  --c-warning-tint: rgb(150 86 0 / 0.11);
+  --c-success: var(--sy-success);
+  --c-success-text: var(--sy-success);
+  --c-success-tint: rgb(19 121 75 / 0.11);
+  --c-mint: var(--sy-mint);
+  --c-mint-wash: #bcefd4;
+  --c-azure: var(--sy-accent);
+  --c-azure-wash: rgb(47 91 255 / 0.09);
+  --c-review: var(--sy-warning);
+  --c-review-text: var(--c-warning-text);
+  --c-review-tint: var(--c-warning-tint);
 
-  /* Status lamp ramp */
-  --c-st-backlog: #8b8fa3;
-  --c-st-todo: #4a4560;
-  --c-st-blocked: #d94f4f;
-  --c-st-in_progress: #6d5ce0;
-  --c-st-review: #8b5cd6;
-  --c-st-done: #2b8f5c;
-  --c-st-failed: #b91c1c;
+  /* Status Station Lamps (Kanban & DAG) */
+  --c-st-backlog: #7e8ca8;
+  --c-st-todo: #3b4b6b;
+  --c-st-blocked: var(--sy-danger);
+  --c-st-in_progress: var(--sy-accent);
+  --c-st-review: var(--sy-warning);
+  --c-st-done: var(--sy-success);
+  --c-st-failed: var(--sy-danger);
 
-  /* Glass & Elevation */
-  --glass-tint: rgb(255 255 255 / 0.78);
-  --glass-tint-strong: rgb(255 255 255 / 0.9);
-  --glass-tint-dialog: rgb(255 255 255 / 0.95);
-  --glass-edge: rgb(255 255 255 / 0.7);
+  /* ---- Layer 3 · Component & Surface Physics --------------------------------- */
+  /* Concept 1 Prism Gradient: Warm Coral -> Orchid -> Royal Switch Cobalt */
+  --grad-prism: linear-gradient(
+    128deg,
+    var(--sy-coral) 0%,
+    #f264a8 36%,
+    #6b5bff 72%,
+    var(--sy-accent) 100%
+  );
+  --grad-brand: var(--grad-prism);
+  --grad-brand-soft: linear-gradient(
+    128deg,
+    rgb(255 139 106 / 0.16) 0%,
+    rgb(242 100 168 / 0.16) 38%,
+    rgb(107 91 255 / 0.18) 74%,
+    rgb(47 91 255 / 0.16) 100%
+  );
+  /* Concept 3 Obsidian Pill Gradient */
+  --grad-obsidian: linear-gradient(180deg, #232d45 0%, #0d1526 100%);
+  --grad-sheen: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.36) 0%,
+    rgb(255 255 255 / 0) 52%
+  );
+  --spec-sheen: var(--grad-sheen);
+
+  /* Atmospheric Sky Radial & Blueprint Grid Hairlines */
+  --bg-sky-radial:
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgb(47 91 255 / 0.11) 0%, transparent 68%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, rgb(217 102 255 / 0.08) 0%, transparent 62%);
+  --grid-hairline: rgb(47 91 255 / 0.038);
+  --dialog-bloom: rgb(47 91 255 / 0.18);
+
+  /* Frosted Glass & Porcelain Elevation */
+  --glass-tint: rgb(255 255 255 / 0.88);
+  --glass-tint-strong: rgb(255 255 255 / 0.96);
+  --glass-tint-dialog: rgb(255 255 255 / 0.98);
+  --glass-edge: rgb(255 255 255 / 0.82);
   --glass-edge-dialog: var(--c-line-strong);
-  --glass-blur-dialog: 24px;
+  --glass-blur: 18px;
+  --glass-saturate: 1.5;
+  --glass-blur-dialog: 26px;
   --glass-saturate-dialog: 1.6;
-  --glass-lift: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 20px -6px rgb(16 24 40 / 0.1), inset 0 1px 0 0 rgb(255 255 255 / 0.7);
-  --glass-lift-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 12px -4px rgb(16 24 40 / 0.08), inset 0 1px 0 0 rgb(255 255 255 / 0.65);
-  --glass-lift-dialog: 0 2px 4px rgb(16 24 40 / 0.08), 0 24px 56px -12px rgb(16 24 40 / 0.22), inset 0 1px 0 0 rgb(255 255 255 / 0.85);
-  --dialog-bloom: color-mix(in srgb, var(--c-accent) 14%, transparent);
-  --scrim: rgb(15 23 42 / 0.45);
-  --scrim-fallback: rgb(15 23 42 / 0.6);
-  --scrim-blur: 6px;
 
-  /* Shape & Typography */
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-control: 8px;
-  --radius-card: 12px;
-  --radius-panel: 16px;
-  --card-pad: 12px;
-  --font: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --lift-1: 0 1px 2px rgb(13 21 38 / 0.04), 0 3px 8px -2px rgb(13 21 38 / 0.06);
+  --lift-2: 0 2px 4px rgb(13 21 38 / 0.05), 0 12px 26px -10px rgb(13 21 38 / 0.14);
+  --lift-3: 0 4px 8px rgb(13 21 38 / 0.06), 0 22px 48px -14px rgb(13 21 38 / 0.18);
+  --lift-float: 0 4px 10px rgb(13 21 38 / 0.07), 0 32px 72px -18px rgb(13 21 38 / 0.24);
+  --lift-inset: inset 0 1px 0 0 rgb(255 255 255 / 0.92);
+  --well-inset: inset 0 1px 2px rgb(13 21 38 / 0.06), 0 1px 0 rgb(255 255 255 / 0.85);
+
+  --glass-lift: var(--lift-2), var(--lift-inset);
+  --glass-lift-card: var(--lift-1), var(--lift-inset);
+  --glass-lift-dialog: var(--lift-float), var(--lift-inset);
+
+  --glow-accent: 0 8px 22px -6px rgb(47 91 255 / 0.48);
+  --glow-brand: 0 10px 26px -8px rgb(107 91 255 / 0.52);
+  --glow-obsidian: 0 10px 24px -8px rgb(13 21 38 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.22);
+
+  --scrim: rgb(13 21 38 / 0.42);
+  --scrim-fallback: rgb(13 21 38 / 0.62);
+  --scrim-blur: 8px;
+
+  /* Closed-Form Radius Scale */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius: 12px;
+  --radius-control: 12px;
+  --radius-card: 20px;
+  --radius-panel: 28px;
+  --radius-pill: 999px;
+  --radius-concentric: calc(var(--radius-card) - 8px); /* 20px - 8px = 12px */
+
+  /* Typography Stack */
+  --font-display: "Space Grotesk", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion Tokens */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --dur-1: 110ms;
+  --dur-2: 170ms;
+  --dur-3: 260ms;
+
+  --card-pad: 14px;
+  --focus-ring: 0 0 0 3px rgb(47 91 255 / 0.28);
 }
 
+/* ==========================================================================
+   Night Scope (Rewrites Layer 2 Semantics Only — Primitives Stay Fixed)
+   ========================================================================== */
 :root.dark {
   color-scheme: dark;
 
-  --c-canvas: #0c101b;
-  --c-well: #070a12;
-  --c-surface: #141926;
-  --c-raised: #1c2334;
-  --c-line: #232b3e;
-  --c-line-strong: #36415c;
+  --c-canvas: var(--sy-night);
+  --c-well: #0d1426;
+  --c-surface: #131c33;
+  --c-raised: #192440;
+  --c-line: #223052;
+  --c-line-strong: #314470;
 
-  --c-ink: #eef2f8;
-  --c-ink-2: #c5cedc;
-  --c-ink-3: #94a0b4;
-  --c-ink-4: #647084;
+  --c-ink: #f1f4fb;
+  --c-ink-2: #c8d2ea;
+  --c-ink-3: #8e9ec2;
+  --c-ink-4: #5f7096;
 
-  --c-accent: #7aa7f5;
-  --c-accent-text: #9bbcf8;
-  --c-accent-ink: #080b12;
-  --c-accent-tint: rgb(122 167 245 / 0.16);
-  --c-focus: #8fb6f8;
+  --c-accent: #6688ff;
+  --c-accent-text: #8ca6ff;
+  --c-accent-ink: #080d1a;
+  --c-accent-tint: rgb(102 136 255 / 0.15);
+  --c-accent-tint-strong: rgb(102 136 255 / 0.25);
+  --c-focus: #8ca6ff;
 
-  --c-danger: #fb8f8f;
-  --c-danger-text: #ff9e9e;
-  --c-danger-tint: rgb(251 143 143 / 0.14);
-  --c-warning: #fbbf24;
-  --c-warning-text: #fcd34d;
-  --c-warning-tint: rgb(251 191 36 / 0.14);
-  --c-success: #6ee7a0;
-  --c-success-text: #7cf0ac;
-  --c-success-tint: rgb(110 231 160 / 0.14);
-  --c-review: #bb9bf5;
-  --c-review-text: #c7aaf7;
-  --c-review-tint: rgb(187 155 245 / 0.16);
+  --c-danger: #ff7b73;
+  --c-danger-text: #ff9891;
+  --c-danger-tint: rgb(255 123 115 / 0.15);
+  --c-warning: #f5b759;
+  --c-warning-text: #f9ca7f;
+  --c-warning-tint: rgb(245 183 89 / 0.15);
+  --c-success: #4ce09b;
+  --c-success-text: #72ebb1;
+  --c-success-tint: rgb(76 224 155 / 0.15);
+  --c-mint: #4ce09b;
+  --c-mint-wash: rgb(76 224 155 / 0.18);
+  --c-azure: #6688ff;
+  --c-azure-wash: rgb(102 136 255 / 0.15);
+  --c-review: #f5b759;
+  --c-review-text: #f9ca7f;
+  --c-review-tint: rgb(245 183 89 / 0.15);
 
-  --c-st-backlog: #7b8090;
-  --c-st-todo: #cfd5e0;
-  --c-st-blocked: #fb8f8f;
-  --c-st-in_progress: #9b8cfb;
-  --c-st-review: #bb9bf5;
-  --c-st-done: #6ee7a0;
-  --c-st-failed: #ff9e9e;
+  --c-st-backlog: #6e7ea3;
+  --c-st-todo: #c8d2ea;
+  --c-st-blocked: #ff7b73;
+  --c-st-in_progress: #6688ff;
+  --c-st-review: #f5b759;
+  --c-st-done: #4ce09b;
+  --c-st-failed: #ff7b73;
 
-  --glass-tint: rgb(24 31 46 / 0.72);
-  --glass-tint-strong: rgb(28 36 54 / 0.86);
-  --glass-tint-dialog: rgb(18 23 35 / 0.94);
+  --bg-sky-radial:
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgb(102 136 255 / 0.14) 0%, transparent 68%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, rgb(217 102 255 / 0.10) 0%, transparent 62%);
+  --grid-hairline: rgb(102 136 255 / 0.045);
+  --dialog-bloom: rgb(102 136 255 / 0.22);
+
+  --glass-tint: rgb(19 28 51 / 0.84);
+  --glass-tint-strong: rgb(25 36 64 / 0.94);
+  --glass-tint-dialog: rgb(15 22 42 / 0.97);
   --glass-edge: rgb(255 255 255 / 0.08);
-  --glass-edge-dialog: var(--c-line-strong);
-  --glass-lift: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 24px -8px rgb(0 0 0 / 0.4), inset 0 1px 0 0 rgb(255 255 255 / 0.07);
-  --glass-lift-card: 0 1px 2px rgb(0 0 0 / 0.28), 0 8px 18px -6px rgb(0 0 0 / 0.32), inset 0 1px 0 0 rgb(255 255 255 / 0.06);
-  --glass-lift-dialog: 0 2px 6px rgb(0 0 0 / 0.5), 0 32px 72px -12px rgb(0 0 0 / 0.7), inset 0 1px 0 0 rgb(255 255 255 / 0.12);
-  --dialog-bloom: color-mix(in srgb, var(--c-accent) 18%, transparent);
-  --scrim: rgb(3 6 14 / 0.68);
-  --scrim-fallback: rgb(3 6 14 / 0.82);
+
+  --lift-1: 0 1px 2px rgb(0 0 0 / 0.34), 0 3px 8px -2px rgb(0 0 0 / 0.36);
+  --lift-2: 0 2px 4px rgb(0 0 0 / 0.38), 0 14px 28px -10px rgb(0 0 0 / 0.50);
+  --lift-3: 0 4px 8px rgb(0 0 0 / 0.44), 0 24px 48px -14px rgb(0 0 0 / 0.60);
+  --lift-float: 0 4px 12px rgb(0 0 0 / 0.55), 0 36px 80px -20px rgb(0 0 0 / 0.72);
+  --lift-inset: inset 0 1px 0 0 rgb(255 255 255 / 0.07);
+  --well-inset: inset 0 1px 2px rgb(0 0 0 / 0.36), 0 1px 0 rgb(255 255 255 / 0.04);
+
+  --glow-accent: 0 8px 22px -6px rgb(102 136 255 / 0.52);
+  --glow-brand: 0 10px 26px -8px rgb(140 100 255 / 0.52);
+
+  --scrim: rgb(4 7 15 / 0.68);
+  --scrim-fallback: rgb(4 7 15 / 0.82);
+  --focus-ring: 0 0 0 3px rgb(102 136 255 / 0.34);
 }
 
-/* --------------------------------------------------------------------------
-   Lime Forest Palette
-   -------------------------------------------------------------------------- */
+/* Optional Brand Accent Palettes (Settings Screen) */
+:root[data-theme-palette="prism"] {
+  --c-accent: #6b5bff;
+  --c-accent-text: #5645e8;
+  --c-focus: #6b5bff;
+}
+
+:root[data-theme-palette="emerald"],
 :root[data-theme-palette="lime"] {
-  --c-canvas: #fbfcf8;
-  --c-well: #f2f6eb;
-  --c-surface: #ffffff;
-  --c-raised: #ffffff;
-  --c-line: #dfe7d6;
-  --c-line-strong: #c5d1b8;
-  --c-accent: #84cc16;
-  --c-accent-text: #4d7c0f;
-  --c-accent-ink: #0a0f05;
-  --c-accent-tint: rgb(132 204 22 / 0.18);
-  --c-focus: #4d7c0f;
+  --c-accent: #13794b;
+  --c-accent-text: #0f683f;
+  --c-accent-tint: rgb(19 121 75 / 0.11);
+  --c-focus: #13794b;
 }
 
-:root[data-theme-palette="lime"].dark {
-  --c-canvas: #040914;
-  --c-well: #02050c;
-  --c-surface: #0d1526;
-  --c-raised: #172238;
-  --c-line: #1e2c46;
-  --c-line-strong: #31456a;
-  --c-accent: #aff33e;
-  --c-accent-text: #aff33e;
-  --c-accent-ink: #0a0f05;
-  --c-accent-tint: rgb(175 243 62 / 0.16);
-  --c-focus: #aff33e;
-}
-
-/* --------------------------------------------------------------------------
-   Zen Linen Palette
-   -------------------------------------------------------------------------- */
+:root[data-theme-palette="obsidian"],
 :root[data-theme-palette="zen"] {
-  --c-canvas: #ebe6db;
-  --c-well: #e0d9cb;
-  --c-surface: #f5f0e6;
-  --c-raised: #faf6ee;
-  --c-line: #d4cdbe;
-  --c-line-strong: #bab19f;
-  --c-ink: #1e1e1e;
-  --c-ink-2: #46443e;
-  --c-ink-3: #5e5a52;
-  --c-ink-4: #857f74;
-  --c-accent: #2e2e2e;
-  --c-accent-text: #2e2e2e;
-  --c-accent-ink: #f4efe4;
-  --c-accent-tint: rgb(46 46 46 / 0.1);
-  --c-focus: #2e2e2e;
-  --glass-tint: rgb(250 246 236 / 0.78);
-  --glass-tint-strong: rgb(250 246 236 / 0.9);
-  --glass-tint-dialog: rgb(245 240 230 / 0.94);
-}
-
-:root[data-theme-palette="zen"].dark {
-  --c-canvas: #131312;
-  --c-well: #0c0c0b;
-  --c-surface: #1c1c1a;
-  --c-raised: #262623;
-  --c-line: #2d2d29;
-  --c-line-strong: #42423c;
-  --c-ink: #e8e3da;
-  --c-ink-2: #c4bfb4;
-  --c-ink-3: #a09a90;
-  --c-ink-4: #78736b;
-  --c-accent: #d6d3c4;
-  --c-accent-text: #e2dfd1;
-  --c-accent-ink: #1c1c1a;
-  --c-accent-tint: rgb(214 211 196 / 0.14);
-  --c-focus: #d6d3c4;
-  --glass-tint: rgb(32 32 29 / 0.76);
-  --glass-tint-strong: rgb(38 38 34 / 0.88);
-  --glass-tint-dialog: rgb(26 26 24 / 0.92);
+  --c-accent: #1e293b;
+  --c-accent-text: #0f172a;
+  --c-accent-tint: rgb(30 41 59 / 0.10);
+  --c-focus: #2f5bff;
 }
 
 :root[data-density="compact"] {
-  --card-pad: 9px;
+  --card-pad: 10px;
+  --radius-card: 16px;
 }

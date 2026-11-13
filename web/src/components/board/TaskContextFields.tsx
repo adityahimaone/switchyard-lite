@@ -46,7 +46,7 @@ export function SaasRulesBanner({ active, compact = false }: { active: boolean; 
     <div
       role="status"
       className={cn(
-        "flex items-start gap-2 rounded-control border border-success/35 bg-success/10 px-2.5 py-2 text-success-text",
+        "mb-3 flex items-start gap-2 rounded-full border border-success/35 bg-[var(--c-mint-wash)] px-3.5 py-2 text-success-text shadow-[var(--lift-1)]",
         compact ? "text-[10px]" : "text-[11px]"
       )}
     >
@@ -219,16 +219,16 @@ export function PromptOmnibox({
         <div
           role="listbox"
           aria-label={token?.kind === "file" ? "Workspace file suggestions" : "Agent skill suggestions"}
-          className="absolute top-full left-0 z-50 mt-1 w-full min-w-[20rem] overflow-hidden rounded-control border border-line-strong bg-surface shadow-pop"
+          className="absolute top-full left-0 z-50 mt-1.5 w-full min-w-[20rem] overflow-hidden rounded-[20px] border border-line-strong/85 bg-raised/96 shadow-[var(--lift-3),var(--lift-inset)] backdrop-blur-xl"
         >
-          <div className="flex items-center justify-between gap-2 border-b border-line px-2.5 py-1.5 text-[10px] font-semibold tracking-wide text-ink-3 uppercase">
+          <div className="flex items-center justify-between gap-2 border-b border-line bg-well/45 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-ink-3 uppercase">
             <span className="inline-flex items-center gap-1.5">
               {token?.kind === "file" ? <FileSearch className="size-3" /> : <Sparkles className="size-3" />}
               {token?.kind === "file" ? "Workspace files" : "Agent Skills"}
             </span>
             <span className="font-mono text-[9px] font-normal normal-case text-ink-4">↑↓ · ↵ to insert · esc</span>
           </div>
-          <div className="max-h-56 overflow-y-auto p-1">
+          <div className="max-h-56 overflow-y-auto p-1.5">
             {suggestions.map((s, i) => (
               <button
                 key={s.key}
@@ -239,8 +239,8 @@ export function PromptOmnibox({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insert(s)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[11px]",
-                  i === index ? "bg-accent/12 text-accent-text" : "text-ink-2 hover:bg-raised"
+                  "flex w-full items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-left text-[11px] font-medium transition-colors",
+                  i === index ? "bg-accent-tint text-accent-text" : "text-ink-2 hover:bg-well"
                 )}
               >
                 {token?.kind === "file" ? (
@@ -254,7 +254,7 @@ export function PromptOmnibox({
               </button>
             ))}
             {suggestions.length === 0 && (
-              <p className="px-2 py-2 text-[11px] text-ink-4">
+              <p className="px-2.5 py-2 text-[11px] text-ink-4">
                 {busy
                   ? "Searching…"
                   : hint || (token?.kind === "file" ? "No matching files — type a relative path to attach it manually." : "No matching skills.")}
@@ -263,9 +263,12 @@ export function PromptOmnibox({
           </div>
         </div>
       )}
-      <p className="m-0 mt-1 text-[10px] text-ink-4">
-        Type <kbd className="font-mono text-ink-3">@</kbd> to reference a workspace file or{" "}
-        <kbd className="font-mono text-ink-3">$</kbd> to attach an agent skill.
+      <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[10px] text-ink-4">
+        <span>Type</span>
+        <kbd className="font-mono text-ink-3">@</kbd>
+        <span>to reference a workspace file or</span>
+        <kbd className="font-mono text-ink-3">$</kbd>
+        <span>to attach an agent skill.</span>
       </p>
     </div>
   );
@@ -324,7 +327,7 @@ export function TaskContextPicker({
   const fileList: FileMatch[] = files.data?.files ?? [];
 
   return (
-    <div className="space-y-3 rounded-card border border-line bg-surface/60 p-3">
+    <div className="space-y-3 rounded-[20px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h3 className="m-0 text-xs font-semibold text-ink">Workspace Context &amp; References</h3>
@@ -387,7 +390,7 @@ export function TaskContextPicker({
               </p>
             )}
             {fileList.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-control border border-line bg-well/40 p-1">
+              <div className="max-h-40 overflow-y-auto rounded-[12px] border border-line bg-well/60 p-1">
                 {fileList.map((f) => (
                   <button
                     key={f.path}
@@ -395,8 +398,8 @@ export function TaskContextPicker({
                     disabled={paths.includes(f.path)}
                     onClick={() => onPathsChange(uniq([...paths, f.path]))}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded px-2 py-1 text-left font-mono text-[11px]",
-                      paths.includes(f.path) ? "text-ink-4" : "text-ink-2 hover:bg-raised"
+                      "flex w-full items-center gap-2 rounded-[8px] px-2 py-1 text-left font-mono text-[11px]",
+                      paths.includes(f.path) ? "text-ink-4" : "text-ink-2 hover:bg-surface"
                     )}
                   >
                     <Plus className="size-2.5 shrink-0" />
@@ -461,7 +464,7 @@ export function TaskContextPicker({
               aria-label="Search agent skills"
             />
             {(catalog.data?.skills ?? []).length > 0 ? (
-              <div className="max-h-44 overflow-y-auto rounded-control border border-line bg-well/40 p-1">
+              <div className="max-h-44 overflow-y-auto rounded-[12px] border border-line bg-well/60 p-1">
                 {catalog.data!.skills.slice(0, 40).map((s) => (
                   <button
                     key={s.name}
@@ -470,8 +473,8 @@ export function TaskContextPicker({
                     onClick={() => onSkillsChange(uniq([...skills, s.name]))}
                     title={s.description}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[11px]",
-                      skills.includes(s.name) ? "text-ink-4" : "text-ink-2 hover:bg-raised"
+                      "flex w-full items-center gap-2 rounded-[8px] px-2 py-1 text-left text-[11px]",
+                      skills.includes(s.name) ? "text-ink-4" : "text-ink-2 hover:bg-surface"
                     )}
                   >
                     <Plus className="size-2.5 shrink-0" />
@@ -507,12 +510,12 @@ function Chip({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent/35 bg-accent/12 px-2 py-0.5 text-[10px] text-accent-text">
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent/35 bg-accent-tint px-2.5 py-0.5 text-[10px] font-medium text-accent-text">
       {icon}
       <span className="max-w-[220px] truncate font-mono" title={label}>
         {prefix}{label}
       </span>
-      <button type="button" onClick={onRemove} className="rounded-full p-0.5 hover:bg-raised" aria-label={`Remove ${label}`}>
+      <button type="button" onClick={onRemove} className="rounded-full p-0.5 hover:bg-surface" aria-label={`Remove ${label}`}>
         <X className="size-2.5" />
       </button>
     </span>
@@ -572,7 +575,7 @@ export function BranchField({
   return (
     <div className="space-y-1.5 pt-1">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="task-branch" className="text-[11px]">
+        <Label htmlFor="task-branch" className="text-[11px] font-medium text-ink-2">
           <GitBranch className="size-3 text-ink-3" />
           Base branch
         </Label>

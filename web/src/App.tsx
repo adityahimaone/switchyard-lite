@@ -27,6 +27,18 @@ import { Kbd } from "@/components/ui/kbd";
 import { Toaster } from "@/components/ui/toast";
 import { Tip, TooltipProvider } from "@/components/ui/tooltip";
 import {
+  AppHeader,
+  AppInset,
+  AppMain,
+  AppShell,
+  AppSidebar,
+  AppSidebarBrand,
+  AppSidebarFooter,
+  AppSidebarGroup,
+  AppSidebarItem,
+} from "@/components/ui/app-shell";
+import { StatusPill } from "@/components/ui/pill";
+import {
   FlowScreen,
   LogsScreen,
   OverviewScreen,
@@ -112,16 +124,9 @@ export function App() {
 
   return (
     <TooltipProvider>
-    <div className={"shell" + (collapsed ? " collapsed" : "")}>
-      <nav className="side" aria-label="Main">
-        <div className="side-brand">
-          <span className="brand-mark" aria-hidden>
-            S
-          </span>
-          <h1>
-            Switchyard <span className="lite-badge">LITE</span>
-          </h1>
-        </div>
+    <AppShell collapsed={collapsed} onCollapsedChange={setCollapsed}>
+      <AppSidebar>
+        <AppSidebarBrand name="Switchyard" tag="LITE" markSize={28} />
 
         {/* Sidebar Board Switcher */}
         {(boards.data?.length ?? 0) > 0 && (
@@ -152,50 +157,45 @@ export function App() {
         )}
 
         {groups.map((grp) => (
-          <div key={grp} className="nav-group">
-            <span className="nav-group-label">{grp}</span>
+          <AppSidebarGroup key={grp} label={grp}>
             {NAV.filter((item) => item.group === grp).map((item) => {
               const Icon = item.icon;
               return (
-                <a
+                <AppSidebarItem
                   key={item.id}
                   href={`#/${item.id}`}
-                  aria-current={page === item.id ? "page" : undefined}
+                  active={page === item.id}
                   title={item.label}
-                  className="nav-item"
+                  icon={<Icon className="nav-icon" aria-hidden />}
+                  badge={item.id === "review" && reviewCount > 0 ? reviewCount : undefined}
                 >
-                  <Icon className="nav-icon" aria-hidden />
-                  <span className="nav-label">{item.label}</span>
-                  {item.id === "review" && reviewCount > 0 && (
-                    <span className="nav-badge tabular">{reviewCount}</span>
-                  )}
-                </a>
+                  {item.label}
+                </AppSidebarItem>
               );
             })}
-          </div>
+          </AppSidebarGroup>
         ))}
 
-        <div className="side-footer">
+        <AppSidebarFooter>
           {NAV.filter((item) => item.group === "Footer").map((item) => {
             const Icon = item.icon;
             return (
-              <a
+              <AppSidebarItem
                 key={item.id}
                 href={`#/${item.id}`}
-                aria-current={page === item.id ? "page" : undefined}
+                active={page === item.id}
                 title={item.label}
-                className="nav-item"
+                icon={<Icon className="nav-icon" aria-hidden />}
               >
-                <Icon className="nav-icon" aria-hidden />
-                <span className="nav-label">{item.label}</span>
-              </a>
+                {item.label}
+              </AppSidebarItem>
             );
           })}
-        </div>
-      </nav>
+        </AppSidebarFooter>
+      </AppSidebar>
 
-      <div className="shell-inset">
-        <header className="top-header">
+      <AppInset>
+        <AppHeader>
           <div className="header-left">
             <button
               type="button"
@@ -226,6 +226,8 @@ export function App() {
           </div>
 
           <div className="header-right">
+            <StatusPill status="online" size="sm" label="Online" />
+
             <button
               type="button"
               className="cmd-trigger"
@@ -250,9 +252,9 @@ export function App() {
               <SunMoon className="size-4" />
             </button>
           </div>
-        </header>
+        </AppHeader>
 
-        <main className={page === "board" ? "bleed" : undefined}>
+        <AppMain bleed={page === "board"}>
           {page === "board" && (
             <BoardScreen
               open={setDrawer}
@@ -271,8 +273,8 @@ export function App() {
           {page === "logs" && <LogsScreen />}
           {page === "workers" && <WorkersScreen />}
           {page === "settings" && <SettingsScreen logout={() => setAuthed(false)} />}
-        </main>
-      </div>
+        </AppMain>
+      </AppInset>
 
       {drawer && (
         <TaskDrawer
@@ -350,7 +352,7 @@ export function App() {
           }
         />
       )}
-    </div>
+    </AppShell>
     <Toaster />
     </TooltipProvider>
   );

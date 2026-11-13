@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Lite glass and atmospheric horizon field">
+  <defs>
+    <linearGradient id="switchyard-lite-glass-sky" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="52%" stop-color="#F1F4FB"/>
+      <stop offset="100%" stop-color="#4A5878"/>
+    </linearGradient>
+    <linearGradient id="switchyard-lite-glass-pane" x1="0%" y1="0%" x2="38%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#4A5878" stop-opacity="0.46"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#switchyard-lite-glass-sky)"/>
+  <circle cx="1180" cy="280" r="340" fill="#2F5BFF" fill-opacity="0.18"/>
+  <circle cx="420" cy="740" r="420" fill="#4A5878" fill-opacity="0.55"/>
+  <rect x="140" y="120" width="1320" height="760" rx="24" fill="url(#switchyard-lite-glass-pane)" stroke="#FFFFFF" stroke-width="1.5"/>
+  <line x1="164" y1="121" x2="1436" y2="121" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.9"/>
+</svg>

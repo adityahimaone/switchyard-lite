@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Switchyard Lite — Dimensional Anatomy Sheet (S# / H# / R# Redlines)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F1F4FB;
+      --plate: #FFFFFF;
+      --well: #E4EAF7;
+      --ink: #0D1526;
+      --slate: #4A5878;
+      --muted: #637294;
+      --line: #DCE3F4;
+      --cobalt: #2F5BFF;
+      --coral: #D94E28;
+      --emerald: #13794B;
+      --font-display: "Space Grotesk", sans-serif;
+      --font-sans: "Plus Jakarta Sans", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 24px 64px;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(to right, rgba(47, 91, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(47, 91, 255, 0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .sheet {
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--plate);
+      border: 1.5px solid var(--ink);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px -12px rgba(13, 21, 38, 0.12);
+    }
+    .title-block {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      border-bottom: 1.5px solid var(--ink);
+      background: #F8FAFF;
+    }
+    .tb-cell {
+      padding: 16px 20px;
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+    .tb-cell:last-child { border-right: 0; }
+    .tb-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .tb-val {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .drawing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--line);
+    }
+    @media (max-width: 960px) {
+      .drawing-grid { grid-template-columns: 1fr; }
+      .title-block { grid-template-columns: 1fr 1fr; }
+    }
+    .panel {
+      padding: 28px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .panel:nth-child(2n) { border-right: 0; }
+    .panel-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cobalt);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .panel h2 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin: 0 0 16px;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      margin-top: 16px;
+    }
+    .spec-table th, .spec-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+    .spec-table th { color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .var-s { color: var(--cobalt); font-weight: 700; }
+    .var-r { color: var(--coral); font-weight: 700; }
+    .var-h { color: var(--emerald); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <!-- Title Block -->
+    <header class="title-block">
+      <div class="tb-cell">
+        <span class="tb-label">DWG NO. SY-LITE-001 · REV 2.0</span>
+        <span class="tb-val">Switchyard Lite — Dimensional Anatomy &amp; Closed-Form Spacing Chains</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">CAPSULE LAW</span>
+        <span class="tb-val" style="font-family:var(--font-mono);font-size:13px;color:var(--coral);">R_pill = 999px</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">CONCENTRIC LAW</span>
+        <span class="tb-val" style="font-family:var(--font-mono);font-size:13px;color:var(--cobalt);">R_card(20) − S_pad(8) = R_item(12)</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">NAVIGATION</span>
+        <a href="./brand.html" style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cobalt);text-decoration:none;">← Back to Brand Showcase</a>
+      </div>
+    </header>
+
+    <div class="drawing-grid">
+      <!-- Panel A: Tactile Capsule Button & FilterPill Anatomy -->
+      <div class="panel">
+        <div class="panel-tag">FIG 01 · BUTTON &amp; COMPOUND PILL ANATOMY</div>
+        <h2>Tactile Capsule Button (<code style="font-family:var(--font-mono);font-size:14px;">button.tsx</code> &amp; <code style="font-family:var(--font-mono);font-size:14px;">pill.tsx</code>)</h2>
+
+        <svg viewBox="0 0 540 210" width="100%" height="auto" role="img" aria-label="Button and compound pill dimensional drawing">
+          <rect width="540" height="210" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <!-- Outer Capsule Button -->
+          <rect x="60" y="65" width="380" height="64" rx="32" fill="#FFFFFF" stroke="#0D1526" stroke-width="1.5"/>
+          <!-- Inner Prism CTA Pill -->
+          <defs>
+            <linearGradient id="prismG" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#FF9E68"/><stop offset="45%" stop-color="#FF6B9E"/><stop offset="100%" stop-color="#2F5BFF"/>
+            </linearGradient>
+          </defs>
+          <rect x="266" y="73" width="166" height="48" rx="24" fill="url(#prismG)" stroke="#0D1526" stroke-width="1"/>
+          <text x="108" y="102" font-family="JetBrains Mono" font-size="14" font-weight="700" fill="#0D1526">30 mins ⌄</text>
+          <text x="304" y="101" font-family="Plus Jakarta Sans" font-size="13" font-weight="700" fill="#FFFFFF">✦ Ask AI / Dispatch</text>
+
+          <!-- Dimension Lines: H_lg = 44px -->
+          <line x1="36" y1="65" x2="36" y2="129" stroke="#13794B" stroke-width="1.2"/>
+          <line x1="30" y1="65" x2="42" y2="65" stroke="#13794B" stroke-width="1.2"/>
+          <line x1="30" y1="129" x2="42" y2="129" stroke="#13794B" stroke-width="1.2"/>
+          <text x="10" y="101" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#13794B">H1=44</text>
+
+          <!-- Horizontal Chain: S_pl(16) + W_label + S_gap(10) + W_cta + S_pr(6) -->
+          <line x1="60" y1="42" x2="440" y2="42" stroke="#2F5BFF" stroke-width="1.2"/>
+          <line x1="60" y1="36" x2="60" y2="60" stroke="#2F5BFF" stroke-dasharray="2 2"/>
+          <line x1="266" y1="36" x2="266" y2="73" stroke="#2F5BFF" stroke-dasharray="2 2"/>
+          <line x1="432" y1="36" x2="432" y2="73" stroke="#2F5BFF" stroke-dasharray="2 2"/>
+          <line x1="440" y1="36" x2="440" y2="60" stroke="#2F5BFF" stroke-dasharray="2 2"/>
+          <text x="70" y="34" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2F5BFF">S1=16px (pl)</text>
+          <text x="275" y="34" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2F5BFF">Inner Pill (H2=34px)</text>
+          <text x="415" y="34" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2F5BFF">S2=4px</text>
+
+          <!-- Radius Callout -->
+          <path d="M440 97 L478 158 H525" fill="none" stroke="#D94E28" stroke-width="1.2"/>
+          <text x="450" y="174" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#D94E28">R1 = 999px (full)</text>
+        </svg>
+
+        <table class="spec-table">
+          <thead><tr><th>Token</th><th>Value</th><th>Closed-Form Invariant</th></tr></thead>
+          <tbody>
+            <tr><td class="var-h">H_sm / H_md / H_lg</td><td>32px / 36px / 44px</td><td><code class="var-h">H_md = 2·S_py(9) + 18px line</code></td></tr>
+            <tr><td class="var-s">S_px / S_gap</td><td>16px / 8px</td><td><code class="var-s">W = 2·S_px(16) + W_icon(16) + S_gap(8) + W_text</code></td></tr>
+            <tr><td class="var-r">R_pill</td><td>999px</td><td>Full circular end-cap (<code class="var-r">R ≥ H/2</code>) + <code class="var-s">scale(0.972)</code> press</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel B: Capsule Select & Concentric Popover Anatomy -->
+      <div class="panel">
+        <div class="panel-tag">FIG 02 · SELECT &amp; SEARCH-SELECT CONCENTRIC GEOMETRY</div>
+        <h2>Capsule Trigger + Concentric Popover (<code style="font-family:var(--font-mono);font-size:14px;">select.tsx</code>)</h2>
+
+        <svg viewBox="0 0 540 210" width="100%" height="auto" role="img" aria-label="Select trigger and concentric popover dimensional drawing">
+          <rect width="540" height="210" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <!-- Trigger Pill -->
+          <rect x="70" y="18" width="320" height="36" rx="18" fill="#FFFFFF" stroke="#0D1526" stroke-width="1.5"/>
+          <text x="90" y="40" font-family="Plus Jakarta Sans" font-size="12" font-weight="700" fill="#0D1526">Board: Switchyard Core</text>
+          <text x="364" y="40" font-family="JetBrains Mono" font-size="12" fill="#4A5878">⌄</text>
+
+          <!-- Popover Shell (R_outer = 20px, S_pad = 8px) -->
+          <rect x="70" y="64" width="320" height="130" rx="20" fill="#FFFFFF" stroke="#0D1526" stroke-width="1.5"/>
+          <!-- Search Trough inside Popover -->
+          <rect x="80" y="74" width="300" height="30" rx="15" fill="#E4EAF7" stroke="#2F5BFF" stroke-dasharray="3 2"/>
+          <text x="94" y="93" font-family="JetBrains Mono" font-size="10.5" fill="#4A5878">🔍 Search boards… (R_well = 999px)</text>
+
+          <!-- Concentric Option Item (R_inner = 12px) -->
+          <rect x="80" y="112" width="300" height="34" rx="12" fill="rgba(47,91,255,0.12)" stroke="#2F5BFF" stroke-width="1.2"/>
+          <text x="94" y="133" font-family="Plus Jakarta Sans" font-size="11.5" font-weight="700" fill="#1E44D9">Switchyard Core</text>
+          <circle cx="364" cy="129" r="8" fill="#2F5BFF"/>
+          <text x="360" y="133" font-family="JetBrains Mono" font-size="10" fill="#FFFFFF">✓</text>
+
+          <!-- Concentric Callouts -->
+          <path d="M390 80 L425 80" stroke="#D94E28" stroke-width="1.2"/>
+          <text x="430" y="84" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#D94E28">R_outer = 20px</text>
+          <path d="M380 129 L425 129" stroke="#2F5BFF" stroke-width="1.2"/>
+          <text x="430" y="133" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#2F5BFF">R_item = 12px</text>
+          <text x="430" y="152" font-family="JetBrains Mono" font-size="10" fill="#13794B">S_pad = 8px (20−8=12)</text>
+        </svg>
+
+        <table class="spec-table">
+          <thead><tr><th>Token</th><th>Value</th><th>Closed-Form Invariant</th></tr></thead>
+          <tbody>
+            <tr><td class="var-r">R_popover / R_item</td><td>20px / 12px</td><td><code class="var-r">R_item(12) = R_popover(20) − S_viewport_pad(8)</code></td></tr>
+            <tr><td class="var-s">S_offset / S_pad</td><td>6px / 8px</td><td><code class="var-s">sideOffset = 6px</code>; internal viewport <code class="var-s">p-2 (8px)</code></td></tr>
+            <tr><td class="var-h">H_trigger / H_opt</td><td>36px / 34px</td><td>Trigger matches <code class="var-h">Button(default)</code> height exactly (36px)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel C: App / Dashboard Shell Architecture -->
+      <div class="panel" style="grid-column: 1 / -1;">
+        <div class="panel-tag">FIG 03 · APP / DASHBOARD SHELL ARCHITECTURE (web/src/components/ui/app-shell.tsx)</div>
+        <h2>2-Column Capsule Rail + Sticky Glass Header + Kanban Track Stage</h2>
+
+        <svg viewBox="0 0 1120 260" width="100%" height="auto" role="img" aria-label="AppShell dimensional drawing">
+          <rect width="1120" height="260" rx="16" fill="#F8FAFF" stroke="#0D1526" stroke-width="1.5"/>
+          <!-- Left Sidebar (W_side = 236px expanded / 64px collapsed) -->
+          <rect x="16" y="16" width="220" height="228" rx="12" fill="#FFFFFF" stroke="#2F5BFF" stroke-width="1.5"/>
+          <text x="32" y="42" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#2F5BFF">AppSidebar · W1 = 236px</text>
+          <rect x="28" y="56" width="196" height="32" rx="16" fill="#FFFFFF" stroke="#0D1526"/>
+          <text x="44" y="76" font-family="Plus Jakarta Sans" font-size="11.5" font-weight="700" fill="#0D1526">☷ Board (active plate)</text>
+          <rect x="28" y="96" width="196" height="32" rx="16" fill="#E4EAF7"/>
+          <text x="44" y="116" font-family="Plus Jakarta Sans" font-size="11.5" fill="#4A5878">⑂ Review Diffs</text>
+          <text x="32" y="226" font-family="JetBrains Mono" font-size="10.5" fill="#4A5878">Collapsed: W1_min = 64px</text>
+
+          <!-- Top Header (H_header = 52px) -->
+          <rect x="248" y="16" width="856" height="48" rx="12" fill="#FFFFFF" stroke="#13794B" stroke-width="1.5"/>
+          <text x="268" y="44" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#13794B">AppHeader · H_hdr = 52px · Glass Blur 18px · Cmd+K Capsule Well</text>
+
+          <!-- Main Kanban Stage -->
+          <rect x="248" y="76" width="856" height="168" rx="14" fill="#E4EAF7" stroke="#0D1526" stroke-dasharray="4 3"/>
+          <!-- 3 Kanban Columns inside AppMain -->
+          <rect x="264" y="92" width="260" height="136" rx="14" fill="#FFFFFF" stroke="#DCE3F4"/>
+          <text x="280" y="116" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#0D1526">Col 01 · W_col = 272px</text>
+          <rect x="276" y="126" width="236" height="86" rx="10" fill="#F1F4FB" stroke="#2F5BFF"/>
+          <text x="290" y="152" font-family="JetBrains Mono" font-size="10.5" fill="#2F5BFF">Task Card (R_card = 16px)</text>
+          <text x="290" y="170" font-family="JetBrains Mono" font-size="10" fill="#4A5878">3px left status coupler bar</text>
+
+          <rect x="538" y="92" width="260" height="136" rx="14" fill="#FFFFFF" stroke="#DCE3F4"/>
+          <text x="554" y="116" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#0D1526">Col 02 · S_gap = 12px</text>
+
+          <rect x="812" y="92" width="276" height="136" rx="14" fill="#FFFFFF" stroke="#DCE3F4"/>
+          <text x="828" y="116" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#D94E28">Horizontal Chain:</text>
+          <text x="828" y="140" font-family="JetBrains Mono" font-size="10.5" fill="#0D1526">W_vp = W_side(236) + W_inset(1fr)</text>
+          <text x="828" y="160" font-family="JetBrains Mono" font-size="10.5" fill="#0D1526">H_vp = H_hdr(52) + H_main(1fr)</text>
+          <text x="828" y="180" font-family="JetBrains Mono" font-size="10.5" fill="#13794B">Nav Item: R_pill = 999px</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

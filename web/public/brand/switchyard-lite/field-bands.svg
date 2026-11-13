@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Lite stepped bands field">
+  <rect width="1600" height="1000" fill="#F1F4FB"/>
+  <g transform="rotate(-22 800 500)">
+    <rect x="-300" y="-300" width="222" height="1600" fill="#1f2737"/>
+    <rect x="-80" y="-300" width="222" height="1600" fill="#142456"/>
+    <rect x="140" y="-300" width="222" height="1600" fill="#1b3281"/>
+    <rect x="360" y="-300" width="222" height="1600" fill="#2343b3"/>
+    <rect x="580" y="-300" width="222" height="1600" fill="#2F5BFF"/>
+    <rect x="800" y="-300" width="222" height="1600" fill="#6384ff"/>
+    <rect x="1020" y="-300" width="222" height="1600" fill="#3c5abe"/>
+    <rect x="1240" y="-300" width="222" height="1600" fill="#4A5878"/>
+    <rect x="1460" y="-300" width="222" height="1600" fill="#9ea6ba"/>
+    <rect x="1680" y="-300" width="222" height="1600" fill="#F1F4FB"/>
+  </g>
+</svg>

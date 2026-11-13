@@ -20,7 +20,7 @@ function TabsList({
       className={cn(
         variant === "line"
           ? "inline-flex items-center gap-1 border-b border-line"
-          : "glass-flat inline-flex h-9 w-fit items-center justify-center rounded-control p-1",
+          : "inline-flex h-9 w-fit items-center justify-center gap-1 rounded-full border border-line bg-well p-1 shadow-[var(--well-inset)]",
         className
       )}
       {...props}
@@ -36,7 +36,7 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
         "relative inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap text-ink-3 outline-none transition-colors",
         "hover:text-ink focus-visible:ring-2 focus-visible:ring-focus/40 disabled:pointer-events-none disabled:opacity-50",
         "data-[state=active]:text-accent-text data-[state=active]:font-semibold",
-        "after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent data-[state=active]:after:bg-accent",
+        "after:absolute after:inset-x-1 after:bottom-0 after:h-[2.5px] after:rounded-full after:bg-transparent data-[state=active]:after:bg-accent",
         className
       )}
       {...props}

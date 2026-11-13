@@ -1,0 +1,276 @@
+{
+  "name": "Switchyard Lite",
+  "slug": "switchyard-lite",
+  "namespace": "--sy-",
+  "polarity": "light-dark",
+  "synthesis": {
+    "essence": "Atmospheric Cloud Sky & Tactile Pill Telemetry: porcelain capsule plates over a periwinkle blueprint ground with a single Royal Cobalt turnout switch.",
+    "oneSentence": "Switchyard Lite dispatches coding agents across isolated git worktrees using tactile porcelain capsule controls, a royal cobalt interlocking switch, and a double-framed Kanban control stage.",
+    "track": "constructed",
+    "family": "constructed — Kuwayama 64×64 parallel turnout switch with 6-unit interlocking gap",
+    "material": "Atmospheric Cloud Ground (#F1F4FB) + Tactile Porcelain Capsule Plates (#FFFFFF) + Frosted Glass Bezel",
+    "surface": "Contract #15 Glass & Light + Tactile Capsule Plates",
+    "edge": "Precision capsule (999px controls, 20px cards, 12px concentric items, 28px double-bezel stage)",
+    "offset": "0 2px 4px rgb(13 21 38 / 0.04), 0 12px 28px -8px rgb(13 21 38 / 0.12), inset 0 1px 0 #FFFFFF",
+    "fieldRecipe": "32px blueprint grid mask + soft sky-periwinkle radial atmosphere",
+    "radius": "6 / 12 / 20 / 28 / 999",
+    "density": "balanced"
+  },
+  "fonts": {
+    "display": "Space Grotesk",
+    "reading": "Plus Jakarta Sans",
+    "mono": "JetBrains Mono"
+  },
+  "primitives": [
+    {
+      "name": "ground",
+      "value": "#F1F4FB",
+      "oklch": "oklch(0.965 0.014 264)",
+      "note": "Cloud Sky Ground. Cool atmospheric periwinkle-sky canvas with 32px blueprint rule."
+    },
+    {
+      "name": "plate",
+      "value": "#FFFFFF",
+      "oklch": "oklch(1.000 0 0)",
+      "note": "Porcelain Plate. Floating tactile pills, Kanban cards, and the top capsule bar."
+    },
+    {
+      "name": "well",
+      "value": "#E4EAF7",
+      "oklch": "oklch(0.932 0.022 264)",
+      "note": "Inset Trough. Search wells, segmented tracks, and Kanban station beds."
+    },
+    {
+      "name": "ink",
+      "value": "#0D1526",
+      "oklch": "oklch(0.195 0.038 262)",
+      "note": "Obsidian Slate. High-contrast display headings, primary marks, and obsidian CTA."
+    },
+    {
+      "name": "slate",
+      "value": "#4A5878",
+      "oklch": "oklch(0.455 0.046 262)",
+      "note": "Secondary Slate. Supporting prose, control labels, and metadata."
+    },
+    {
+      "name": "muted",
+      "value": "#8C9AB8",
+      "oklch": "oklch(0.682 0.038 262)",
+      "note": "Muted Track. Placeholders, disabled labels, and blueprint hairlines."
+    },
+    {
+      "name": "line",
+      "value": "#DCE3F4",
+      "oklch": "oklch(0.912 0.024 264)",
+      "note": "Crisp Hairline. 1px plate borders and section dividers."
+    },
+    {
+      "name": "accent",
+      "value": "#2F5BFF",
+      "oklch": "oklch(0.552 0.235 264)",
+      "note": "Royal Switch Cobalt. Primary turnout signal, active routes, and focus rings."
+    },
+    {
+      "name": "coral",
+      "value": "#FF8B6A",
+      "oklch": "oklch(0.748 0.158 38)",
+      "note": "Prism Warm Stop. Top-left warm highlight inside the AI/Dispatch prism gradient only."
+    },
+    {
+      "name": "orchid",
+      "value": "#D966FF",
+      "oklch": "oklch(0.685 0.232 318)",
+      "note": "Prism Midpoint Stop. Soft magenta-violet transition in the AI prism gradient only."
+    },
+    {
+      "name": "success",
+      "value": "#13794B",
+      "oklch": "oklch(0.518 0.128 156)",
+      "note": "Signal Emerald. Online and Done text."
+    },
+    {
+      "name": "mint",
+      "value": "#BCEFD4",
+      "oklch": "oklch(0.912 0.075 156)",
+      "note": "Mint Wash. Tactile Online capsule background and lamp fill."
+    },
+    {
+      "name": "warning",
+      "value": "#965600",
+      "oklch": "oklch(0.525 0.126 68)",
+      "note": "Signal Amber. Need Review and lease warning text."
+    },
+    {
+      "name": "danger",
+      "value": "#C8322B",
+      "oklch": "oklch(0.532 0.188 26)",
+      "note": "Signal Crimson. Blocked, failed, and destructive actions."
+    },
+    {
+      "name": "night",
+      "value": "#080D1A",
+      "oklch": "oklch(0.155 0.032 264)",
+      "note": "Night Yard Ground. Deep telemetry canvas for the Night scope."
+    }
+  ],
+  "mark": {
+    "paths": [
+      "<rect x=\"8\" y=\"38\" width=\"48\" height=\"12\" rx=\"6\" fill=\"currentColor\"/>",
+      "<path d=\"M8 20H24C28 20 31 18 34 15L39 10C41 8 44 7 48 7H56V19H49C47 19 45 20 43 22L38 27C35 30 31 32 26 32H8V20Z\" fill=\"#2F5BFF\"/>",
+      "<circle cx=\"50\" cy=\"29\" r=\"3.5\" fill=\"#FF8B6A\"/>"
+    ],
+    "compactPaths": [
+      "<rect x=\"6\" y=\"37\" width=\"52\" height=\"15\" rx=\"7.5\" fill=\"currentColor\"/>",
+      "<path d=\"M6 17H24C30 17 34 13 38 9H58V23H42L32 31H6V17Z\" fill=\"#2F5BFF\"/>"
+    ]
+  },
+  "wordmark": {
+    "path": "M8 14H28V20H14V22H28V36H8V30H22V28H8V14ZM34 14H40L44 27L48 14H54L58 27L62 14H68L61 36H55L51 23L47 36H41L34 14ZM74 14H80V36H74V14ZM86 14H106V20H99V36H93V20H86V14ZM112 14H130V20H118V30H130V36H112V14ZM136 14H142V22H152V14H158V36H152V28H142V36H136V14ZM164 14H171L177 23L183 14H190L180 28V36H174V28L164 14Z",
+    "viewBox": "0 0 200 48"
+  },
+  "cast": [
+    {
+      "id": "turnout",
+      "name": "Turnout",
+      "note": "Parallel track switch with 6u gap",
+      "d": "M8 40h48v10H8zM8 22h22l12-12h14v10H45L33 32H8z"
+    },
+    {
+      "id": "capsule",
+      "name": "Capsule",
+      "note": "Tactile 999px pill control",
+      "d": "M10 20h44a12 12 0 0 1 0 24H10a12 12 0 0 1 0-24zm8 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"
+    },
+    {
+      "id": "worktree",
+      "name": "Worktree",
+      "note": "Isolated sy/<task-id> branch",
+      "d": "M12 10h10v44H12zM22 18h28v10H22zM22 34h20v10H22z"
+    },
+    {
+      "id": "lease",
+      "name": "Lease",
+      "note": "Atomic worker claim lock",
+      "d": "M14 14h14v10H24v16h4v10H14zM36 14h14v36H36V40h4V24h-4z"
+    },
+    {
+      "id": "diff",
+      "name": "Diff",
+      "note": "Base SHA worktree review",
+      "d": "M10 14h44v10H10zM10 29h24v10H10zM40 29h14v10H40zM10 44h32v6H10z"
+    },
+    {
+      "id": "dag",
+      "name": "DAG",
+      "note": "Deterministic stage pipeline",
+      "d": "M8 24h12v16H8zM26 14h12v16H26zM26 34h12v16H26zM44 24h12v16H44z"
+    }
+  ],
+  "contrast": [
+    {
+      "label": "ink on plate",
+      "fg": "#0D1526",
+      "bg": "#FFFFFF",
+      "ratio": 18.06,
+      "pass": true,
+      "note": "Primary headings, card titles, and control labels on porcelain plates."
+    },
+    {
+      "label": "ink on ground",
+      "fg": "#0D1526",
+      "bg": "#F1F4FB",
+      "ratio": 16.32,
+      "pass": true,
+      "note": "Hero display typography and section headers on Cloud Sky ground."
+    },
+    {
+      "label": "slate on plate",
+      "fg": "#4A5878",
+      "bg": "#FFFFFF",
+      "ratio": 7.12,
+      "pass": true,
+      "note": "Secondary copy, pill metadata, and filter labels."
+    },
+    {
+      "label": "slate on ground",
+      "fg": "#4A5878",
+      "bg": "#F1F4FB",
+      "ratio": 6.43,
+      "pass": true,
+      "note": "Hero subheadline and rail descriptions."
+    },
+    {
+      "label": "accent on plate",
+      "fg": "#2F5BFF",
+      "bg": "#FFFFFF",
+      "ratio": 5.14,
+      "pass": true,
+      "note": "Active navigation pill text, count badges, and focus indicators."
+    },
+    {
+      "label": "plate on accent",
+      "fg": "#FFFFFF",
+      "bg": "#2F5BFF",
+      "ratio": 5.14,
+      "pass": true,
+      "note": "Royal Switch Cobalt primary CTA label."
+    },
+    {
+      "label": "success on mint",
+      "fg": "#13794B",
+      "bg": "#BCEFD4",
+      "ratio": 4.62,
+      "pass": true,
+      "note": "Tactile Online status pill label on mint wash."
+    },
+    {
+      "label": "danger on plate",
+      "fg": "#C8322B",
+      "bg": "#FFFFFF",
+      "ratio": 5.56,
+      "pass": true,
+      "note": "Blocked status and destructive actions."
+    },
+    {
+      "label": "warning on plate",
+      "fg": "#965600",
+      "bg": "#FFFFFF",
+      "ratio": 5.65,
+      "pass": true,
+      "note": "Need Review status and lease warnings."
+    },
+    {
+      "label": "muted on ground",
+      "fg": "#8C9AB8",
+      "bg": "#F1F4FB",
+      "ratio": 2.55,
+      "pass": false,
+      "note": "FAIL 2.55:1 — Placeholder text and disabled controls only; never body copy."
+    },
+    {
+      "label": "coral on plate",
+      "fg": "#FF8B6A",
+      "bg": "#FFFFFF",
+      "ratio": 2.28,
+      "pass": false,
+      "note": "FAIL 2.28:1 — Warm prism gradient stop only; never used for text."
+    },
+    {
+      "label": "mint on plate",
+      "fg": "#BCEFD4",
+      "bg": "#FFFFFF",
+      "ratio": 1.24,
+      "pass": false,
+      "note": "FAIL 1.24:1 — Tactile Online status capsule fill only; paired with #13794B text."
+    }
+  ],
+  "radius": {
+    "xs": "6px",
+    "sm": "10px",
+    "md": "12px",
+    "lg": "20px",
+    "xl": "28px",
+    "pill": "999px"
+  },
+  "space": [4, 8, 12, 16, 20, 24, 32, 44, 64]
+}
