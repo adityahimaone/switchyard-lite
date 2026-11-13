@@ -13,6 +13,11 @@ export interface Task {
   executor?: string;
   model?: string;
   effort?: string;
+  /** @file references and $skill names attached in the composer. */
+  paths?: string[];
+  skills?: string[];
+  /** Base branch for the isolated worktree (empty = current HEAD). */
+  branch?: string;
   retry_count: number;
   blocked_by: string[];
   run_id?: string;
@@ -42,8 +47,77 @@ export interface Workspace {
   /** Which node-agent node reports this path (empty when nothing claims it). */
   node?: string;
   hostname?: string;
+  /** Resolved platform from the live kanban-board registry, never a name prefix. */
+  machine?: PlatformKey;
+  /** Found in node-agent's ~/.hermes/workspaces.json. */
+  live?: boolean;
+  live_id?: string;
+  source?: string;
   latency_ms?: number;
   created_at?: number;
+}
+
+export interface LiveWorkspace {
+  id: string;
+  name: string;
+  path: string;
+  host?: string;
+  os?: string;
+  kind?: string;
+  note?: string;
+  labels?: string[];
+}
+
+export interface SkillMeta {
+  name: string;
+  description?: string;
+  category?: string;
+  path?: string;
+  root?: string;
+  origin?: string;
+  source?: string;
+  linked?: boolean;
+  npx?: boolean;
+}
+
+export interface FileMatch {
+  path: string;
+  basename: string;
+  directory: string;
+  score: number;
+}
+
+export interface WorkspaceFileResult {
+  path: string;
+  files: FileMatch[];
+  hint?: string;
+  local: boolean;
+}
+
+export interface WorkspaceBranchResult {
+  path: string;
+  branches: string[];
+  current?: string;
+  warning?: string;
+  local: boolean;
+}
+
+export interface LogSource {
+  key: string;
+  label: string;
+  available: boolean;
+  hint?: string;
+}
+
+export interface LogTail {
+  file: string;
+  label: string;
+  tail: number;
+  lines: string[];
+  total_bytes: number;
+  mtime?: number | null;
+  hint?: string;
+  kind: "file" | "activity" | "journal";
 }
 
 export interface WorktreeInfo {
@@ -57,13 +131,16 @@ export interface WorktreeInfo {
 export type PlatformKey = "mac" | "windows" | "current" | "linux";
 
 export function platformOfWorkspace(
-  w?: Pick<Workspace, "os" | "host" | "path"> | null,
+  w?: Pick<Workspace, "os" | "host" | "path" | "machine"> | null,
   fallbackPath?: string
 ): PlatformKey {
   const os = (w?.os || "").toLowerCase();
   const host = (w?.host || "").toLowerCase();
   const path = w?.path || fallbackPath || "";
   const lower = path.toLowerCase();
+  // The backend resolves machine from the live kanban-board registry and the
+  // path shape; it wins over stale local os/host rows and "mac: " names.
+  if (w?.machine) return w.machine;
 
   if (os === "windows" || host.includes("windows") || lower.startsWith("c:\\") || /^[a-z]:[\\/]/i.test(path)) {
     return "windows";

@@ -125,10 +125,10 @@ func (r *Registry) Lookup(ctx context.Context, path string) (Node, bool) {
 	return Match(list, path)
 }
 
-// normalize makes paths comparable across platforms: separators unified,
+// Normalize makes paths comparable across platforms: separators unified,
 // trailing slash dropped, and case folded (Windows paths are case-insensitive
 // and the agent reports them verbatim).
-func normalize(p string) string {
+func Normalize(p string) string {
 	p = strings.TrimSpace(p)
 	if p == "" {
 		return ""
@@ -136,4 +136,50 @@ func normalize(p string) string {
 	p = strings.ReplaceAll(p, `\`, "/")
 	p = strings.TrimRight(p, "/")
 	return strings.ToLower(p)
+}
+
+func normalize(p string) string { return Normalize(p) }
+
+// MachineOf infers a node's platform from its id and hostname.
+func MachineOf(n Node) string {
+	s := strings.ToLower(n.NodeID + " " + n.Hostname)
+	switch {
+	case strings.Contains(s, "windows"), strings.Contains(s, "win32"), strings.Contains(s, "rtx"):
+		return "windows"
+	case strings.Contains(s, "mac"), strings.Contains(s, "darwin"), strings.Contains(s, "macbook"):
+		return "mac"
+	case strings.Contains(s, "linux"):
+		return "linux"
+	}
+	return ""
+}
+
+// Find resolves the node that should serve path.
+//
+// An agent can report paths inherited from another machine's workspaces.json:
+// the mac agent currently lists the Windows D:\xampp\htdocs checkouts too.
+// A plain path match therefore mislabels those Windows workspaces as "mac".
+// When machine is known, prefer a node on that machine; a healthy node on the
+// right machine is still a better liveness signal than a stale path claim.
+// The bool reports whether the path was claimed verbatim by that node.
+func Find(list []Node, path, machine string) (Node, bool) {
+	want := Normalize(path)
+	if machine != "" && want != "" {
+		for _, n := range list {
+			if MachineOf(n) != machine {
+				continue
+			}
+			for _, p := range n.Workspaces {
+				if Normalize(p) == want {
+					return n, true
+				}
+			}
+		}
+		for _, n := range list {
+			if MachineOf(n) == machine {
+				return n, false
+			}
+		}
+	}
+	return Match(list, path)
 }

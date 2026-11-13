@@ -716,6 +716,29 @@ export function TaskDetailPanels({
                   </Section>
                 )}
 
+                {(t.paths?.length || t.skills?.length || t.branch) ? (
+                  <Section title={<><Paperclip className="size-3" /> Context &amp; references</>}>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {t.branch && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-line bg-well px-2 py-0.5 font-mono text-[10px] text-ink-2">
+                          <GitBranch className="size-2.5" /> base: {t.branch}
+                        </span>
+                      )}
+                      {(t.paths ?? []).map((p) => (
+                        <span key={p} className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent/35 bg-accent/12 px-2 py-0.5 font-mono text-[10px] text-accent-text">
+                          <FileCode2 className="size-2.5" />
+                          <span className="max-w-[240px] truncate">@{p}</span>
+                        </span>
+                      ))}
+                      {(t.skills ?? []).map((s) => (
+                        <span key={s} className="inline-flex items-center gap-1 rounded-full border border-line bg-well px-2 py-0.5 font-mono text-[10px] text-ink-2">
+                          ${s}
+                        </span>
+                      ))}
+                    </div>
+                  </Section>
+                ) : null}
+
                 <div className="grid gap-3">
                   {variant === "drawer" && (
                     <Section title="Details">
@@ -729,6 +752,11 @@ export function TaskDetailPanels({
                         {worktree.data?.exists && (
                           <Field label="Worktree branch">
                             <span className="font-mono text-[11px]">{worktree.data.branch}</span>
+                          </Field>
+                        )}
+                        {t.branch && (
+                          <Field label="Base branch">
+                            <span className="font-mono text-[11px]">{t.branch}</span>
                           </Field>
                         )}
                         {t.run_id && (

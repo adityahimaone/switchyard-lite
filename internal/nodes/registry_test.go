@@ -98,6 +98,36 @@ func TestListCachesAndSendsToken(t *testing.T) {
 	}
 }
 
+// The mac agent currently reports Windows checkouts inherited from
+// workspaces.json. Find must not attribute those paths to the mac node.
+func TestFindPrefersNodeOnResolvedMachine(t *testing.T) {
+	now := time.Now()
+	list := []Node{
+		{NodeID: "mac", Hostname: "Adityas-MacBook-Pro.local", Status: "idle", LastSeen: now,
+			Workspaces: []string{"/Users/dev/app", `D:\xampp\htdocs\portal-hadirr`}},
+		{NodeID: "windows", Hostname: "WIN-DESKTOP", Status: "idle", LastSeen: now,
+			Workspaces: []string{`C:\Development`, `D:\xampp\htdocs\portal-hadirr`}},
+	}
+	n, exact := Find(list, `D:\xampp\htdocs\portal-hadirr`, "windows")
+	if n.NodeID != "windows" || !exact {
+		t.Fatalf("Find(windows path, windows) = %q, exact=%v", n.NodeID, exact)
+	}
+	if got := MachineOf(n); got != "windows" {
+		t.Fatalf("MachineOf = %q", got)
+	}
+	// A path only the mac node claims still resolves to mac.
+	n, _ = Find(list, "/Users/dev/app", "mac")
+	if n.NodeID != "mac" {
+		t.Fatalf("Find(mac path, mac) = %q", n.NodeID)
+	}
+	// Without a machine hint the historic verbatim path match still works,
+	// but it returns the first claimant (mac) — this is why the overlay matters.
+	n, _ = Find(list, `D:\xampp\htdocs\portal-hadirr`, "")
+	if n.NodeID != "mac" {
+		t.Fatalf("Find(no machine) = %q, want mac (legacy behaviour)", n.NodeID)
+	}
+}
+
 func TestUnconfiguredRegistryIsQuiet(t *testing.T) {
 	if _, err := New("", "").List(context.Background()); err != nil {
 		t.Fatalf("unconfigured registry should not error: %v", err)
