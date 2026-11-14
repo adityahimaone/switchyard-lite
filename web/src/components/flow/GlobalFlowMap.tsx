@@ -1019,6 +1019,7 @@ export function GlobalFlowMap({
   const [expanded, setExpanded] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const nodeDragRef = useRef<{
     id: FlowNodeId;
@@ -1027,6 +1028,21 @@ export function GlobalFlowMap({
     origin: Point;
     moved: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) {
+        return;
+      }
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const boardParam = boardFilter === "__all__" ? "" : boardFilter;
 
@@ -1295,7 +1311,7 @@ export function GlobalFlowMap({
     () =>
       visibleTasks.map((t) => ({
         id: t.task_id,
-        name: `${t.board ? `${t.board}: ` : ""}${t.title}`.slice(0, 28),
+        name: `${t.board ? `${t.board}: ` : ""}${t.title}`,
         status: t.stage === "running" ? "in_progress" : t.status ?? "todo",
         depends_on:
           t.blocked_by && t.blocked_by.length > 0
@@ -1373,15 +1389,46 @@ export function GlobalFlowMap({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[200px] flex-1 max-w-[280px]">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+          <div
+            className={cn(
+              "group relative flex h-8 min-w-[200px] flex-1 max-w-[280px] items-center rounded-[10px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
+              query
+                ? "border-accent/45 bg-surface shadow-[var(--lift-1)]"
+                : "border-line bg-well/55 hover:border-line-strong hover:bg-surface"
+            )}
+          >
+            <Search
+              className={cn("size-3.5 shrink-0 transition-colors", query ? "text-accent-text" : "text-ink-3")}
+              aria-hidden
+            />
             <input
+              ref={searchRef}
               aria-label="Search flow tasks"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setQuery("");
+                  e.currentTarget.blur();
+                }
+              }}
               placeholder="Search tasks, boards, nodes…"
-              className="h-8 w-full rounded-[10px] border border-line bg-well pl-8 pr-2.5 text-xs text-ink outline-none placeholder:text-ink-3 focus:border-accent/60 focus:ring-2 focus:ring-focus/30"
+              className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
             />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-3 transition-colors hover:bg-well hover:text-ink"
+              >
+                <span aria-hidden className="text-[13px] leading-none">×</span>
+              </button>
+            ) : (
+              <kbd className="hidden shrink-0 rounded-[5px] border border-line bg-surface px-1.5 py-0.5 font-mono text-[9px] text-ink-4 sm:inline">
+                /
+              </kbd>
+            )}
           </div>
 
           <Select value={boardFilter} onValueChange={setBoardFilter}>

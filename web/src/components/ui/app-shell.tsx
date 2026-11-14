@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "./brand";
+import { Tip } from "./tooltip";
 
 /**
  * Switchyard Lite App / Dashboard Shell
@@ -176,7 +177,9 @@ export function AppSidebarItem({
   children,
   ...props
 }: AppSidebarItemProps) {
-  return (
+  const { collapsed } = useAppShell();
+
+  const item = (
     <a
       data-slot="app-sidebar-item"
       data-kubai-trigger
@@ -195,6 +198,24 @@ export function AppSidebarItem({
       )}
     </a>
   );
+
+  if (collapsed) {
+    const tipLabel = (
+      <span className="flex items-center gap-2 font-medium">
+        <span>{children}</span>
+        {badge !== undefined && badge !== null && badge !== false && (
+          <span className="nav-badge tabular">{badge}</span>
+        )}
+      </span>
+    );
+    return (
+      <Tip side="right" delayDuration={80} label={tipLabel}>
+        {item}
+      </Tip>
+    );
+  }
+
+  return item;
 }
 
 export function AppSidebarFooter({

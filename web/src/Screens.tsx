@@ -462,8 +462,8 @@ export function Dag({
 }) {
   const cols = layers(stages);
   const hasNodes = stages.some((s) => (s.nodes?.length ?? 0) > 0);
-  const W = hasNodes ? 198 : 180;
-  const H = hasNodes ? 68 : 56;
+  const W = hasNodes ? 224 : 212;
+  const H = hasNodes ? 72 : 64;
   const GX = 58;
   const GY = 22;
 
@@ -487,7 +487,7 @@ export function Dag({
   const baselineBottom = 12 + maxRows * H + Math.max(0, maxRows - 1) * GY;
 
   return (
-    <svg width={w} height={h} role="img" aria-label="stage graph" style={{ maxWidth: "100%", height: "auto" }}>
+    <svg width={w} height={h} role="img" aria-label="stage graph" style={{ minWidth: w, maxWidth: "100%", height: "auto" }}>
       <defs>
         <marker
           id="dag-back-arrow"
@@ -581,6 +581,9 @@ export function Dag({
             ? "var(--c-st-review)"
             : "var(--c-ink-4)";
         const verdictGood = latestVerdict === "PASS";
+        const rawTitle = s.name ?? s.id;
+        const maxChars = Math.floor((W - 32) / 7.2);
+        const title = rawTitle.length > maxChars ? rawTitle.slice(0, maxChars - 1) + "…" : rawTitle;
         return (
           <g
             key={s.id}
@@ -588,21 +591,22 @@ export function Dag({
             style={{ cursor: "pointer" }}
             onClick={onSelectStage ? () => onSelectStage(s.id) : undefined}
           >
+            <title>{rawTitle}</title>
             <rect
               width={W}
               height={H}
-              rx={11}
+              rx={12}
               fill="var(--c-surface)"
               stroke={isSelected ? "var(--c-accent)" : "var(--c-line-strong)"}
               strokeWidth={isSelected ? 2 : 1.15}
             />
-            <text x={14} y={23} fill="var(--c-ink)" fontSize={13} fontWeight={600}>
-              {s.name ?? s.id}
+            <text x={14} y={24} fill="var(--c-ink)" fontSize={12.5} fontWeight={600}>
+              {title}
             </text>
             {evolvedCount > 0 && (
               <text
                 x={W - 12}
-                y={22}
+                y={23}
                 textAnchor="end"
                 fill="var(--c-st-review)"
                 fontSize={10}
@@ -611,15 +615,15 @@ export function Dag({
                 ↻ {evolvedCount}
               </text>
             )}
-            <circle cx={18} cy={hasNodes ? 46 : 40} r={4} fill={fill} />
-            <text x={28} y={hasNodes ? 50 : 44} fill="var(--c-ink-3)" fontSize={11}>
+            <circle cx={18} cy={hasNodes ? 48 : 44} r={4.5} fill={fill} />
+            <text x={28} y={hasNodes ? 52 : 48} fill="var(--c-ink-3)" fontSize={11}>
               {s.status}
               {nodes.length > 0 ? ` · ${doneCount}/${nodes.length}` : ""}
             </text>
             {latestVerdict && (
               <text
                 x={W - 12}
-                y={hasNodes ? 50 : 44}
+                y={hasNodes ? 52 : 48}
                 textAnchor="end"
                 fill={verdictGood ? "var(--c-st-done)" : "var(--c-st-review)"}
                 fontSize={10}

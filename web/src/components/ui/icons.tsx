@@ -25,6 +25,7 @@ export const Activity = make("Activity", K.Activity, "#EC4899");
 export const ArrowLeft = make("ArrowLeft", K.ArrowLeft, "#64748B");
 export const ArrowRight = make("ArrowRight", K.ArrowRight, "#64748B");
 export const AtSign = make("AtSign", K.AtSign, "#8B5CF6");
+export const BookOpen = make("BookOpen", K.BookOpen, "#8B5CF6");
 export const ChevronDown = make("ChevronDown", K.ChevronDown, "#64748B");
 export const ChevronDownIcon = make("ChevronDownIcon", K.ChevronDown, "#64748B");
 export const ChevronRight = make("ChevronRight", K.ChevronRight, "#64748B");
@@ -98,4 +99,4 @@ export const AlertTriangle = make("AlertTriangle", K.TriangleAlert, "#F59E0B");
 export const Workflow = make("Workflow", K.Workflow, "#8B5CF6");
 
 /** Kubai's "apple" is the fruit; keep the macOS brand mark and flow controls from lucide. */
-export { Apple, BookOpen, Brain, Database, Expand, HelpCircle, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+export { Apple, Brain, Database, Expand, HelpCircle, Minimize2, ZoomIn, ZoomOut } from "lucide-react";

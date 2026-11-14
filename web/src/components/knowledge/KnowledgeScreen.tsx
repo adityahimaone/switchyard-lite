@@ -277,15 +277,46 @@ export function KnowledgeScreen({
           </Button>
         </div>
 
-        <div className="relative mt-2.5">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-4" />
-          <Input
+        <div
+          className={cn(
+            "group relative mt-2.5 flex h-8 items-center rounded-[10px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
+            query
+              ? "border-accent/45 bg-surface shadow-[var(--lift-1)]"
+              : "border-line bg-well/55 hover:border-line-strong hover:bg-surface"
+          )}
+        >
+          <Search
+            className={cn("size-3.5 shrink-0 transition-colors", query ? "text-accent-text" : "text-ink-4")}
+            aria-hidden
+          />
+          <input
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search docs… (/)"
-            className="h-8 pl-8 text-[12px]"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setQuery("");
+                e.currentTarget.blur();
+              }
+            }}
+            placeholder="Search docs…"
+            aria-label="Search docs"
+            className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
           />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-3 transition-colors hover:bg-well hover:text-ink"
+            >
+              <span aria-hidden className="text-[13px] leading-none">×</span>
+            </button>
+          ) : (
+            <kbd className="hidden shrink-0 rounded-[5px] border border-line bg-surface px-1.5 py-0.5 font-mono text-[9px] text-ink-4 sm:inline">
+              /
+            </kbd>
+          )}
         </div>
 
         <nav className="mt-3 max-h-[65vh] space-y-3 overflow-y-auto pr-0.5" aria-label="Knowledge articles">

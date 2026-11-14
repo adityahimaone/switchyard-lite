@@ -215,14 +215,14 @@ export function FactTile({
   tone?: "default" | "accent" | "success" | "danger" | "review";
 }) {
   return (
-    <div className="flex h-[58px] min-w-0 flex-col justify-center rounded-[10px] border border-line bg-surface px-3 py-2 shadow-[var(--lift-1),var(--lift-inset)]">
+    <div className="flex min-h-[68px] min-w-0 flex-col justify-center rounded-[10px] border border-line bg-surface px-3 py-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
       <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-ink-4 uppercase">
         {icon}
         <span className="truncate">{label}</span>
       </div>
       <div
         className={cn(
-          "mt-0.5 truncate text-xs font-semibold tabular-nums",
+          "mt-1 truncate text-xs font-semibold tabular-nums leading-tight",
           tone === "default" && "text-ink",
           tone === "accent" && "text-accent-text",
           tone === "success" && "text-success-text",
@@ -233,7 +233,7 @@ export function FactTile({
       >
         {value}
       </div>
-      {hint && <div className="mt-0.5 truncate text-[10px] leading-none text-ink-4">{hint}</div>}
+      {hint && <div className="mt-1 truncate text-[10px] leading-tight text-ink-4">{hint}</div>}
     </div>
   );
 }
