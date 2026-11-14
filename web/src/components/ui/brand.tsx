@@ -1,11 +1,11 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
 /**
- * BrandMark — "The Parallel Turnout Switch" (Kuwayama 64×64 Grid)
+ * BrandMark — The authentic Switchyard "S" brand icon.
  *
- * Designed from scratch for Switchyard Lite (Q4: Two offset blocks with a 6-unit gap):
- *  - Lower through-track (y=38..50, h=12) in currentColor
- *  - Upper turnout branch (y=20..32 -> climbs 45deg across a 6-unit gap to y=7..19) in Royal Cobalt
- *  - Interlocking signal dot (cx=50, cy=29, r=3.5) in Prism Coral (#FF8B6A)
- *  - Below 24px (compact): swaps to a fatter 15-unit drawing with the signal dot removed.
+ * Rounded-square tile: Royal Signal Blue field with the signature white "S" turnout curve.
+ * Sourced directly from `/brand/switchyard-favicon-blue-512.png` (identical to kanban-board).
  */
 export function BrandMark({
   size = 26,
@@ -16,37 +16,19 @@ export function BrandMark({
   className?: string;
   title?: string;
 }) {
-  const compact = size < 24;
   return (
-    <svg
-      viewBox="0 0 64 64"
+    <img
+      src="/brand/switchyard-favicon-blue-512.png"
+      alt={title || "Switchyard"}
       width={size}
       height={size}
-      fill="none"
-      className={className}
-      role={title ? "img" : undefined}
-      aria-label={title}
-      aria-hidden={title ? undefined : true}
-    >
-      {compact ? (
-        <>
-          <rect x="6" y="37" width="52" height="15" rx="7.5" fill="currentColor" />
-          <path
-            d="M6 17H24C30 17 34 13 38 9H58V23H42L32 31H6V17Z"
-            fill="var(--c-accent)"
-          />
-        </>
-      ) : (
-        <>
-          <rect x="8" y="38" width="48" height="12" rx="6" fill="currentColor" />
-          <path
-            d="M8 20H24C28 20 31 18 34 15L39 10C41 8 44 7 48 7H56V19H49C47 19 45 20 43 22L38 27C35 30 31 32 26 32H8V20Z"
-            fill="var(--c-accent)"
-          />
-          <circle cx="50" cy="29" r="3.5" fill="var(--sy-coral, #ff8b6a)" />
-        </>
+      draggable={false}
+      className={cn(
+        "shrink-0 object-contain select-none rounded-[7px] shadow-[var(--lift-1)]",
+        className
       )}
-    </svg>
+      style={{ width: size, height: size }}
+    />
   );
 }
 
