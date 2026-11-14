@@ -174,7 +174,20 @@ code, pre, .mono {
   background-position: center center, center top;
   /* 唯一的布局动画：grid track。子元素一律不参与布局动画（见下方 clip 规则），
      否则每次 tick 都会重排 12 个 nav 项 + 文本省略号计算。 */
-  transition: grid-template-columns 200ms var(--ease-out);
+  transition: grid-template-columns 180ms var(--ease-out);
+}
+
+/* 过渡窗口内关掉逐帧重采样的 backdrop blur：这是收起/展开卡顿的主因。 */
+.shell[data-animating] nav.side {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: color-mix(in srgb, var(--c-well) 88%, transparent);
+}
+
+.shell[data-animating] .shell-inset {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: color-mix(in srgb, var(--c-well) 84%, transparent);
 }
 
 .shell.collapsed {
@@ -231,6 +244,7 @@ nav.side {
   flex-shrink: 0;
   width: 100%;
   overflow: hidden;
+  transition: padding 180ms var(--ease-out);
 }
 
 .brand-mark-tile {
@@ -387,13 +401,9 @@ nav.side .side-footer-status {
 .shell.collapsed nav.side .side-brand {
   display: flex;
   align-items: center;
-  padding: 2px 4px;
   width: 100%;
-}
-
-/* 图标不靠 justify-content 抢位，只做 transform 位移：compositor 友好，也不触发重排。 */
-.shell.collapsed nav.side .brand-mark-tile {
-  transform: translateX(8px);
+  /* 内容盒 36px、品牌块 26px → 左内边距 5px 才是真正居中 */
+  padding: 2px 0 2px 5px;
 }
 
 .shell.collapsed nav.side .side-footer > div {
@@ -403,11 +413,11 @@ nav.side .side-footer-status {
 
 .shell.collapsed nav.side a {
   min-width: 0;
+  /* 38px 宽 - 2px 边框 - 14px 图标 = 22，左右 11px 才是真正居中 */
+  --nav-pad-x: 11px;
 }
 
-.shell.collapsed nav.side .nav-icon-wrap {
-  transform: translateX(10px);
-}
+
 
 nav.side a {
   display: flex;
@@ -415,7 +425,7 @@ nav.side a {
   gap: 8px;
   height: 34px;
   width: 100%;
-  padding: 0 8px;
+  padding: 0 var(--nav-pad-x, 8px);
   border-radius: 8px;
   border: 1px solid transparent;
   color: var(--c-ink-2);
@@ -425,7 +435,7 @@ nav.side a {
   white-space: nowrap;
   position: relative;
   overflow: hidden;
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 100ms var(--ease-out);
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 100ms var(--ease-out), padding 180ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {

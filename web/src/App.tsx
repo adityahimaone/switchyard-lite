@@ -38,6 +38,7 @@ import {
   AppSidebarGroup,
   AppSidebarItem,
   AppSidebarTrack,
+  useAppShell,
 } from "@/components/ui/app-shell";
 import { StatusPill } from "@/components/ui/pill";
 import {
@@ -75,12 +76,30 @@ export function useHash() {
   return h;
 }
 
+/**
+ * 只订阅侧栏状态的按钮：折叠状态留在 AppShell 内部，
+ * 切换时不会重渲染整个页面（Workspaces / Board 的成百个节点）。
+ */
+function ShellToggle() {
+  const { collapsed, setCollapsed } = useAppShell();
+  return (
+    <button
+      type="button"
+      className="btn ghost icon sm"
+      onClick={() => setCollapsed((v) => !v)}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+    >
+      {collapsed ? <PanelLeft className="size-4" /> : <PanelLeftClose className="size-4" />}
+    </button>
+  );
+}
+
 export function App() {
   const qc = useQueryClient();
   const [authed, setAuthed] = useState(!!getToken());
   const hash = useHash();
   const [drawer, setDrawer] = useState<string>();
-  const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [boardDialog, setBoardDialog] = useState<{ mode: "new" | "edit"; board?: Board } | null>(null);
 
@@ -136,7 +155,7 @@ export function App() {
 
   return (
     <TooltipProvider>
-    <AppShell collapsed={collapsed} onCollapsedChange={setCollapsed}>
+    <AppShell>
       <AppSidebar>
         <div className="side-top-pod">
           <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
@@ -202,15 +221,7 @@ export function App() {
       <AppInset>
         <AppHeader>
           <div className="header-left">
-            <button
-              type="button"
-              className="btn ghost icon sm"
-              onClick={() => setCollapsed((v) => !v)}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {collapsed ? <PanelLeft className="size-4" /> : <PanelLeftClose className="size-4" />}
-            </button>
+            <ShellToggle />
             <div className="crumbs">
               <span>Switchyard</span>
               <span className="crumb-sep">/</span>

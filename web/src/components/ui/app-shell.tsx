@@ -47,6 +47,23 @@ export function AppShell({
   const isControlled = controlledCollapsed !== undefined;
   const collapsed = isControlled ? controlledCollapsed : internalCollapsed;
 
+  // 收起/展开的 200ms 里，侧栏与舞台每帧都在改变尺寸，而两者的
+  // backdrop-filter 会跟着逐帧重采样背景（这是真正吃 GPU 的部分）。
+  // 只在过渡窗口内降级为实色，视觉上几乎无差，掉帧消失。
+  const [animating, setAnimating] = React.useState(false);
+  const animTimer = React.useRef<number | undefined>(undefined);
+  const didMount = React.useRef(false);
+  React.useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    setAnimating(true);
+    window.clearTimeout(animTimer.current);
+    animTimer.current = window.setTimeout(() => setAnimating(false), 240);
+    return () => window.clearTimeout(animTimer.current);
+  }, [collapsed]);
+
   const setCollapsed = React.useCallback<
     React.Dispatch<React.SetStateAction<boolean>>
   >(
@@ -64,6 +81,7 @@ export function AppShell({
       <div
         data-slot="app-shell"
         data-collapsed={collapsed || undefined}
+        data-animating={animating || undefined}
         className={cn("shell", collapsed && "collapsed", className)}
         {...props}
       >
