@@ -1605,7 +1605,7 @@ label.f {
   pointer-events: none;
   opacity: 0.65;
   animation: scope-scan-travel var(--scope-duration, 2.8s) linear infinite;
-  animation-delay: var(--scope-delay, 0s);
+  animation-delay: calc(-1 * var(--scope-delay, 0s));
   will-change: transform;
 }
 
@@ -1627,17 +1627,17 @@ label.f {
 }
 
 .oscilloscope-pulse-trace {
-  stroke-dasharray: 28 100;
-  stroke-dashoffset: 128;
+  stroke-dasharray: 24 100;
+  stroke-dashoffset: 24;
   animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
-  animation-delay: var(--scope-delay, 0s);
+  animation-delay: calc(-1 * var(--scope-delay, 0s));
   will-change: stroke-dashoffset;
 }
 
 @keyframes scope-pulse-travel {
   0% {
-    stroke-dashoffset: 128;
-    opacity: 0.2;
+    stroke-dashoffset: 24;
+    opacity: 0.3;
   }
   4% {
     opacity: 1;
@@ -1646,39 +1646,20 @@ label.f {
     opacity: 1;
   }
   100% {
-    stroke-dashoffset: -28;
-    opacity: 0.2;
+    stroke-dashoffset: -76;
+    opacity: 0.3;
   }
 }
 
-.oscilloscope-blip-shockwave {
-  transform-origin: center;
-  transform-box: fill-box;
-  animation: scope-blip-pulse var(--scope-duration, 2.8s) cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  animation-delay: calc(var(--scope-delay, 0s) + var(--scope-ping-offset, 0.98s));
-  will-change: transform, opacity;
-}
-
-@keyframes scope-blip-pulse {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.9;
-  }
-  26% {
-    transform: scale(2.6);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(2.6);
-    opacity: 0;
-  }
+.oscilloscope-running-dot {
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .oscilloscope-radar-sweep,
   .oscilloscope-scan-beam,
   .oscilloscope-pulse-trace,
-  .oscilloscope-blip-shockwave {
+  .oscilloscope-running-dot {
     animation: none !important;
     display: none !important;
   }

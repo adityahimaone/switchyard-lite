@@ -363,16 +363,26 @@ function OscilloscopeMonitor({
             />
           )}
 
-          {blipPoint && !isOffline && (
-            <g transform={`translate(${blipPoint.x}, ${blipPoint.y})`}>
-              <circle r="2.5" fill={strokeColor} />
-              <circle
-                r="4.5"
-                fill="none"
-                stroke={strokeColor}
-                strokeWidth="1.2"
-                className="oscilloscope-blip-shockwave"
+          {/* Running electron beam dot tracing the EKG waveform */}
+          {!isOffline && (
+            <g className="oscilloscope-running-dot">
+              <animateMotion
+                path={pathD}
+                dur={`${durationSeconds}s`}
+                begin={`${-delaySeconds}s`}
+                repeatCount="indefinite"
+                calcMode="linear"
               />
+              {/* Inner bright core */}
+              <circle r="2.6" fill={strokeColor} />
+              {/* Outer soft aura */}
+              <circle r="5" fill={strokeColor} opacity="0.35" />
+            </g>
+          )}
+
+          {isOffline && (
+            <g transform={`translate(${w}, ${mid})`}>
+              <circle r="2" fill={strokeColor} opacity="0.6" />
             </g>
           )}
         </svg>
