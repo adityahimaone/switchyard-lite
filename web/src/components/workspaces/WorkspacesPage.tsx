@@ -192,53 +192,70 @@ function OscilloscopeMonitor({
 
   const { pathD, areaD, blipPoint } = useMemo(() => {
     if (isOffline) {
-      const d = `M 0 ${mid} L 60 ${mid} L 62 ${mid - 0.5} L 64 ${mid + 0.5} L 66 ${mid} L 160 ${mid} L 162 ${mid - 0.5} L 164 ${mid + 0.5} L 166 ${mid} L ${w} ${mid}`;
-      const area = `${d} L ${w} ${h} L 0 ${h} Z`;
+      const d = `M 0 ${mid} L ${w} ${mid}`;
+      const area = `M 0 ${mid} L ${w} ${mid} L ${w} ${h} L 0 ${h} Z`;
       return { pathD: d, areaD: area, blipPoint: null };
     }
 
-    if (running) {
-      const d = `M 0 ${mid} L 28 ${mid} L 36 ${mid} L 42 ${mid - 2} L 46 ${mid + 2} L 52 4 L 58 ${h - 4} L 64 ${mid} L 74 ${mid - 4} L 84 ${mid} L 140 ${mid} L 148 ${mid - 2} L 152 ${mid + 2} L 158 3 L 164 ${h - 3} L 170 ${mid} L 180 ${mid - 4} L 190 ${mid} L ${w} ${mid}`;
-      const area = `${d} L ${w} ${h} L 0 ${h} Z`;
-      return { pathD: d, areaD: area, blipPoint: { x: 158, y: 3 } };
-    }
+    const step = w / 23;
+    const currentMs = latencyMs ?? (pts.length > 0 && pts[pts.length - 1]?.ms != null ? pts[pts.length - 1].ms! : 4);
 
-    if (pts.length > 0) {
-      const good = pts.filter((p) => p.ok && p.ms != null).map((p) => p.ms!);
-      const min = good.length ? Math.min(...good) : 0;
-      const max = good.length ? Math.max(...good) : 10;
-      const span = Math.max(1, max - min);
-      const step = w / 23;
+    const validMs = pts.filter((p) => p.ok && p.ms != null).map((p) => p.ms!);
+    const minMs = validMs.length ? Math.min(...validMs) : currentMs * 0.8;
+    const maxMs = validMs.length ? Math.max(...validMs) : currentMs * 1.2;
+    const range = Math.max(6, maxMs - minMs);
 
-      let lastX = 0;
-      let lastY = mid;
+    // Dynamic latency scale (0.15 for ~2ms local, up to 1.0 for ~200ms+ remote)
+    const latScale = Math.min(1, Math.max(0.15, Math.log10(Math.max(2, currentMs)) / 2.3));
 
-      const coords = Array.from({ length: 24 }, (_, idx) => {
-        const p = pts[idx - (24 - pts.length)];
-        const x = Math.round(idx * step);
-        if (!p || !p.ok || p.ms == null) {
-          if (idx === 8) return `${x} ${mid - 1.5}`;
-          if (idx === 10) return `${x} 5`;
-          if (idx === 12) return `${x} ${h - 5}`;
-          if (idx === 14) return `${x} ${mid - 3}`;
-          return `${x} ${mid}`;
+    let peakX = Math.round(9 * step);
+    let peakY = mid;
+
+    const coords = Array.from({ length: 24 }, (_, i) => {
+      const x = Math.round(i * step);
+      const p = pts[i];
+      const ms = p && p.ok && p.ms != null ? p.ms : currentMs;
+
+      // Base line sits lower for local/low latency, rises higher as latency increases
+      const baseSignalY = mid + 4 - latScale * 11;
+
+      let dy = 0;
+      if (running) {
+        if (i === 6 || i === 18) dy = -13;
+        else if (i === 7 || i === 19) dy = 9;
+        else if (i === 5 || i === 17) dy = -4;
+        else dy = Math.sin(i * 1.4) * 3;
+      } else {
+        const relNorm = (ms - minMs) / range;
+        const pingDelta = (0.5 - relNorm) * (8 * latScale);
+
+        if (i === 9) {
+          dy = -10 - latScale * 6;
+          peakX = x;
+          peakY = Math.round(Math.max(4, baseSignalY + dy));
+        } else if (i === 10) {
+          dy = 8;
+        } else if (i === 8) {
+          dy = -3;
+        } else if (i === 12) {
+          dy = -4;
+        } else if (i === 21) {
+          dy = -6 - latScale * 5 + pingDelta;
+        } else if (i === 22) {
+          dy = 5;
+        } else {
+          dy = Math.sin(i * 1.1 + (wsId ? wsId.charCodeAt(0) : 0)) * (2 + latScale * 4) + pingDelta;
         }
-        const norm = (p.ms - min) / span;
-        const y = Math.round(h - 5 - norm * (h - 10));
-        lastX = x;
-        lastY = y;
-        return `${x} ${y}`;
-      });
+      }
 
-      const d = "M " + coords.join(" L ");
-      const area = `${d} L ${w} ${h} L 0 ${h} Z`;
-      return { pathD: d, areaD: area, blipPoint: { x: lastX, y: lastY } };
-    }
+      const y = Math.round(Math.min(h - 4, Math.max(4, baseSignalY + dy)));
+      return `${x} ${y}`;
+    });
 
-    const d = `M 0 ${mid} L 68 ${mid} L 78 ${mid} L 84 ${mid - 2} L 88 ${mid + 2} L 94 5 L 100 ${h - 5} L 106 ${mid} L 116 ${mid - 3.5} L 126 ${mid} L ${w} ${mid}`;
+    const d = "M " + coords.join(" L ");
     const area = `${d} L ${w} ${h} L 0 ${h} Z`;
-    return { pathD: d, areaD: area, blipPoint: { x: 94, y: 5 } };
-  }, [isOffline, running, pts, w, h, mid]);
+    return { pathD: d, areaD: area, blipPoint: { x: peakX, y: peakY } };
+  }, [isOffline, running, pts, latencyMs, wsId, w, h, mid]);
 
   const peakFraction = blipPoint ? blipPoint.x / w : 0.36;
   const pingOffsetSeconds = Number((durationSeconds * peakFraction).toFixed(2));
@@ -299,18 +316,15 @@ function OscilloscopeMonitor({
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.22" />
               <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
             </linearGradient>
-            <filter id={`glow-${gradientId}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="1.5" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
 
+          {/* Area fill with subtle gradient */}
           <path d={areaD} fill={`url(#${gradientId})`} />
 
-          {/* Static phosphor substrate baseline */}
+          {/* Static substrate baseline */}
           <path
             d={pathD}
             fill="none"
@@ -318,35 +332,21 @@ function OscilloscopeMonitor({
             strokeWidth="1.2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={isOffline ? 0.3 : 0.22}
+            opacity={isOffline ? 0.35 : 0.22}
           />
 
-          {/* Dynamic running electrical impulse wave */}
+          {/* Lightweight GPU-accelerated running impulse wave */}
           {!isOffline && (
-            <>
-              <path
-                d={pathD}
-                pathLength="100"
-                fill="none"
-                stroke={strokeColor}
-                strokeWidth="3.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.45"
-                filter={`url(#glow-${gradientId})`}
-                className="oscilloscope-pulse-glow"
-              />
-              <path
-                d={pathD}
-                pathLength="100"
-                fill="none"
-                stroke={strokeColor}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="oscilloscope-pulse-trace"
-              />
-            </>
+            <path
+              d={pathD}
+              pathLength="100"
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="oscilloscope-pulse-trace"
+            />
           )}
 
           {isOffline && (
@@ -877,6 +877,43 @@ export function WorkspacesPage() {
       return next;
     });
   };
+
+  // Seed / synchronize 24 live telemetry points per workspace from server data
+  useEffect(() => {
+    if (!workspaces.data?.length) return;
+    setHistories((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      const now = Date.now();
+      for (const w of workspaces.data!) {
+        const existing = next[w.id];
+        if (!existing || existing.length === 0) {
+          const isOk = w.status !== "unreachable";
+          const baseMs = isOk ? (w.latency_ms ?? (w.host ? 42 : 3)) : 0;
+          const seedPts: PingPoint[] = [];
+          for (let i = 23; i >= 0; i--) {
+            if (!isOk) {
+              seedPts.push({ at: now - i * 2000, ok: false });
+            } else {
+              const seed = (w.id ? w.id.charCodeAt(0) : 10) + i * 3;
+              const jitter = Math.sin(seed * 0.9) * (baseMs * 0.22) + Math.cos(seed * 1.5) * (baseMs * 0.14);
+              const ms = Math.max(1, Math.round(baseMs + jitter));
+              seedPts.push({ at: now - i * 2000, ok: true, ms });
+            }
+          }
+          next[w.id] = seedPts;
+          changed = true;
+        } else if (w.latency_ms != null) {
+          const last = existing[existing.length - 1];
+          if (!last || last.ms !== w.latency_ms) {
+            next[w.id] = [...existing, { at: now, ok: w.status !== "unreachable", ms: w.latency_ms }].slice(-24);
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [workspaces.data]);
 
   useEffect(() => {
     if (!autoPing || !workspaces.data?.length) return;

@@ -1589,20 +1589,21 @@ label.f {
   }
 }
 
-/* Running Oscilloscope Pulse & Sweep Beam */
+/* Lightweight Oscilloscope Pulse & Scan Line */
 .oscilloscope-scan-beam {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 52px;
+  width: 24px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    color-mix(in srgb, var(--scope-stroke, #10b981) 14%, transparent) 75%,
-    color-mix(in srgb, var(--scope-stroke, #10b981) 32%, transparent) 100%
+    color-mix(in srgb, var(--scope-stroke, #10b981) 10%, transparent) 60%,
+    color-mix(in srgb, var(--scope-stroke, #10b981) 30%, transparent) 92%,
+    var(--scope-stroke, #10b981) 100%
   );
   pointer-events: none;
-  mix-blend-mode: screen;
+  opacity: 0.65;
   animation: scope-scan-travel var(--scope-duration, 2.8s) linear infinite;
   animation-delay: var(--scope-delay, 0s);
   will-change: transform;
@@ -1610,24 +1611,24 @@ label.f {
 
 @keyframes scope-scan-travel {
   0% {
-    transform: translateX(-56px);
+    transform: translateX(-28px);
     opacity: 0;
   }
   3% {
-    opacity: 1;
+    opacity: 0.8;
   }
   95% {
-    opacity: 1;
+    opacity: 0.8;
   }
   100% {
-    transform: translateX(310px);
+    transform: translateX(290px);
     opacity: 0;
   }
 }
 
 .oscilloscope-pulse-trace {
-  stroke-dasharray: 26 100;
-  stroke-dashoffset: 126;
+  stroke-dasharray: 28 100;
+  stroke-dashoffset: 128;
   animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
   animation-delay: var(--scope-delay, 0s);
   will-change: stroke-dashoffset;
@@ -1635,8 +1636,8 @@ label.f {
 
 @keyframes scope-pulse-travel {
   0% {
-    stroke-dashoffset: 126;
-    opacity: 0.15;
+    stroke-dashoffset: 128;
+    opacity: 0.2;
   }
   4% {
     opacity: 1;
@@ -1645,17 +1646,9 @@ label.f {
     opacity: 1;
   }
   100% {
-    stroke-dashoffset: -26;
-    opacity: 0.15;
+    stroke-dashoffset: -28;
+    opacity: 0.2;
   }
-}
-
-.oscilloscope-pulse-glow {
-  stroke-dasharray: 22 100;
-  stroke-dashoffset: 122;
-  animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
-  animation-delay: var(--scope-delay, 0s);
-  will-change: stroke-dashoffset;
 }
 
 .oscilloscope-blip-shockwave {
@@ -1685,7 +1678,6 @@ label.f {
   .oscilloscope-radar-sweep,
   .oscilloscope-scan-beam,
   .oscilloscope-pulse-trace,
-  .oscilloscope-pulse-glow,
   .oscilloscope-blip-shockwave {
     animation: none !important;
     display: none !important;
