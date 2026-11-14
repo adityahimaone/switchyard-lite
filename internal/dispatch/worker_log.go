@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/adityahimaone/switchyard-lite/internal/tasks"
@@ -159,14 +161,17 @@ func ExtractFailureReason(rawErr, output string) (string, bool) {
 	extracted := extractFromOutput(output)
 	candidate := strings.TrimSpace(extracted)
 	if candidate == "" {
-		candidate = strings.TrimSpace(rawErr)
-	} else if rawErr = strings.TrimSpace(rawErr); rawErr != "" && !isGenericExitError(rawErr) && !strings.Contains(candidate, rawErr) {
-		candidate = candidate + " (" + rawErr + ")"
+		candidate = normalizeErrorText(rawErr)
+	} else if rawErr = strings.TrimSpace(rawErr); rawErr != "" && !isGenericExitError(rawErr) {
+		normRaw := normalizeErrorText(rawErr)
+		if !strings.Contains(candidate, normRaw) && !strings.Contains(normRaw, candidate) {
+			candidate = candidate + " (" + normRaw + ")"
+		}
 	}
 	if candidate == "" {
 		candidate = "worker execution failed"
 	}
-	return candidate, isPermanentFailure(candidate + "\n" + output)
+	return candidate, isPermanentFailure(candidate + "\n" + rawErr + "\n" + output)
 }
 
 func isGenericExitError(msg string) bool {
@@ -223,18 +228,18 @@ func extractFromOutput(output string) string {
 	// Fallback: look bottom-up for plain text error lines.
 	for i := len(lines) - 1; i >= 0; i-- {
 		line := strings.TrimSpace(lines[i])
-		if line == "" || strings.HasPrefix(line, "{") {
+		if line == "" || strings.HasPrefix(line, "{") || strings.HasPrefix(line, "HERMES_EVENT:") {
 			continue
 		}
 		low := strings.ToLower(line)
 		if strings.Contains(low, "error") || strings.Contains(low, "fatal") || strings.Contains(low, "quota") ||
 			strings.Contains(low, "[402]") || strings.Contains(low, "balance too low") || strings.Contains(low, "failed") {
-			return line
+			return normalizeErrorText(line)
 		}
 	}
 	for i := len(lines) - 1; i >= 0; i-- {
 		line := strings.TrimSpace(lines[i])
-		if line != "" && !strings.HasPrefix(line, "{") {
+		if line != "" && !strings.HasPrefix(line, "{") && !strings.HasPrefix(line, "HERMES_EVENT:") {
 			return line
 		}
 	}
@@ -247,6 +252,7 @@ func extractJSONErrorLine(line string) string {
 		return ""
 	}
 	typ := strField(obj, "type")
+	phase := strField(obj, "phase")
 	status := strings.ToLower(strField(obj, "status"))
 
 	if errVal, ok := obj["error"]; ok && errVal != nil {
@@ -254,11 +260,23 @@ func extractJSONErrorLine(line string) string {
 			return msg
 		}
 	}
-	if typ == "error" || typ == "turn_end" || typ == "final" || typ == "result" || status == "error" || status == "failed" {
+	if reasonObj, ok := obj["reason"].(map[string]any); ok {
+		if errVal, ok := reasonObj["error"]; ok && errVal != nil {
+			if msg := formatErrorValue(errVal); msg != "" {
+				return msg
+			}
+		}
+		if strings.EqualFold(strField(reasonObj, "kind"), "error") {
+			if msg := formatErrorValue(reasonObj); msg != "" {
+				return msg
+			}
+		}
+	}
+	if typ == "error" || typ == "turn_end" || phase == "turn_end" || typ == "final" || typ == "result" || status == "error" || status == "failed" {
 		if boolField(obj, "is_error") || status == "error" || status == "failed" || typ == "error" || !boolFieldDefault(obj, "ok", true) {
 			for _, k := range []string{"message", "detail", "reason", "result"} {
 				if s := strings.TrimSpace(strField(obj, k)); s != "" {
-					return s
+					return normalizeErrorText(s)
 				}
 			}
 		}
@@ -266,12 +284,131 @@ func extractJSONErrorLine(line string) string {
 	return ""
 }
 
+var (
+	reStatusBracket = regexp.MustCompile(`\[(\d{3})\]`)
+	reModelBracket  = regexp.MustCompile(`\[([^/\]]+/[^\]]+)\]`)
+)
+
+func unwrapNestedErrorMessage(raw string) (cleanMsg, code, source, model string, status int) {
+	s := strings.TrimSpace(raw)
+	for depth := 0; depth < 4 && s != ""; depth++ {
+		if m := reModelBracket.FindStringSubmatch(s); len(m) == 2 && model == "" {
+			parts := strings.Split(m[1], "/")
+			if len(parts) >= 2 {
+				model = strings.Join(parts[len(parts)-2:], "/")
+			} else {
+				model = m[1]
+			}
+		}
+		if m := reStatusBracket.FindStringSubmatch(s); len(m) == 2 && status == 0 {
+			if n, err := strconv.Atoi(m[1]); err == nil {
+				status = n
+			}
+		}
+		if strings.Contains(strings.ToUpper(s), "QUOTA") && code == "" {
+			code = "QUOTA"
+		}
+
+		start := strings.IndexByte(s, '{')
+		end := strings.LastIndexByte(s, '}')
+		if start < 0 || end <= start {
+			break
+		}
+		// Check prefix before JSON object (e.g. "503: {...}" or "dsh: QUOTA: 503: {...}")
+		prefix := s[:start]
+		for _, tok := range strings.FieldsFunc(prefix, func(r rune) bool {
+			return r == ' ' || r == ':' || r == '\t'
+		}) {
+			if n, err := strconv.Atoi(tok); err == nil && n >= 400 && n < 600 && status == 0 {
+				status = n
+			}
+		}
+
+		var inner map[string]any
+		if err := json.Unmarshal([]byte(s[start:end+1]), &inner); err != nil {
+			break
+		}
+		if c := firstNonEmpty(strField(inner, "code"), strField(inner, "error_code")); c != "" {
+			code = c
+		}
+		if src := strField(inner, "source"); src != "" {
+			source = src
+		}
+		if st := intField(inner, "status", "status_code"); st > 0 {
+			status = st
+		}
+		if sub, ok := inner["error"].(map[string]any); ok {
+			if c := firstNonEmpty(strField(sub, "code"), strField(sub, "error_code")); c != "" {
+				code = c
+			}
+			if src := strField(sub, "source"); src != "" {
+				source = src
+			}
+			if st := intField(sub, "status", "status_code"); st > 0 {
+				status = st
+			}
+			if next := firstNonEmpty(strField(sub, "message"), strField(sub, "detail"), strField(sub, "error")); next != "" {
+				s = next
+				cleanMsg = next
+				continue
+			}
+		}
+		if next := firstNonEmpty(strField(inner, "message"), strField(inner, "detail"), strField(inner, "error"), strField(inner, "reason")); next != "" && next != s {
+			s = next
+			cleanMsg = next
+			continue
+		}
+		break
+	}
+	if cleanMsg == "" {
+		cleanMsg = strings.TrimSpace(raw)
+	}
+	return cleanMsg, code, source, model, status
+}
+
+func formatCleanError(raw, code, source, model string, status int) string {
+	var tags []string
+	if code != "" && !strings.Contains(raw, code) {
+		tags = append(tags, code)
+	}
+	if status > 0 && !strings.Contains(raw, fmt.Sprintf("%d", status)) {
+		tags = append(tags, fmt.Sprintf("%d", status))
+	}
+	if source != "" && !strings.Contains(strings.ToLower(raw), strings.ToLower(source)) {
+		tags = append(tags, source)
+	}
+	out := raw
+	if len(tags) > 0 && raw != "" {
+		out = fmt.Sprintf("%s: %s", strings.Join(tags, " · "), raw)
+	} else if len(tags) > 0 {
+		out = strings.Join(tags, " · ")
+	}
+	if model != "" && !strings.Contains(out, model) {
+		out = out + " (" + model + ")"
+	}
+	return out
+}
+
+func normalizeErrorText(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	if strings.Contains(raw, "{") {
+		cleanMsg, code, source, model, status := unwrapNestedErrorMessage(raw)
+		if cleanMsg != "" && !strings.HasPrefix(cleanMsg, "{") {
+			return formatCleanError(cleanMsg, code, source, model, status)
+		}
+	}
+	return raw
+}
+
 func formatErrorValue(v any) string {
 	switch x := v.(type) {
 	case string:
-		return strings.TrimSpace(x)
+		return normalizeErrorText(x)
 	case map[string]any:
-		msg := firstNonEmpty(
+		rawMsg := firstNonEmpty(
 			strField(x, "message"),
 			strField(x, "detail"),
 			strField(x, "error"),
@@ -281,26 +418,19 @@ func formatErrorValue(v any) string {
 		source := strField(x, "source")
 		status := intField(x, "status", "status_code")
 
-		var tags []string
-		if code != "" && !strings.Contains(msg, code) {
-			tags = append(tags, code)
+		cleanMsg, uCode, uSource, uModel, uStatus := unwrapNestedErrorMessage(rawMsg)
+		if code == "" {
+			code = uCode
 		}
-		if status > 0 && !strings.Contains(msg, fmt.Sprintf("%d", status)) {
-			tags = append(tags, fmt.Sprintf("%d", status))
+		if source == "" {
+			source = uSource
 		}
-		if source != "" && !strings.Contains(strings.ToLower(msg), strings.ToLower(source)) {
-			tags = append(tags, source)
+		if status == 0 || (uStatus > 0 && uStatus != status) {
+			if uStatus > 0 {
+				status = uStatus
+			}
 		}
-		if msg == "" && len(tags) == 0 {
-			return ""
-		}
-		if len(tags) == 0 {
-			return msg
-		}
-		if msg == "" {
-			return strings.Join(tags, " ")
-		}
-		return fmt.Sprintf("%s: %s", strings.Join(tags, " · "), msg)
+		return formatCleanError(cleanMsg, code, source, uModel, status)
 	}
 	return ""
 }
@@ -358,25 +488,25 @@ func UsageFromJSON(payload map[string]any, output string) *TaskRunUsage {
 }
 
 func applyUsageMap(u *TaskRunUsage, m map[string]any) {
-	if v := int64Field(m, "input_tokens", "prompt_tokens"); v > u.InputTokens {
+	if v := int64Field(m, "input_tokens", "prompt_tokens", "inputTokens"); v > u.InputTokens {
 		u.InputTokens = v
 	}
-	if v := int64Field(m, "output_tokens", "completion_tokens"); v > u.OutputTokens {
+	if v := int64Field(m, "output_tokens", "completion_tokens", "outputTokens"); v > u.OutputTokens {
 		u.OutputTokens = v
 	}
-	if v := int64Field(m, "cache_read_tokens", "cache_read_input_tokens"); v > u.CacheReadTokens {
+	if v := int64Field(m, "cache_read_tokens", "cache_read_input_tokens", "cacheReadTokens"); v > u.CacheReadTokens {
 		u.CacheReadTokens = v
 	}
-	if v := int64Field(m, "cache_write_tokens", "cache_creation_input_tokens"); v > u.CacheWriteTokens {
+	if v := int64Field(m, "cache_write_tokens", "cache_creation_input_tokens", "cacheWriteTokens"); v > u.CacheWriteTokens {
 		u.CacheWriteTokens = v
 	}
-	if v := int64Field(m, "total_tokens"); v > u.TotalTokens {
+	if v := int64Field(m, "total_tokens", "totalTokens"); v > u.TotalTokens {
 		u.TotalTokens = v
 	}
 	if v := floatField(m, "cost_usd", "total_cost_usd", "cost"); v > u.CostUSD {
 		u.CostUSD = v
 	}
-	if v := int64Field(m, "duration_ms"); v > u.DurationMS {
+	if v := int64Field(m, "duration_ms", "durationMs"); v > u.DurationMS {
 		u.DurationMS = v
 	}
 	if v := intField(m, "turns", "num_turns"); v > u.Turns {
@@ -399,7 +529,8 @@ func extractUsageFromOutput(u *TaskRunUsage, output string) {
 			continue
 		}
 		typ := strField(obj, "type")
-		if typ == "turn_start" || typ == "turn_end" {
+		phase := strField(obj, "phase")
+		if typ == "turn_start" || typ == "turn_end" || (typ == "status" && (phase == "turn_start" || phase == "turn_end")) {
 			if t := intField(obj, "turn"); t > turns {
 				turns = t
 			}
@@ -509,6 +640,11 @@ func GroupTaskRuns(events []tasks.Event) []TaskRun {
 			chunk := rawFirstNonEmpty(strField(p, "output"), strField(p, "text"), strField(p, "delta"))
 			if chunk != "" {
 				cur.Output += chunk
+				if cur.SessionID == "" {
+					if sid := extractSessionIDFromOutput(chunk); sid != "" {
+						cur.SessionID = sid
+					}
+				}
 			}
 			if u := UsageFromJSON(p, chunk); u != nil {
 				cur.Usage = mergeUsage(cur.Usage, u)
@@ -517,7 +653,7 @@ func GroupTaskRuns(events []tasks.Event) []TaskRun {
 		case "completed", "failed", "timeout", "canceled":
 			ensureCurrent(ev.CreatedAt, p)
 			cur.Events++
-			if s := firstNonEmpty(strField(p, "session_id"), strField(p, "dsh_session_id")); s != "" {
+			if s := firstNonEmpty(strField(p, "session_id"), strField(p, "dsh_session_id"), strField(p, "sessionId")); s != "" {
 				cur.SessionID = s
 			}
 			if s := strField(p, "executor"); s != "" && cur.Executor == "" {
@@ -538,6 +674,11 @@ func GroupTaskRuns(events []tasks.Event) []TaskRun {
 			if out := strField(p, "output"); out != "" && (cur.Output == "" || len(out) > len(cur.Output)) {
 				cur.Output = out
 			}
+			if cur.SessionID == "" && cur.Output != "" {
+				if sid := extractSessionIDFromOutput(cur.Output); sid != "" {
+					cur.SessionID = sid
+				}
+			}
 			if u := UsageFromJSON(p, cur.Output); u != nil {
 				cur.Usage = mergeUsage(cur.Usage, u)
 				if cur.DurationMS > 0 && cur.Usage.DurationMS == 0 {
@@ -557,7 +698,7 @@ func GroupTaskRuns(events []tasks.Event) []TaskRun {
 				switch to {
 				case string(tasks.Review), string(tasks.Done):
 					closeCurrent("completed", ev.CreatedAt)
-				case string(tasks.Failed):
+				case string(tasks.Failed), string(tasks.Todo):
 					closeCurrent("failed", ev.CreatedAt)
 				default:
 					closeCurrent("canceled", ev.CreatedAt)
@@ -570,6 +711,23 @@ func GroupTaskRuns(events []tasks.Event) []TaskRun {
 		runs = append(runs, *cur)
 	}
 	return runs
+}
+
+func extractSessionIDFromOutput(output string) string {
+	for _, raw := range strings.Split(output, "\n") {
+		line := strings.TrimSpace(raw)
+		if !strings.HasPrefix(line, "{") {
+			continue
+		}
+		var obj map[string]any
+		if err := json.Unmarshal([]byte(line), &obj); err != nil {
+			continue
+		}
+		if sid := firstNonEmpty(strField(obj, "sessionId"), strField(obj, "session_id"), strField(obj, "dsh_session_id")); sid != "" {
+			return sid
+		}
+	}
+	return ""
 }
 
 func mergeUsage(a, b *TaskRunUsage) *TaskRunUsage {

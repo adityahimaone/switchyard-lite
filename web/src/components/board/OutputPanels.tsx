@@ -25,6 +25,8 @@ export type HarnessEventKind =
   | "tool_call"
   | "tool_result"
   | "error"
+  | "status"
+  | "session"
   | "final"
   | "log";
 
@@ -121,6 +123,70 @@ export function ansiSpans(line: string): AnsiSegment[] {
   return out;
 }
 
+function unwrapNestedError(raw: string): {
+  message: string;
+  code?: string;
+  statusCode?: number;
+  source?: string;
+  model?: string;
+} {
+  let s = raw.trim();
+  let message = s;
+  let code: string | undefined;
+  let statusCode: number | undefined;
+  let source: string | undefined;
+  let model: string | undefined;
+
+  for (let depth = 0; depth < 4 && s; depth++) {
+    const modelMatch = /\[([^/\]]+\/[^\]]+)\]/.exec(s);
+    if (modelMatch && !model) {
+      const parts = modelMatch[1].split("/");
+      model = parts.length >= 2 ? parts.slice(-2).join("/") : modelMatch[1];
+    }
+    const statusMatch = /\[(\d{3})\]/.exec(s);
+    if (statusMatch && !statusCode) {
+      statusCode = Number(statusMatch[1]);
+    }
+    if (!code && /\bQUOTA\b/i.test(s)) code = "QUOTA";
+
+    const start = s.indexOf("{");
+    const end = s.lastIndexOf("}");
+    if (start < 0 || end <= start) break;
+
+    const prefixNums = s.slice(0, start).match(/\b([45]\d{2})\b/);
+    if (prefixNums && !statusCode) statusCode = Number(prefixNums[1]);
+
+    try {
+      const inner = JSON.parse(s.slice(start, end + 1)) as Record<string, unknown>;
+      code = asStr(inner, "code", "error_code") || code;
+      source = asStr(inner, "source") || source;
+      statusCode = asNum(inner, "status", "status_code") ?? statusCode;
+      if (inner.error && typeof inner.error === "object") {
+        const sub = asObj(inner.error);
+        code = asStr(sub, "code", "error_code") || code;
+        source = asStr(sub, "source") || source;
+        statusCode = asNum(sub, "status", "status_code") ?? statusCode;
+        const next = asStr(sub, "message", "detail", "error");
+        if (next) {
+          s = next;
+          message = next;
+          continue;
+        }
+      }
+      const next = asStr(inner, "message", "detail", "error", "reason");
+      if (next && next !== s) {
+        s = next;
+        message = next;
+        continue;
+      }
+    } catch {
+      break;
+    }
+    break;
+  }
+  return { message, code, statusCode, source, model };
+}
+
 export function parseHarnessLogEvents(raw: string): { events: HarnessLogEvent[]; structuredCount: number } {
   if (!raw.trim()) return { events: [], structuredCount: 0 };
 
@@ -132,19 +198,48 @@ export function parseHarnessLogEvents(raw: string): { events: HarnessLogEvent[];
     const trimmed = rawLine.trim();
     if (!trimmed) return;
 
+    if (trimmed.startsWith("HERMES_EVENT:")) {
+      const jsonPart = trimmed.slice("HERMES_EVENT:".length).trim();
+      try {
+        const obj = JSON.parse(jsonPart) as Record<string, unknown>;
+        structuredCount += 1;
+        events.push({
+          id: `he-${idx}`,
+          kind: "status",
+          title: asStr(obj, "label", "phase") || "event",
+          name: asStr(obj, "phase") || undefined,
+        });
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
     if (trimmed.startsWith("{")) {
       try {
         const obj = JSON.parse(trimmed) as Record<string, unknown>;
         const typ = asStr(obj, "type") || asStr(obj, "status");
+        const phase = asStr(obj, "phase");
         const usageObj = asObj(obj.usage);
         const tokens =
-          asNum(usageObj, "total_tokens") ??
-          ((asNum(usageObj, "input_tokens", "prompt_tokens") ?? 0) +
-            (asNum(usageObj, "output_tokens", "completion_tokens") ?? 0) ||
+          asNum(usageObj, "total_tokens", "totalTokens") ??
+          ((asNum(usageObj, "input_tokens", "prompt_tokens", "inputTokens") ?? 0) +
+            (asNum(usageObj, "output_tokens", "completion_tokens", "outputTokens") ?? 0) ||
             undefined);
         const costUsd = asNum(usageObj, "cost_usd", "total_cost_usd") ?? asNum(obj, "cost_usd");
 
-        if (typ === "turn_start") {
+        if (typ === "session") {
+          structuredCount += 1;
+          events.push({
+            id: `h-${idx}`,
+            kind: "session",
+            title: asStr(obj, "sessionId", "session_id"),
+            text: asStr(obj, "cwd") || undefined,
+          });
+          return;
+        }
+
+        if (typ === "turn_start" || (typ === "status" && phase === "turn_start")) {
           structuredCount += 1;
           events.push({
             id: `h-${idx}`,
@@ -152,6 +247,21 @@ export function parseHarnessLogEvents(raw: string): { events: HarnessLogEvent[];
             turn: asNum(obj, "turn"),
             model: asStr(obj, "model") || undefined,
           });
+          return;
+        }
+
+        if (typ === "status" && (phase === "step_start" || phase === "step_end")) {
+          structuredCount += 1;
+          if (phase === "step_end") {
+            events.push({
+              id: `h-${idx}`,
+              kind: "status",
+              title: `Step ${asNum(obj, "step") ?? 1}`,
+              name: phase,
+              tokens,
+              costUsd,
+            });
+          }
           return;
         }
 
@@ -188,29 +298,33 @@ export function parseHarnessLogEvents(raw: string): { events: HarnessLogEvent[];
           return;
         }
 
-        if (obj.error) {
+        const reasonObj = asObj(obj.reason);
+        const rawErrObj = obj.error ?? reasonObj.error;
+        if (rawErrObj) {
           structuredCount += 1;
-          const eo = asObj(obj.error);
-          const msg =
-            typeof obj.error === "string"
-              ? obj.error
-              : asStr(eo, "message", "detail", "error", "reason") || stringifyCompact(obj.error);
+          const eo = asObj(rawErrObj);
+          const rawMsg =
+            typeof rawErrObj === "string"
+              ? rawErrObj
+              : asStr(eo, "message", "detail", "error", "reason") || stringifyCompact(rawErrObj);
+          const un = unwrapNestedError(rawMsg);
           events.push({
             id: `h-${idx}`,
-            kind: typ === "turn_end" ? "turn_end" : "error",
+            kind: typ === "turn_end" || phase === "turn_end" ? "turn_end" : typ === "final" ? "final" : "error",
             turn: asNum(obj, "turn"),
             isError: true,
-            code: asStr(eo, "code", "error_code") || undefined,
-            statusCode: asNum(eo, "status", "status_code"),
-            source: asStr(eo, "source") || undefined,
-            text: msg,
+            code: asStr(eo, "code", "error_code") || un.code,
+            statusCode: un.statusCode ?? asNum(eo, "status", "status_code"),
+            source: asStr(eo, "source") || un.source,
+            model: un.model,
+            text: un.message,
             tokens,
             costUsd,
           });
           return;
         }
 
-        if (typ === "turn_end") {
+        if (typ === "turn_end" || (typ === "status" && phase === "turn_end")) {
           structuredCount += 1;
           events.push({
             id: `h-${idx}`,
@@ -250,15 +364,36 @@ export function parseHarnessLogEvents(raw: string): { events: HarnessLogEvent[];
       }
     }
 
+    if (/^(dsh|codex|claude|opencode):\s*(QUOTA|ERROR|FATAL|402|503)\b/i.test(trimmed) || (trimmed.startsWith("dsh:") && trimmed.includes("{"))) {
+      structuredCount += 1;
+      const un = unwrapNestedError(trimmed);
+      events.push({
+        id: `e-${idx}`,
+        kind: "error",
+        isError: true,
+        code: un.code,
+        statusCode: un.statusCode,
+        source: un.source,
+        model: un.model,
+        text: un.message,
+      });
+      return;
+    }
+
     events.push({ id: `l-${idx}`, kind: "log", text: rawLine });
   });
 
-  // Merge consecutive plain text deltas into paragraphs when streaming token-by-token
+  // Merge consecutive plain text deltas & collapse identical consecutive error cards
   const merged: HarnessLogEvent[] = [];
   for (const ev of events) {
     const prev = merged[merged.length - 1];
     if (ev.kind === "text" && prev?.kind === "text") {
       prev.text = `${prev.text ?? ""}\n${ev.text ?? ""}`;
+      continue;
+    }
+    const evIsErr = ev.isError || ev.kind === "error";
+    const prevIsErr = prev && (prev.isError || prev.kind === "error");
+    if (evIsErr && prevIsErr && ev.text && ev.text === prev.text) {
       continue;
     }
     merged.push({ ...ev });
@@ -438,6 +573,28 @@ export function DshLogTimeline({ events, wrap = true }: { events: HarnessLogEven
   return (
     <div className="space-y-2 p-3">
       {events.map((ev) => {
+        if (ev.kind === "status") {
+          return (
+            <div key={ev.id} className="flex items-center gap-2 font-mono text-[10.5px] text-ink-3">
+              <span className="size-1.5 rounded-full bg-ink-4" />
+              <span>{ev.title}</span>
+              {ev.name && <span className="rounded border border-line bg-well px-1 py-0.5 text-[9.5px] text-ink-4">{ev.name}</span>}
+              {ev.tokens ? <span className="text-ink-4">· {ev.tokens.toLocaleString()} tok</span> : null}
+            </div>
+          );
+        }
+
+        if (ev.kind === "session") {
+          return (
+            <div key={ev.id} className="flex flex-wrap items-center gap-2 font-mono text-[10.5px] text-ink-3">
+              <span className="rounded border border-line bg-well px-1.5 py-0.5 text-ink-2">
+                session {ev.title}
+              </span>
+              {ev.text && <span className="truncate text-ink-4">{ev.text}</span>}
+            </div>
+          );
+        }
+
         if (ev.kind === "turn_start") {
           return (
             <div key={ev.id} className="flex items-center gap-2 pt-0.5 font-mono text-[11px] text-ink-3">
@@ -459,7 +616,7 @@ export function DshLogTimeline({ events, wrap = true }: { events: HarnessLogEven
         }
 
         if ((ev.kind === "error" || (ev.kind === "turn_end" && ev.isError) || (ev.kind === "final" && ev.isError))) {
-          const tags = [ev.code, ev.statusCode ? String(ev.statusCode) : "", ev.source].filter(Boolean);
+          const tags = [ev.code, ev.statusCode ? String(ev.statusCode) : "", ev.source, ev.model].filter(Boolean);
           return (
             <div
               key={ev.id}

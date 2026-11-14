@@ -78,6 +78,43 @@ interface ParsedTurnTrace {
   spans: TraceSpan[];
 }
 
+function unwrapMicroError(raw: string): string {
+  let s = raw.trim();
+  const codes: string[] = [];
+  if (/\bQUOTA\b/i.test(s)) codes.push("QUOTA");
+  const st = /\[(\d{3})\]/.exec(s)?.[1];
+  if (st) codes.push(st);
+  for (let i = 0; i < 4 && s; i++) {
+    const a = s.indexOf("{");
+    const b = s.lastIndexOf("}");
+    if (a < 0 || b <= a) break;
+    try {
+      const obj = JSON.parse(s.slice(a, b + 1)) as Record<string, unknown>;
+      const src = str(obj, "source");
+      if (src && !codes.includes(src)) codes.push(src);
+      if (obj.error && typeof obj.error === "object") {
+        const sub = asRecord(obj.error);
+        const ss = str(sub, "source");
+        if (ss && !codes.includes(ss)) codes.push(ss);
+        const nxt = str(sub, "message", "detail", "error");
+        if (nxt) {
+          s = nxt;
+          continue;
+        }
+      }
+      const nxt = str(obj, "message", "detail", "error", "reason");
+      if (nxt && nxt !== s) {
+        s = nxt;
+        continue;
+      }
+    } catch {
+      break;
+    }
+    break;
+  }
+  return codes.length ? `${codes.join(" · ")}: ${s}` : s;
+}
+
 /** Extract turn & tool micro-spans from raw dsh/harness JSONL output. */
 function parseOutputMicroSpans(
   prefixId: string,
@@ -91,26 +128,48 @@ function parseOutputMicroSpans(
   const parsed: Array<{ type: string; turn?: number; model?: string; name?: string; err?: string; tokens?: number }> = [];
 
   for (const line of lines) {
+    if (line.startsWith("HERMES_EVENT:")) {
+      try {
+        const obj = JSON.parse(line.slice("HERMES_EVENT:".length).trim()) as Record<string, unknown>;
+        parsed.push({
+          type: "hermes_phase",
+          name: str(obj, "label", "phase") || "phase",
+        });
+      } catch {
+        // ignore
+      }
+      continue;
+    }
     if (!line.startsWith("{")) continue;
     try {
       const obj = JSON.parse(line) as Record<string, unknown>;
-      const type = str(obj, "type") || str(obj, "status");
+      const rawType = str(obj, "type") || str(obj, "status");
+      const phase = str(obj, "phase");
+      const type = rawType === "status" && phase ? phase : rawType;
       if (!type) continue;
+
       let errMsg = "";
-      if (typeof obj.error === "string") {
-        errMsg = obj.error;
-      } else if (obj.error && typeof obj.error === "object") {
-        const eo = asRecord(obj.error);
+      const reasonObj = asRecord(obj.reason);
+      const errSource = obj.error ?? reasonObj.error;
+      if (typeof errSource === "string") {
+        errMsg = unwrapMicroError(errSource);
+      } else if (errSource && typeof errSource === "object") {
+        const eo = asRecord(errSource);
         const code = str(eo, "code");
         const st = num(eo, "status", "status_code");
-        const msg = str(eo, "message", "detail");
-        errMsg = [code, st ? String(st) : "", msg].filter(Boolean).join(" · ");
+        const msg = unwrapMicroError(str(eo, "message", "detail", "error"));
+        errMsg = [code && !msg.includes(code) ? code : "", st && !msg.includes(String(st)) ? String(st) : "", msg]
+          .filter(Boolean)
+          .join(" · ");
       }
       const usage = asRecord(obj.usage);
-      const tokens = num(usage, "total_tokens") ?? ((num(usage, "input_tokens") ?? 0) + (num(usage, "output_tokens") ?? 0) || undefined);
+      const tokens =
+        num(usage, "total_tokens", "totalTokens") ??
+        ((num(usage, "input_tokens", "inputTokens") ?? 0) + (num(usage, "output_tokens", "outputTokens") ?? 0) ||
+          undefined);
       parsed.push({
         type,
-        turn: num(obj, "turn"),
+        turn: num(obj, "turn", "step"),
         model: str(obj, "model"),
         name: str(obj, "name", "tool"),
         err: errMsg || undefined,
@@ -134,6 +193,17 @@ function parseOutputMicroSpans(
     const estStart = Math.round(windowStartMs + pct * spanWindow);
     const estSlice = Math.max(50, Math.round(spanWindow / Math.max(1, parsed.length)));
 
+    if (item.type === "hermes_phase") {
+      turns.push({
+        id: `${prefixId}-hp-${i}`,
+        label: item.name || "Hermes phase",
+        status: "ok",
+        startedAt: estStart,
+        durationMs: estSlice,
+      });
+      continue;
+    }
+
     if (item.type === "turn_start") {
       if (currentTurn) turns.push(currentTurn);
       const tNum = item.turn ?? turns.length + 1;
@@ -146,6 +216,22 @@ function parseOutputMicroSpans(
         durationMs: estSlice,
         children: [],
       };
+      continue;
+    }
+
+    if (item.type === "step_end" && currentTurn) {
+      const sNum = item.turn ?? (currentTurn.children?.length ?? 0) + 1;
+      currentTurn.children = [
+        ...(currentTurn.children ?? []),
+        {
+          id: `${prefixId}-step-${sNum}-${i}`,
+          label: `Step ${sNum}`,
+          status: item.err ? "error" : "ok",
+          startedAt: estStart,
+          durationMs: estSlice,
+          tokens: item.tokens,
+        },
+      ];
       continue;
     }
 

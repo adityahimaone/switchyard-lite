@@ -312,3 +312,58 @@ func TestProgressPollingAndHardQuotaFailsImmediately(t *testing.T) {
 		t.Fatalf("expected turns=1 from dsh output, got %+v", runs[0].Usage)
 	}
 }
+
+func TestHermesLiveWireFormatExtractionAndRuns(t *testing.T) {
+	liveLog := strings.Join([]string{
+		`HERMES_EVENT: {"label":"Starting remote agent","phase":"job_started"}`,
+		`HERMES_EVENT: {"label":"Resolved executor: dsh","phase":"executor_resolved"}`,
+		`{"type":"session","sessionId":"session-a5f221e3-8f2c-48c7-9302-c814c1787af3","cwd":"/repo"}`,
+		`{"type":"status","phase":"turn_start","turn":1}`,
+		`{"type":"status","phase":"step_start","turn":1,"step":1}`,
+		`{"type":"status","phase":"step_end","turn":1,"step":1,"usage":{"inputTokens":12,"outputTokens":4,"totalTokens":16}}`,
+		`{"type":"status","phase":"turn_end","turn":1,"reason":{"kind":"error","error":{"message":"503: {\"message\":\"[openai-compatible-chat-1f51ef20-4a6b-4643-904b-566ba2645fd7/alicn/deepseek-v4.1-flash-1017] [402]: {\\\"error\\\":{\\\"message\\\":\\\"balance too low for this request — deposit USDC to continue\\\",\\\"type\\\":\\\"insufficient_balance\\\",\\\"source\\\":\\\"inferhub\\\"}}\\n (reset after 2m)\"}","code":"QUOTA"}}}`,
+		`{"type":"final","sessionId":"session-a5f221e3-8f2c-48c7-9302-c814c1787af3","reason":{"kind":"error","error":{"message":"503: {\"message\":\"[openai-compatible-chat-1f51ef20-4a6b-4643-904b-566ba2645fd7/alicn/deepseek-v4.1-flash-1017] [402]: {\\\"error\\\":{\\\"message\\\":\\\"balance too low for this request — deposit USDC to continue\\\",\\\"type\\\":\\\"insufficient_balance\\\",\\\"source\\\":\\\"inferhub\\\"}}\\n (reset after 2m)\"}","code":"QUOTA"}},"text":""}`,
+		`dsh: QUOTA: 503: {"message":"[openai-compatible-chat-1f51ef20-4a6b-4643-904b-566ba2645fd7/alicn/deepseek-v4.1-flash-1017] [402]: {\"error\":{\"message\":\"balance too low for this request — deposit USDC to continue\",\"type\":\"insufficient_balance\",\"source\":\"inferhub\"}}\n (reset after 2m)"}`,
+		`HERMES_EVENT: {"label":"Agent process finished","phase":"process_exited"}`,
+	}, "\n")
+
+	rawErr := `dsh: QUOTA: 503: {"message":"[openai-compatible-chat-1f51ef20-4a6b-4643-904b-566ba2645fd7/alicn/deepseek-v4.1-flash-1017] [402]: {\"error\":{\"message\":\"balance too low for this request — deposit USDC to continue\"}}"}`
+	reason, perm := ExtractFailureReason(rawErr, liveLog)
+	if !perm {
+		t.Fatalf("expected permanent=true")
+	}
+	if strings.Contains(reason, `{\"error\"`) {
+		t.Fatalf("expected clean unwrapped error without escaped JSON, got %q", reason)
+	}
+	for _, want := range []string{"QUOTA", "402", "inferhub", "balance too low"} {
+		if !strings.Contains(reason, want) {
+			t.Fatalf("reason %q missing %q", reason, want)
+		}
+	}
+
+	evs := []tasks.Event{
+		{ID: 1, Kind: "task.moved", CreatedAt: 100, Payload: json.RawMessage(`{"from":"todo","to":"in_progress"}`)},
+		{ID: 2, Kind: "task.moved", CreatedAt: 137, Payload: json.RawMessage(`{"from":"in_progress","to":"todo"}`)},
+		{ID: 3, Kind: "claimed", CreatedAt: 200, Payload: json.RawMessage(`{"run_id":"r2","executor":"dsh","model":"adit-9router/cheap"}`)},
+		{ID: 4, Kind: "worker_output", CreatedAt: 205, Payload: json.RawMessage(`{"output":` + mustJSONString(liveLog) + `}`)},
+		{ID: 5, Kind: "failed", CreatedAt: 208, Payload: json.RawMessage(`{"error":` + mustJSONString(reason) + `,"duration_ms":8135}`)},
+	}
+	runs := GroupTaskRuns(evs)
+	if len(runs) != 2 {
+		t.Fatalf("expected 2 runs, got %d", len(runs))
+	}
+	if runs[0].Status != "failed" || runs[0].DurationS != 37 {
+		t.Fatalf("expected requeued run #1 to be failed (37s), got %+v", runs[0])
+	}
+	if runs[1].SessionID != "session-a5f221e3-8f2c-48c7-9302-c814c1787af3" {
+		t.Fatalf("expected sessionId extracted from worker_output, got %q", runs[1].SessionID)
+	}
+	if runs[1].Usage == nil || runs[1].Usage.Turns != 1 || runs[1].Usage.TotalTokens != 16 {
+		t.Fatalf("unexpected camelCase usage: %+v", runs[1].Usage)
+	}
+}
+
+func mustJSONString(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}
