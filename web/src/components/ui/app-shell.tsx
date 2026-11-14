@@ -104,7 +104,9 @@ export function AppSidebarBrand({
   children,
   ...props
 }: AppSidebarBrandProps) {
-  return (
+  const { collapsed } = useAppShell();
+
+  const brandEl = (
     <div
       data-slot="app-sidebar-brand"
       className={cn("side-brand", className)}
@@ -123,6 +125,16 @@ export function AppSidebarBrand({
       )}
     </div>
   );
+
+  if (collapsed) {
+    return (
+      <Tip side="right" delayDuration={80} label={`${name} ${tag}`.trim()}>
+        {brandEl}
+      </Tip>
+    );
+  }
+
+  return brandEl;
 }
 
 export interface AppSidebarGroupProps extends React.ComponentProps<"div"> {
