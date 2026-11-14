@@ -44,3 +44,36 @@ func TestPipelineAndTokenRoutes(t *testing.T) {
 		t.Fatalf("sse %d %s", sse.Code, sse.Body)
 	}
 }
+
+// The active-flow switch: what the Pipelines screen toggles, and what Start falls
+// back to when the caller names no template.
+func TestDefaultFlowSwitchRoute(t *testing.T) {
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	h := New(s).Handler()
+	adm, _ := CreateToken(s, "admin", "admin")
+
+	if g := do(t, h, "GET", "/api/v1/pipelines/default", adm, ""); g.Code != 200 || !strings.Contains(g.Body.String(), "design-thinking") {
+		t.Fatalf("default read %d %s", g.Code, g.Body)
+	}
+
+	if p := do(t, h, "POST", "/api/v1/pipelines/default", adm, `{"default":"meta7"}`); p.Code != 200 || !strings.Contains(p.Body.String(), `"meta7"`) {
+		t.Fatalf("switch to meta7 %d %s", p.Code, p.Body)
+	}
+	if p := do(t, h, "POST", "/api/v1/pipelines/default", adm, `{"default":"nope"}`); p.Code != 400 {
+		t.Fatalf("unknown flow must be refused, got %d %s", p.Code, p.Body)
+	}
+
+	bid := between(do(t, h, "POST", "/api/v1/boards", adm, `{"name":"p2"}`).Body.String(), `"id":"`, `"`)
+	w := do(t, h, "POST", "/api/v1/pipelines", adm, `{"board_id":"`+bid+`","goal":"ship meta7"}`)
+	if w.Code != 201 || !strings.Contains(w.Body.String(), `"template":"meta7"`) {
+		t.Fatalf("start without template should use the switch: %d %s", w.Code, w.Body)
+	}
+
+	if p := do(t, h, "POST", "/api/v1/pipelines/default", adm, `{"default":""}`); p.Code != 200 || !strings.Contains(p.Body.String(), "design-thinking") {
+		t.Fatalf("clear switch %d %s", p.Code, p.Body)
+	}
+}

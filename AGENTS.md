@@ -12,7 +12,7 @@
 - `internal/dispatch` — Atomic task claims, lease renewal/reaping, per-task git worktrees (`sy/<task-id>`), and `node-agent` HTTP client (`POST /api/dispatch`, `GET /api/results/{id}`).
 - `internal/models` — Cached proxy for `node-agent` `GET /api/models?executor=`.
 - `internal/review` — Git worktree diff vs base SHA, approve (keeps branch; opt-in `auto_merge`), and reject (records feedback comment + requeues to `todo`).
-- `internal/pipeline` — Deterministic DAG coordinator and built-in `design-thinking.yaml` template.
+- `internal/pipeline` — Deterministic DAG coordinator and built-in `design-thinking.yaml` + `meta7.yaml` templates. The active flow is the `pipeline.default_template` setting (`GET`/`POST /api/v1/pipelines/default`), seeded by `SWITCHYARD_PIPELINE_DEFAULT`; `POST /api/v1/pipelines` with no `template` uses it.
 - `internal/mcp` — MCP server (stdio + `/mcp` streamable HTTP) with 20 tools.
 - `internal/api` — REST `/api/v1/*` handlers, token scope middleware (`read`, `write`, `admin`), admin password session login, and SPA static handler.
 - `internal/webui` + `web/` — Embedded React + Vite + TanStack Query UI.

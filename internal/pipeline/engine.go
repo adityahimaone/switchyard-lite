@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -109,6 +110,44 @@ func (e *Engine) Templates() []Template {
 	return out
 }
 
+// FallbackTemplate is the flow Start uses when nothing is configured.
+const FallbackTemplate = "design-thinking"
+
+// defaultTemplateKey is the dispatch_settings row that holds the active flow.
+const defaultTemplateKey = "pipeline.default_template"
+
+// DefaultTemplate reports the flow Start picks when the caller names none.
+// Precedence: the `pipeline.default_template` setting (runtime switch), then
+// SWITCHYARD_PIPELINE_DEFAULT (boot config), then FallbackTemplate. A name that
+// is not registered falls back instead of failing Start.
+func (e *Engine) DefaultTemplate() string {
+	name := strings.TrimSpace(os.Getenv("SWITCHYARD_PIPELINE_DEFAULT"))
+	var s string
+	if err := e.S.DB.QueryRow(`SELECT value FROM dispatch_settings WHERE key=?`, defaultTemplateKey).Scan(&s); err == nil {
+		if v := strings.TrimSpace(s); v != "" {
+			name = v
+		}
+	}
+	if _, ok := e.templates[name]; !ok {
+		return FallbackTemplate
+	}
+	return name
+}
+
+// SetDefaultTemplate switches the active flow. An empty name clears the setting
+// so DefaultTemplate falls back to the env var or FallbackTemplate.
+func (e *Engine) SetDefaultTemplate(name string) error {
+	name = strings.TrimSpace(name)
+	if name != "" {
+		if _, ok := e.templates[name]; !ok {
+			return fmt.Errorf("%w: unknown template %s", ErrInvalidTemplate, name)
+		}
+	}
+	_, err := e.S.DB.Exec(`INSERT INTO dispatch_settings(key,value) VALUES(?,?)
+		ON CONFLICT(key) DO UPDATE SET value=excluded.value`, defaultTemplateKey, name)
+	return err
+}
+
 func newRunID() string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
@@ -126,7 +165,7 @@ func (e *Engine) emit(runID, kind string, payload any) error {
 // Start creates a new pipeline run, its root goal task, and ticks the first wave.
 func (e *Engine) Start(in StartInput) (*RunState, error) {
 	if in.Template == "" {
-		in.Template = "design-thinking"
+		in.Template = e.DefaultTemplate()
 	}
 	tpl, ok := e.templates[in.Template]
 	if !ok {

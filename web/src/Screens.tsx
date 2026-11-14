@@ -7,6 +7,7 @@ import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchSelect } from "@/components/ui/search-select";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -432,11 +433,27 @@ export function PipelineScreen() {
   const qc = useQueryClient();
   const { boardId, activeBoard, boards, setBoardId } = useBoardId();
   const [goal, setGoal] = useState("");
-  const [template, setTemplate] = useState("design-thinking");
+  // null = follow the active flow switch so "activate meta7" also selects it.
+  const [picked, setPicked] = useState<string | null>(null);
 
   const templates = useQuery({
     queryKey: ["pipeline-templates"],
     queryFn: () => apiOr<{ name: string; description?: string }[]>("/api/v1/pipelines/templates", []),
+  });
+
+  const activeFlow = useQuery({
+    queryKey: ["pipeline-default"],
+    queryFn: () => apiOr<{ default: string }>("/api/v1/pipelines/default", { default: "design-thinking" }),
+  });
+
+  const template = picked ?? activeFlow.data?.default ?? "design-thinking";
+
+  const setDefault = useMutation({
+    mutationFn: (name: string) => post<{ default: string }>("/api/v1/pipelines/default", { default: name }),
+    onSuccess: (res) => {
+      setPicked(res?.default ?? null);
+      qc.invalidateQueries({ queryKey: ["pipeline-default"] });
+    },
   });
 
   const q = useQuery({
@@ -476,7 +493,7 @@ export function PipelineScreen() {
         </div>
       </div>
 
-      <ErrorBox error={q.error ?? start.error ?? cancel.error} />
+      <ErrorBox error={q.error ?? start.error ?? cancel.error ?? setDefault.error} />
 
       {boardId && (
         <form
@@ -490,9 +507,24 @@ export function PipelineScreen() {
             <Sparkles className="size-3.5 text-accent-text" />
             <span>Launch pipeline {activeBoard ? `on ${activeBoard.name}` : ""}</span>
           </div>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">Flow</span>
+            <Segmented
+              label="Active pipeline flow"
+              value={template}
+              onChange={(name) => {
+                setPicked(name);
+                setDefault.mutate(name);
+              }}
+              options={(templates.data?.length ? templates.data.map((t) => t.name) : ["design-thinking", "meta7"]).map(
+                (name) => ({ value: name, label: name })
+              )}
+            />
+            {setDefault.isPending && <span className="muted text-[11px]">saving…</span>}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {(templates.data?.length ?? 0) > 0 && (
-              <Select value={template} onValueChange={setTemplate}>
+              <Select value={template} onValueChange={setPicked}>
                 <SelectTrigger className="w-[180px]" aria-label="Pipeline template" size="default">
                   <SelectValue placeholder="Choose template…" />
                 </SelectTrigger>
@@ -508,7 +540,7 @@ export function PipelineScreen() {
             <input
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              placeholder="Start design-thinking pipeline goal…"
+              placeholder={`Start ${template} pipeline goal…`}
               className="min-w-[220px] flex-1"
             />
             <button className="btn primary" disabled={start.isPending || !goal.trim()}>

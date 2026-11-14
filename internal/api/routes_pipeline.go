@@ -30,6 +30,39 @@ func init() {
 			ok(w, e.Templates())
 		}))
 
+		// The active flow switch. Empty default clears the override so Start falls
+		// back to SWITCHYARD_PIPELINE_DEFAULT or design-thinking.
+		m.HandleFunc("GET /api/v1/pipelines/default", a.require("read", func(w http.ResponseWriter, r *http.Request) {
+			e, okEng := eng(w)
+			if !okEng {
+				return
+			}
+			ok(w, map[string]string{"default": e.DefaultTemplate()})
+		}))
+
+		m.HandleFunc("POST /api/v1/pipelines/default", a.require("write", func(w http.ResponseWriter, r *http.Request) {
+			e, okEng := eng(w)
+			if !okEng {
+				return
+			}
+			var in struct {
+				Default string `json:"default"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+				fail(w, 400, "invalid json")
+				return
+			}
+			if err := e.SetDefaultTemplate(in.Default); err != nil {
+				if errors.Is(err, pipeline.ErrInvalidTemplate) {
+					fail(w, 400, err.Error())
+					return
+				}
+				fail(w, 500, err.Error())
+				return
+			}
+			ok(w, map[string]string{"default": e.DefaultTemplate()})
+		}))
+
 		m.HandleFunc("GET /api/v1/pipelines", a.require("read", func(w http.ResponseWriter, r *http.Request) {
 			e, okEng := eng(w)
 			if !okEng {

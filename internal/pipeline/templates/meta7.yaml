@@ -1,0 +1,53 @@
+name: meta7
+description: meta7 — the coordinator owns the whole run. Explore, cross-examine, synthesise, design, verify invariants, review before impl, then implement behind a gate.
+budget: { max_review_loops: 2, max_evolutions: 3 }
+stages:
+  - id: explore
+    fanout: { from: goal, min: 3 }
+    prompt: |
+      Break the goal into independent lines of investigation and list them.
+      Research each one: read the code, note constraints, risks and open questions.
+      Write each note to scratchs/<run>/explore/<slug>.md and cite file:line for every claim.
+  - id: cross_examine
+    per: explore
+    inputs: [explore]
+    verdict: true
+    prompt: |
+      Challenge the findings you were given. Look for gaps, wrong assumptions and missing evidence.
+      Say PASS if they hold up. Say FAIL if the research must be redone, and name what is missing.
+  - id: synthesize
+    inputs: [cross_examine]
+    prompt: |
+      Merge the examined findings into one picture: agreed facts, conflicts, decisions still open.
+      Mark every unsupported claim ASSUMPTION. Write designs/research.md and update the reference index.
+  - id: design
+    inputs: [synthesize]
+    prompt: |
+      Propose a concrete design: components, interfaces, data flow, and a step list small enough
+      to implement and test. Record each decision with a one-line rationale under "## Decisions"
+      in designs/system.md. Write designs/app-arch.md and designs/surfaces.md.
+  - id: verify
+    inputs: [design]
+    verdict: true
+    back_arcs: { "FAIL:design": design, "FAIL:context": explore }
+    prompt: |
+      State each invariant the design must hold, then make it executable: a Go test, an assert or a
+      table of cases. Run `go test -race ./...`. Record one directory per invariant with LAWS.md,
+      the executable check, and result.md holding the verdict the run actually earned.
+      PASS only when every invariant has a check that ran. FAIL:design if a check cannot exist.
+      FAIL:context if an invariant depends on a fact the research never established.
+  - id: review
+    inputs: [design, verify]
+    verdict: true
+    back_arcs: { "FAIL:design": design, "FAIL:context": explore }
+    prompt: |
+      Review the design and its invariants against the goal. Write REVIEW.md ranked
+      blocker / major / minor, each finding with location, what breaks and the concrete fix.
+      End with "## Ready for impl" plus yes or no. PASS only when nothing is a blocker.
+  - id: impl
+    inputs: [review]
+    review_gate: true
+    gate_band: [behavior, runtime, security, docs]
+    prompt: |
+      Implement the design in the workspace with tests. Keep the change small and leave a clear diff.
+      Run `make test` and `make lint`. Keep every invariant check from the verify stage green.
