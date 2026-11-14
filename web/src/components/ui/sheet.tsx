@@ -27,6 +27,7 @@ function SheetOverlay({ className, ...props }: React.ComponentProps<typeof Dialo
         "scrim fixed inset-0 z-overlay",
         "transition-opacity duration-200 ease-[var(--ease-out-expo)]",
         "data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+        "motion-reduce:transition-none",
         className
       )}
       {...props}
@@ -54,13 +55,14 @@ function SheetContent({
           side === "right"
             ? "data-[state=closed]:translate-x-full data-[state=open]:translate-x-0"
             : "data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0",
+          "motion-reduce:transition-none motion-reduce:transform-none",
           className
         )}
         {...props}
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute top-3.5 right-3.5 z-10 flex size-7 items-center justify-center rounded-full border border-line/60 bg-raised/70 text-ink-3 outline-none transition-[colors,transform] hover:bg-raised hover:text-ink focus-visible:ring-2 focus-visible:ring-focus/40"
+          className="absolute top-3.5 right-3.5 z-10 flex size-7 items-center justify-center rounded-full border border-line/60 bg-raised/70 text-ink-3 outline-none transition-[color,background-color,border-color,transform] duration-150 ease-[var(--ease-out-expo)] hover:bg-raised hover:text-ink active:scale-95 focus-visible:ring-2 focus-visible:ring-focus/40"
           aria-label="Close"
         >
           <XIcon className="size-3.5" />

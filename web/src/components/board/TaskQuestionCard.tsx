@@ -320,7 +320,8 @@ export function TaskQuestionCard({
                       }
                     }}
                     className={cn(
-                      "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-all",
+                      "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium outline-none",
+                      "transition-[background-color,border-color,box-shadow,color,transform] duration-150 ease-[var(--ease-out-expo)] active:scale-[0.97]",
                       picked
                         ? "border-accent bg-accent text-on-accent shadow-[var(--lift-1)]"
                         : "border-line-strong bg-surface text-ink hover:border-accent hover:bg-accent-tint hover:text-accent-text"

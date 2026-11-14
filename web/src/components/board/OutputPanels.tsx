@@ -780,9 +780,15 @@ export function WorkerLogPanel({
           <button
             type="button"
             onClick={() => setCollapsed((v) => !v)}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-ink hover:text-accent-text"
+            aria-expanded={!collapsed}
+            className="group inline-flex items-center gap-1.5 text-xs font-medium text-ink transition-colors hover:text-accent-text active:scale-[0.98]"
           >
-            {collapsed ? <ChevronRight className="size-3.5 text-ink-3" /> : <ChevronDown className="size-3.5 text-ink-3" />}
+            <ChevronRight
+              className={cn(
+                "size-3.5 text-ink-3 transition-transform duration-180 ease-[var(--ease-out-expo)]",
+                !collapsed && "rotate-90"
+              )}
+            />
             <Terminal className="size-3.5 text-ink-3" />
             <span>{title}</span>
           </button>
@@ -850,36 +856,43 @@ export function WorkerLogPanel({
       </div>
 
       {/* Body */}
-      {!collapsed && (
-        <div
-          ref={scrollRef}
-          className={cn(
-            "overflow-auto bg-canvas/50",
-            compact ? "max-h-[260px]" : "max-h-[460px]"
-          )}
-        >
-          {!rawText.trim() ? (
-            <div className="px-3 py-6 text-center font-mono text-[11px] text-ink-3">
-              {running ? "Waiting for worker output..." : "No worker log output recorded yet."}
-            </div>
-          ) : mode === "structured" ? (
-            <DshLogTimeline events={parsed.events} wrap={wrap} />
-          ) : (
-            <pre
-              className={cn(
-                "p-3 font-mono text-[11px] leading-relaxed text-ink-2",
-                wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"
-              )}
-            >
-              {ansiSpans(rawText).map((seg, i) => (
-                <span key={i} className={seg.className}>
-                  {seg.text}
-                </span>
-              ))}
-            </pre>
-          )}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-[var(--ease-out-expo)]",
+          collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div
+            ref={scrollRef}
+            className={cn(
+              "overflow-auto bg-canvas/50",
+              compact ? "max-h-[260px]" : "max-h-[460px]"
+            )}
+          >
+            {!rawText.trim() ? (
+              <div className="px-3 py-6 text-center font-mono text-[11px] text-ink-3">
+                {running ? "Waiting for worker output..." : "No worker log output recorded yet."}
+              </div>
+            ) : mode === "structured" ? (
+              <DshLogTimeline events={parsed.events} wrap={wrap} />
+            ) : (
+              <pre
+                className={cn(
+                  "p-3 font-mono text-[11px] leading-relaxed text-ink-2",
+                  wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"
+                )}
+              >
+                {ansiSpans(rawText).map((seg, i) => (
+                  <span key={i} className={seg.className}>
+                    {seg.text}
+                  </span>
+                ))}
+              </pre>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -904,10 +917,16 @@ export function ResultPanel({ run, defaultOpen = false }: { run: TaskRun; defaul
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left hover:bg-well/40"
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-well/40 active:bg-well/60"
       >
         <div className="flex min-w-0 items-center gap-2">
-          {open ? <ChevronDown className="size-3.5 text-ink-3" /> : <ChevronRight className="size-3.5 text-ink-3" />}
+          <ChevronRight
+            className={cn(
+              "size-3.5 text-ink-3 transition-transform duration-180 ease-[var(--ease-out-expo)]",
+              open && "rotate-90"
+            )}
+          />
           {isError ? (
             <AlertTriangle className="size-3.5 shrink-0 text-danger-text" />
           ) : (
@@ -930,36 +949,43 @@ export function ResultPanel({ run, defaultOpen = false }: { run: TaskRun; defaul
         </div>
       </button>
 
-      {open && (
-        <div className="space-y-2 border-t border-line bg-canvas/40 p-3">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-ink-3">
-            {run.started_at > 0 && <span>started: {fmtDateTime(run.started_at)}</span>}
-            {run.ended_at && run.ended_at > 0 ? <span>ended: {fmtDateTime(run.ended_at)}</span> : null}
-            {run.worker_id && <span>worker: {run.worker_id}</span>}
-            {run.session_id && <span>session: {run.session_id}</span>}
-          </div>
-
-          {run.error && (
-            <div className="rounded-[7px] border border-danger/35 bg-danger-tint/70 px-2.5 py-2 font-mono text-[11px] text-ink">
-              {run.error}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-[var(--ease-out-expo)]",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-2 border-t border-line bg-canvas/40 p-3">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-ink-3">
+              {run.started_at > 0 && <span>started: {fmtDateTime(run.started_at)}</span>}
+              {run.ended_at && run.ended_at > 0 ? <span>ended: {fmtDateTime(run.ended_at)}</span> : null}
+              {run.worker_id && <span>worker: {run.worker_id}</span>}
+              {run.session_id && <span>session: {run.session_id}</span>}
             </div>
-          )}
 
-          {run.output?.trim() ? (
-            parsed.structuredCount > 0 ? (
-              <div className="rounded-[8px] border border-line bg-surface">
-                <DshLogTimeline events={parsed.events} wrap />
+            {run.error && (
+              <div className="rounded-[7px] border border-danger/35 bg-danger-tint/70 px-2.5 py-2 font-mono text-[11px] text-ink">
+                {run.error}
               </div>
+            )}
+
+            {run.output?.trim() ? (
+              parsed.structuredCount > 0 ? (
+                <div className="rounded-[8px] border border-line bg-surface">
+                  <DshLogTimeline events={parsed.events} wrap />
+                </div>
+              ) : (
+                <div className="rounded-[8px] border border-line bg-surface p-2.5">
+                  <FormattedProse content={run.output} />
+                </div>
+              )
             ) : (
-              <div className="rounded-[8px] border border-line bg-surface p-2.5">
-                <FormattedProse content={run.output} />
-              </div>
-            )
-          ) : (
-            <p className="font-mono text-[11px] text-ink-3">No output payload recorded for this run.</p>
-          )}
+              <p className="font-mono text-[11px] text-ink-3">No output payload recorded for this run.</p>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

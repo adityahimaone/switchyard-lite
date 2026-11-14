@@ -882,7 +882,7 @@ export function BoardScreen({
                                     <button
                                       type="button"
                                       aria-label={`Actions for ${t.title}`}
-                                      className="-mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-4 opacity-0 transition-[opacity,background-color] hover:bg-well hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
+                                      className="-mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-4 opacity-0 transition-[opacity,background-color,transform] duration-100 ease-[var(--ease-out-expo)] hover:bg-well hover:text-ink active:scale-95 group-hover:opacity-100 focus-visible:opacity-100"
                                     >
                                       <MoreHorizontal className="size-3.5" />
                                     </button>
@@ -1012,7 +1012,7 @@ export function BoardScreen({
                               ) : t.status === "in_progress" ? (
                                 <RunningIndicator task={t} compact />
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-accent-text opacity-0 transition-opacity duration-100 ease-[var(--ease-out-expo)] group-hover:opacity-100">
                                   Open
                                   <ArrowRight className="size-2.5" />
                                 </span>

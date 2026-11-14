@@ -134,7 +134,7 @@ export function StatusPill({
       {meta.lamp === "spin-cobalt" && (
         <span
           aria-hidden
-          className="size-3.5 shrink-0 rounded-full border-[1.75px] border-dashed border-accent animate-[spin_5s_linear_infinite]"
+          className="size-3.5 shrink-0 rounded-full border-[1.75px] border-dashed border-accent animate-[spin_1.2s_linear_infinite]"
         />
       )}
       {meta.lamp === "ring-amber" && (

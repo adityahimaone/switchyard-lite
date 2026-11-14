@@ -145,9 +145,14 @@ function TraceSpanRow({ span, depth, originMs, totalDurationMs, nowMs, defaultOp
                 setExpanded((v) => !v);
               }}
               aria-label={expanded ? "Collapse span" : "Expand span"}
-              className="flex size-4 shrink-0 items-center justify-center rounded text-ink-3 hover:bg-well hover:text-ink"
+              className="flex size-4 shrink-0 items-center justify-center rounded text-ink-3 transition-colors hover:bg-well hover:text-ink active:scale-95"
             >
-              {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+              <ChevronRight
+                className={cn(
+                  "size-3 transition-transform duration-150 ease-[var(--ease-out-expo)]",
+                  expanded && "rotate-90"
+                )}
+              />
             </button>
           ) : (
             <span className="flex size-4 shrink-0 items-center justify-center">

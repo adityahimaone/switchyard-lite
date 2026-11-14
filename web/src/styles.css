@@ -172,7 +172,8 @@ code, pre, .mono {
   background-repeat: no-repeat;
   background-size: cover, 100% 100%;
   background-position: center center, center top;
-  transition: grid-template-columns 220ms var(--ease-out-expo);
+  transition: grid-template-columns 200ms var(--ease-out-expo);
+  will-change: grid-template-columns;
 }
 
 .shell.collapsed {
@@ -194,6 +195,8 @@ nav.side {
   min-height: 0;
   overflow: hidden;
   z-index: 20;
+  contain: layout style;
+  transition: padding 180ms var(--ease-out-expo);
 }
 
 .side-top-pod {
@@ -302,13 +305,40 @@ nav.side h1 {
   white-space: nowrap;
 }
 
+.side-top-pod,
+.nav-group,
+.side-footer {
+  transition: padding 180ms var(--ease-out-expo);
+}
+
+nav.side .nav-label,
+nav.side .side-brand h1,
+nav.side .side-board-box,
+nav.side .nav-group-label,
+nav.side .nav-badge,
+nav.side .side-footer-status {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 140ms var(--ease-out-expo), transform 140ms var(--ease-out-expo);
+  white-space: nowrap;
+}
+
 .shell.collapsed nav.side .nav-label,
 .shell.collapsed nav.side .side-brand h1,
 .shell.collapsed nav.side .side-board-box,
 .shell.collapsed nav.side .nav-group-label,
 .shell.collapsed nav.side .nav-badge,
 .shell.collapsed nav.side .side-footer-status {
-  display: none;
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+  max-width: 0;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  transition: opacity 100ms ease-out, transform 100ms ease-out, max-width 180ms var(--ease-out-expo), max-height 180ms var(--ease-out-expo);
 }
 
 .shell.collapsed nav.side .side-top-pod,
@@ -343,7 +373,7 @@ nav.side a {
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background-color 140ms, border-color 140ms, box-shadow 140ms, color 140ms, transform 120ms var(--ease-out);
+  transition: background-color 140ms, border-color 140ms, box-shadow 140ms, color 140ms, transform 120ms var(--ease-out), width 180ms var(--ease-out-expo), height 180ms var(--ease-out-expo), padding 180ms var(--ease-out-expo);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1001,12 +1031,18 @@ label.f {
   background: var(--lamp, var(--c-ink-4));
   opacity: 0.88;
   transform-origin: left center;
-  animation: track-draw 500ms var(--ease-out-expo) both;
+  animation: track-draw 200ms var(--ease-out-expo) both;
 }
 
 @keyframes track-draw {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0.5);
+    opacity: 0.2;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0.88;
+  }
 }
 
 .col-well {
@@ -1281,6 +1317,7 @@ label.f {
   display: flex;
   flex-direction: column;
   animation: cmd-scale-in 160ms var(--ease-out);
+  will-change: transform, opacity;
   outline: none;
 }
 
@@ -1385,6 +1422,7 @@ label.f {
   box-shadow: var(--glass-lift-dialog);
   overflow: hidden;
   animation: drawer-slide-in 240ms var(--ease-drawer);
+  will-change: transform;
 }
 
 @keyframes drawer-slide-in {
@@ -1413,6 +1451,7 @@ label.f {
   box-shadow: -16px 0 48px rgb(0 0 0 / 0.25);
   z-index: 45;
   animation: drawer-slide-in 240ms var(--ease-drawer);
+  will-change: transform;
 }
 
 @keyframes drawer-in {
