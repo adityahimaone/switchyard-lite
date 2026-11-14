@@ -30,10 +30,46 @@ CREATE TABLE IF NOT EXISTS tasks (
   result TEXT NOT NULL DEFAULT '',
   started_at INTEGER NOT NULL DEFAULT 0,
   completed_at INTEGER NOT NULL DEFAULT 0,
+  execution_mode TEXT NOT NULL DEFAULT 'managed',
+  question_json TEXT NOT NULL DEFAULT '',
+  session_id TEXT NOT NULL DEFAULT '',
+  dsh_workspace_id TEXT NOT NULL DEFAULT '',
+  last_turn_seq INTEGER NOT NULL DEFAULT -1,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS tasks_board_status ON tasks(board_id, status);
+
+CREATE TABLE IF NOT EXISTS task_questions (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  options TEXT NOT NULL DEFAULT '[]',
+  multi_select INTEGER NOT NULL DEFAULT 0,
+  context TEXT NOT NULL DEFAULT '',
+  author TEXT NOT NULL DEFAULT 'agent',
+  status TEXT NOT NULL DEFAULT 'pending',
+  answer TEXT NOT NULL DEFAULT '',
+  selected_options TEXT NOT NULL DEFAULT '[]',
+  answered_by TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  answered_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS task_questions_task ON task_questions(task_id, created_at);
+
+CREATE TABLE IF NOT EXISTS knowledge_docs (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  subtitle TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'Custom Knowledge',
+  badge TEXT NOT NULL DEFAULT 'Custom',
+  summary TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  sections_json TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS task_deps (
   task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,

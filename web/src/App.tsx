@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  BookOpen,
   Cpu,
   FolderGit2,
   GitPullRequest,
@@ -48,6 +49,7 @@ import {
   WorkersScreen,
   WorkspacesScreen,
 } from "./Screens";
+import { KnowledgeScreen } from "@/components/knowledge/KnowledgeScreen";
 
 const NAV = [
   { id: "board", label: "Board", group: "Work", icon: Kanban },
@@ -58,6 +60,7 @@ const NAV = [
   { id: "workers", label: "Workers", group: "Infrastructure", icon: Cpu },
   { id: "overview", label: "Overview", group: "Observe", icon: Activity },
   { id: "logs", label: "Logs", group: "Observe", icon: ScrollText },
+  { id: "knowledge", label: "Knowledge", group: "Observe", icon: BookOpen },
   { id: "settings", label: "Settings", group: "Footer", icon: Settings2 },
 ] as const;
 
@@ -289,6 +292,7 @@ export function App() {
           {page === "workspaces" && <WorkspacesScreen />}
           {page === "overview" && <OverviewScreen />}
           {page === "logs" && <LogsScreen />}
+          {page === "knowledge" && <KnowledgeScreen initialSlug={arg} onNavigate={go} />}
           {page === "workers" && <WorkersScreen />}
           {page === "settings" && <SettingsScreen logout={() => setAuthed(false)} />}
         </AppMain>

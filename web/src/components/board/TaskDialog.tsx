@@ -95,7 +95,7 @@ export function PlatformIcon({ platform, className }: { platform: PlatformKey; c
 const DEFAULT_SENTINEL = "__default__";
 const SCRATCH_SENTINEL = "__scratch__";
 
-export type StartMode = "manual" | "queue" | "now" | "meta7";
+export type StartMode = "manual" | "queue" | "now" | "tracker" | "meta7";
 
 interface PendingFile {
   id: string;
@@ -368,7 +368,8 @@ export function TaskDialog({
         title: title.trim(),
         prompt,
         acceptance,
-        status: startMode === "manual" ? "backlog" : "todo",
+        status: startMode === "manual" ? "backlog" : startMode === "tracker" ? "in_progress" : "todo",
+        execution_mode: startMode === "tracker" ? "tracker" : "managed",
         workspace: workspace.trim(),
         executor,
         model: model.trim(),
@@ -401,11 +402,13 @@ export function TaskDialog({
       toast(
         startMode === "meta7"
           ? "meta7 pipeline launched"
-          : startMode === "now"
-            ? "Task created & dispatched"
-            : startMode === "manual"
-              ? "Saved to backlog"
-              : "Task created",
+          : startMode === "tracker"
+            ? "Monitor-only tracker card created"
+            : startMode === "now"
+              ? "Task created & dispatched"
+              : startMode === "manual"
+                ? "Saved to backlog"
+                : "Task created",
         {
           tone: "success",
           description:
@@ -479,11 +482,13 @@ export function TaskDialog({
   const startLabel =
     startMode === "meta7"
       ? "meta7 pipeline"
-      : startMode === "now"
-        ? "Start now"
-        : startMode === "manual"
-          ? "Backlog"
-          : "Todo";
+      : startMode === "tracker"
+        ? "Monitor only"
+        : startMode === "now"
+          ? "Start now"
+          : startMode === "manual"
+            ? "Backlog"
+            : "Todo";
 
   return (
     <Dialog
@@ -947,6 +952,7 @@ export function TaskDialog({
                         { value: "manual", label: "Manual" },
                         { value: "queue", label: "Todo" },
                         { value: "now", label: "Now" },
+                        { value: "tracker", label: "Monitor" },
                         { value: "meta7", label: "meta7" },
                       ]}
                       className="w-full justify-between [&>button]:px-1.5 [&>button]:text-[11px]"
@@ -954,11 +960,13 @@ export function TaskDialog({
                     <p className="m-0 text-[10px] leading-relaxed text-ink-4">
                       {startMode === "meta7"
                         ? "Runs the autonomous 7-stage coordinator (explore → cross_examine → synthesize → design → verify → review → impl + gate:*) on this board."
-                        : startMode === "now"
-                          ? "Created in Todo and dispatched immediately."
-                          : startMode === "manual"
-                            ? "Parked in Backlog until you triage it."
-                            : "Queued in Todo for the next worker poll."}
+                        : startMode === "tracker"
+                          ? "Passive monitor card — skipped by worker dispatch so external agents (dsh, commandcode, Antigravity) update status via MCP."
+                          : startMode === "now"
+                            ? "Created in Todo and dispatched immediately."
+                            : startMode === "manual"
+                              ? "Parked in Backlog until you triage it."
+                              : "Queued in Todo for the next worker poll."}
                     </p>
                   </RailGroup>
                 </div>
@@ -1004,11 +1012,13 @@ export function TaskDialog({
               )}
               {startMode === "meta7"
                 ? "Launch meta7 pipeline"
-                : startMode === "now"
-                  ? "Create & dispatch"
-                  : startMode === "manual"
-                    ? "Save to backlog"
-                    : "Create task"}
+                : startMode === "tracker"
+                  ? "Create tracker card"
+                  : startMode === "now"
+                    ? "Create & dispatch"
+                    : startMode === "manual"
+                      ? "Save to backlog"
+                      : "Create task"}
               <Kbd className="ml-1 border-white/25 bg-white/15 text-white shadow-none">⌘↵</Kbd>
             </Button>
           </DialogFooter>

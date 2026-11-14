@@ -103,20 +103,22 @@ func (a *API) Handler() http.Handler {
 	}))
 	m.HandleFunc("POST /api/v1/tasks", a.require("write", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
-			BoardID    string   `json:"board_id"`
-			ParentID   string   `json:"parent_id"`
-			Title      string   `json:"title"`
-			Prompt     string   `json:"prompt"`
-			Acceptance string   `json:"acceptance"`
-			Status     string   `json:"status"`
-			Workspace  string   `json:"workspace"`
-			Executor   string   `json:"executor"`
-			Model      string   `json:"model"`
-			Effort     string   `json:"effort"`
-			Branch     string   `json:"branch"`
-			Paths      []string `json:"paths"`
-			Skills     []string `json:"skills"`
-			BlockedBy  []string `json:"blocked_by"`
+			BoardID       string   `json:"board_id"`
+			ParentID      string   `json:"parent_id"`
+			Title         string   `json:"title"`
+			Prompt        string   `json:"prompt"`
+			Acceptance    string   `json:"acceptance"`
+			Status        string   `json:"status"`
+			Workspace     string   `json:"workspace"`
+			Executor      string   `json:"executor"`
+			Model         string   `json:"model"`
+			Effort        string   `json:"effort"`
+			Branch        string   `json:"branch"`
+			ExecutionMode string   `json:"execution_mode"`
+			SessionID     string   `json:"session_id"`
+			Paths         []string `json:"paths"`
+			Skills        []string `json:"skills"`
+			BlockedBy     []string `json:"blocked_by"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 			fail(w, 400, "invalid json")
@@ -124,7 +126,7 @@ func (a *API) Handler() http.Handler {
 		}
 		t, err := a.Tasks.Create(tasks.NewTask{BoardID: in.BoardID, ParentID: in.ParentID, Title: in.Title, Prompt: in.Prompt,
 			Acceptance: in.Acceptance, Status: in.Status, Workspace: in.Workspace, Executor: in.Executor, Model: in.Model, Effort: in.Effort,
-			Branch: in.Branch, Paths: in.Paths, Skills: in.Skills, BlockedBy: in.BlockedBy})
+			Branch: in.Branch, ExecutionMode: in.ExecutionMode, SessionID: in.SessionID, Paths: in.Paths, Skills: in.Skills, BlockedBy: in.BlockedBy})
 		if err != nil {
 			fromErr(w, err)
 			return

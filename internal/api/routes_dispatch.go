@@ -535,6 +535,262 @@ func init() {
 			}
 			ok(w, map[string]bool{"auto_merge": x.r.AutoMerge()})
 		}))
+		m.HandleFunc("POST /api/v1/tasks/{id}/retry", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			id := r.PathValue("id")
+			t, err := a.Tasks.Get(id)
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			var in struct {
+				Feedback     string `json:"feedback"`
+				Prompt       string `json:"prompt"`
+				ResetRetries *bool  `json:"reset_retries"`
+				DispatchNow  *bool  `json:"dispatch_now"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&in)
+			if fb := strings.TrimSpace(in.Feedback); fb != "" {
+				_, _ = a.Tasks.AddComment(id, "retry", fb)
+			}
+			if extra := strings.TrimSpace(in.Prompt); extra != "" {
+				merged := strings.TrimSpace(t.Prompt)
+				if merged != "" {
+					merged += "\n\n" + extra
+				} else {
+					merged = extra
+				}
+				_, _ = a.Tasks.Update(id, tasks.Patch{Prompt: &merged})
+			}
+			resetRetries := in.ResetRetries == nil || *in.ResetRetries
+			if resetRetries {
+				_, _ = a.S.DB.Exec(`UPDATE tasks SET retry_count=0, error_sig='' WHERE id=?`, id)
+			} else {
+				_, _ = a.S.DB.Exec(`UPDATE tasks SET error_sig='' WHERE id=?`, id)
+			}
+			_, _ = a.S.DB.Exec(`DELETE FROM dispatch_claims WHERE task_id=?`, id)
+			if t.Status != tasks.Todo {
+				if _, err := a.Tasks.Move(id, tasks.Todo, "retry"); err != nil {
+					fromErr(w, err)
+					return
+				}
+			}
+			_ = a.Tasks.RecordEvent(id, "retried", map[string]any{"feedback": strings.TrimSpace(in.Feedback)})
+			dispatchNow := in.DispatchNow == nil || *in.DispatchNow
+			var runID string
+			if dispatchNow && t.ExecutionMode != tasks.ExecTracker {
+				if rid, serr := x.d.Start(context.Background(), id); serr == nil {
+					runID = rid
+				} else {
+					x.d.Wake()
+				}
+			} else {
+				x.d.Wake()
+			}
+			updated, _ := a.Tasks.Get(id)
+			ok(w, map[string]any{"task": updated, "run_id": runID})
+		}))
+		startTracker := h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			var in struct {
+				ID         string   `json:"id"`
+				BoardID    string   `json:"board_id"`
+				Title      string   `json:"title"`
+				Prompt     string   `json:"prompt"`
+				Acceptance string   `json:"acceptance"`
+				Workspace  string   `json:"workspace"`
+				Executor   string   `json:"executor"`
+				Model      string   `json:"model"`
+				SessionID  string   `json:"session_id"`
+				Paths      []string `json:"paths"`
+				Skills     []string `json:"skills"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&in)
+			id := strings.TrimSpace(r.PathValue("id"))
+			if id == "" {
+				id = strings.TrimSpace(in.ID)
+			}
+			if id == "" {
+				created, err := a.Tasks.Create(tasks.NewTask{
+					BoardID:       in.BoardID,
+					Title:         in.Title,
+					Prompt:        in.Prompt,
+					Acceptance:    in.Acceptance,
+					Status:        tasks.InProgress,
+					Workspace:     in.Workspace,
+					Executor:      firstNonEmpty(in.Executor, "external"),
+					Model:         in.Model,
+					ExecutionMode: tasks.ExecTracker,
+					SessionID:     in.SessionID,
+					Paths:         in.Paths,
+					Skills:        in.Skills,
+				})
+				if err != nil {
+					fromErr(w, err)
+					return
+				}
+				id = created.ID
+			} else {
+				if _, err := a.Tasks.Get(id); err != nil {
+					fromErr(w, err)
+					return
+				}
+				mode := tasks.ExecTracker
+				patch := tasks.Patch{ExecutionMode: &mode}
+				if in.Executor != "" {
+					patch.Executor = &in.Executor
+				}
+				if in.Model != "" {
+					patch.Model = &in.Model
+				}
+				if in.Workspace != "" {
+					patch.Workspace = &in.Workspace
+				}
+				_, _ = a.Tasks.Update(id, patch)
+				if in.SessionID != "" {
+					_, _ = a.S.DB.Exec(`UPDATE tasks SET session_id=? WHERE id=?`, in.SessionID, id)
+				}
+				_, _ = a.Tasks.Move(id, tasks.InProgress, "tracker")
+			}
+			now := time.Now().Unix()
+			_, _ = a.S.DB.Exec(`DELETE FROM dispatch_claims WHERE task_id=?`, id)
+			_, _ = a.S.DB.Exec(`UPDATE tasks SET execution_mode='tracker', started_at=CASE WHEN started_at=0 THEN ? ELSE started_at END, updated_at=? WHERE id=?`, now, now, id)
+			_ = dispatch.ResetWorkerLog(x.d.WorkerLogDir(), id)
+			t, err := a.Tasks.Get(id)
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			runID := "track_" + id
+			_ = a.Tasks.RecordEvent(id, "claimed", map[string]any{
+				"run_id":         runID,
+				"worker_id":      "external-tracker",
+				"executor":       firstNonEmpty(t.Executor, "external"),
+				"model":          t.Model,
+				"session_id":     t.SessionID,
+				"execution_mode": "tracker",
+			})
+			_ = a.Tasks.RecordEvent(id, "tracker.started", map[string]any{
+				"executor":   firstNonEmpty(t.Executor, "external"),
+				"session_id": t.SessionID,
+			})
+			ok(w, t)
+		})
+		m.HandleFunc("POST /api/v1/tasks/track/start", startTracker)
+		m.HandleFunc("POST /api/v1/tasks/{id}/track/start", startTracker)
+		m.HandleFunc("POST /api/v1/tasks/{id}/track/progress", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			id := r.PathValue("id")
+			t, err := a.Tasks.Get(id)
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			var in struct {
+				Text    string `json:"text"`
+				Step    string `json:"step"`
+				Percent *int   `json:"percent"`
+				Author  string `json:"author"`
+				Comment bool   `json:"comment"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+				fail(w, 400, "invalid json")
+				return
+			}
+			line := in.Text
+			if line == "" && in.Step != "" {
+				line = in.Step
+			}
+			if line != "" {
+				chunk := line
+				if !strings.HasSuffix(chunk, "\n") {
+					chunk += "\n"
+				}
+				_ = dispatch.AppendWorkerLog(x.d.WorkerLogDir(), id, chunk)
+				_ = a.Tasks.RecordEvent(id, "worker_output", map[string]any{
+					"run_id": "track_" + id,
+					"output": chunk,
+				})
+			}
+			if in.Step != "" || in.Percent != nil {
+				payload := map[string]any{"step": in.Step}
+				if in.Percent != nil {
+					payload["percent"] = *in.Percent
+				}
+				_ = a.Tasks.RecordEvent(id, "agent.progress", payload)
+			}
+			if in.Comment && strings.TrimSpace(line) != "" {
+				_, _ = a.Tasks.AddComment(id, firstNonEmpty(in.Author, firstNonEmpty(t.Executor, "tracker")), strings.TrimSpace(line))
+			}
+			_, _ = a.S.DB.Exec(`UPDATE tasks SET updated_at=? WHERE id=?`, time.Now().Unix(), id)
+			ok(w, map[string]any{"ok": true, "task_id": id})
+		}))
+		m.HandleFunc("POST /api/v1/tasks/{id}/track/complete", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			id := r.PathValue("id")
+			t, err := a.Tasks.Get(id)
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			var in struct {
+				Status    string         `json:"status"`
+				Output    string         `json:"output"`
+				Error     string         `json:"error"`
+				SessionID string         `json:"session_id"`
+				Usage     map[string]any `json:"usage"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&in)
+			targetStatus := strings.TrimSpace(in.Status)
+			if targetStatus == "" {
+				if strings.TrimSpace(in.Error) != "" {
+					targetStatus = tasks.Failed
+				} else {
+					targetStatus = tasks.Done
+				}
+			}
+			switch targetStatus {
+			case tasks.Done, tasks.Review, tasks.Failed:
+			default:
+				fail(w, 400, "status must be done, review, or failed")
+				return
+			}
+			now := time.Now().Unix()
+			if in.Output != "" {
+				chunk := in.Output
+				if !strings.HasSuffix(chunk, "\n") {
+					chunk += "\n"
+				}
+				_ = dispatch.AppendWorkerLog(x.d.WorkerLogDir(), id, chunk)
+				_ = a.Tasks.RecordEvent(id, "worker_output", map[string]any{
+					"run_id": "track_" + id,
+					"output": chunk,
+				})
+				_, _ = a.Tasks.AddComment(id, firstNonEmpty(t.Executor, "tracker"), in.Output)
+			}
+			sid := firstNonEmpty(in.SessionID, t.SessionID)
+			_, _ = a.S.DB.Exec(`UPDATE tasks SET execution_mode='tracker', result=?, error_sig=?, session_id=?, completed_at=?, updated_at=? WHERE id=?`,
+				in.Output, in.Error, sid, now, now, id)
+			kind := "completed"
+			payload := map[string]any{
+				"run_id":     "track_" + id,
+				"worker_id":  "external-tracker",
+				"executor":   firstNonEmpty(t.Executor, "external"),
+				"model":      t.Model,
+				"session_id": sid,
+				"output":     in.Output,
+			}
+			if len(in.Usage) > 0 {
+				payload["usage"] = in.Usage
+			}
+			if targetStatus == tasks.Failed {
+				kind = "failed"
+				payload["error"] = firstNonEmpty(in.Error, "external run failed")
+			}
+			_ = a.Tasks.RecordEvent(id, kind, payload)
+			updated, merr := a.Tasks.Move(id, targetStatus, "tracker")
+			if merr != nil {
+				fromErr(w, merr)
+				return
+			}
+			ok(w, updated)
+		}))
 	})
 }
 

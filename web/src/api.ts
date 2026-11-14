@@ -1,6 +1,38 @@
 export const STATUSES = ["backlog", "todo", "blocked", "in_progress", "review", "done", "failed"] as const;
 export type Status = (typeof STATUSES)[number];
 
+export type ExecutionMode = "managed" | "tracker";
+
+export interface TaskQuestion {
+  id: string;
+  task_id: string;
+  question: string;
+  options: string[];
+  multi_select?: boolean;
+  context?: string;
+  author?: string;
+  status: "pending" | "answered" | "dismissed" | string;
+  selected_options?: string[];
+  answer?: string;
+  answered_by?: string;
+  created_at: number;
+  answered_at?: number;
+}
+
+export interface KnowledgeDoc {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle?: string;
+  category: string;
+  badge?: string;
+  summary?: string;
+  content: string;
+  sections?: unknown[];
+  created_at: number;
+  updated_at: number;
+}
+
 export interface Task {
   id: string;
   board_id: string;
@@ -13,6 +45,11 @@ export interface Task {
   executor?: string;
   model?: string;
   effort?: string;
+  execution_mode?: ExecutionMode;
+  session_id?: string;
+  dsh_workspace_id?: string;
+  last_turn_seq?: number;
+  question?: TaskQuestion | null;
   /** @file references and $skill names attached in the composer. */
   paths?: string[];
   skills?: string[];

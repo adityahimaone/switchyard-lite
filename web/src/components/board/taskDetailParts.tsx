@@ -391,6 +391,16 @@ export function TaskHeader({
               {task?.title ?? "Loading task…"}
             </TitleTag>
             {task && <StatusBadge status={task.status} />}
+            {task?.execution_mode === "tracker" && (
+              <Badge variant="secondary" title="Passive MCP monitor card (skipped by dispatcher)">
+                Monitor only
+              </Badge>
+            )}
+            {task?.question?.status === "pending" && (
+              <Badge variant="review" title={task.question.question}>
+                Question pending
+              </Badge>
+            )}
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-3">
@@ -479,6 +489,8 @@ export function TaskActions({
   task,
   onDispatch,
   dispatchPending,
+  onRetry,
+  retryPending,
   onMove,
   movePending,
   onOpenReview,
@@ -488,6 +500,8 @@ export function TaskActions({
   task: Task;
   onDispatch: () => void;
   dispatchPending?: boolean;
+  onRetry?: () => void;
+  retryPending?: boolean;
   onMove: (to: Status) => void;
   movePending?: boolean;
   onOpenReview?: () => void;
@@ -499,12 +513,20 @@ export function TaskActions({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {task.status === "todo" && (
+      {task.status === "todo" && task.execution_mode !== "tracker" && (
         <Button type="button" variant="prism" size="xs" loading={dispatchPending} onClick={onDispatch}>
           <Play className="size-3 fill-current" />
           Dispatch now
         </Button>
       )}
+      {(task.status === "failed" || task.status === "blocked") &&
+        task.execution_mode !== "tracker" &&
+        onRetry && (
+          <Button type="button" variant="signal" size="xs" loading={retryPending} onClick={onRetry}>
+            <RotateCcw className="size-3" />
+            Retry now
+          </Button>
+        )}
       {task.status === "review" && onOpenReview && (
         <Button type="button" variant="signal" size="xs" onClick={onOpenReview}>
           <CheckCircle2 className="size-3" />

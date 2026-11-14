@@ -98,4 +98,4 @@ export const AlertTriangle = make("AlertTriangle", K.TriangleAlert, "#F59E0B");
 export const Workflow = make("Workflow", K.Workflow, "#8B5CF6");
 
 /** Kubai's "apple" is the fruit; keep the macOS brand mark and flow controls from lucide. */
-export { Apple, Brain, Database, Expand, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+export { Apple, BookOpen, Brain, Database, Expand, HelpCircle, Minimize2, ZoomIn, ZoomOut } from "lucide-react";

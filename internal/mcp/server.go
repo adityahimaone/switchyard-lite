@@ -68,34 +68,59 @@ func NewServer(b Backend) *sdk.Server {
 		return "/api/v1/boards/" + esc(in.BoardID) + "/tasks" + q("status", in.Status), nil
 	})
 	tool(s, b, "get_task", "Get a task by id", "GET", func(in idArg) (string, any) { return "/api/v1/tasks/" + esc(in.ID), nil })
-	tool(s, b, "create_task", "Create a task", "POST", func(in struct {
-		BoardID    string   `json:"board_id"`
-		ParentID   string   `json:"parent_id,omitempty"`
-		Title      string   `json:"title"`
-		Prompt     string   `json:"prompt,omitempty"`
-		Acceptance string   `json:"acceptance,omitempty"`
-		Workspace  string   `json:"workspace,omitempty"`
-		Executor   string   `json:"executor,omitempty"`
-		Model      string   `json:"model,omitempty"`
-		Effort     string   `json:"effort,omitempty"`
-		BlockedBy  []string `json:"blocked_by,omitempty"`
+	tool(s, b, "create_task", "Create a task (supports managed execution or passive tracker monitoring)", "POST", func(in struct {
+		BoardID       string   `json:"board_id"`
+		ParentID      string   `json:"parent_id,omitempty"`
+		Title         string   `json:"title"`
+		Prompt        string   `json:"prompt,omitempty"`
+		Acceptance    string   `json:"acceptance,omitempty"`
+		Status        string   `json:"status,omitempty"`
+		Workspace     string   `json:"workspace,omitempty"`
+		Executor      string   `json:"executor,omitempty"`
+		Model         string   `json:"model,omitempty"`
+		Effort        string   `json:"effort,omitempty"`
+		Branch        string   `json:"branch,omitempty"`
+		ExecutionMode string   `json:"execution_mode,omitempty"`
+		SessionID     string   `json:"session_id,omitempty"`
+		Paths         []string `json:"paths,omitempty"`
+		Skills        []string `json:"skills,omitempty"`
+		BlockedBy     []string `json:"blocked_by,omitempty"`
 	}) (string, any) {
 		return "/api/v1/tasks", in
 	})
 	tool(s, b, "update_task", "Update task fields (only provided fields change)", "PATCH", func(in struct {
-		ID         string  `json:"id"`
-		Title      *string `json:"title,omitempty"`
-		Prompt     *string `json:"prompt,omitempty"`
-		Acceptance *string `json:"acceptance,omitempty"`
-		Workspace  *string `json:"workspace,omitempty"`
-		Executor   *string `json:"executor,omitempty"`
-		Model      *string `json:"model,omitempty"`
-		Effort     *string `json:"effort,omitempty"`
+		ID            string    `json:"id"`
+		Title         *string   `json:"title,omitempty"`
+		Prompt        *string   `json:"prompt,omitempty"`
+		Acceptance    *string   `json:"acceptance,omitempty"`
+		Workspace     *string   `json:"workspace,omitempty"`
+		Executor      *string   `json:"executor,omitempty"`
+		Model         *string   `json:"model,omitempty"`
+		Effort        *string   `json:"effort,omitempty"`
+		Branch        *string   `json:"branch,omitempty"`
+		ExecutionMode *string   `json:"execution_mode,omitempty"`
+		Paths         *[]string `json:"paths,omitempty"`
+		Skills        *[]string `json:"skills,omitempty"`
 	}) (string, any) {
 		id := in.ID
 		in.ID = ""
-		return "/api/v1/tasks/" + esc(id), map[string]any{"title": in.Title, "prompt": in.Prompt, "acceptance": in.Acceptance,
-			"workspace": in.Workspace, "executor": in.Executor, "model": in.Model, "effort": in.Effort}
+		body := map[string]any{
+			"title": in.Title, "prompt": in.Prompt, "acceptance": in.Acceptance,
+			"workspace": in.Workspace, "executor": in.Executor, "model": in.Model, "effort": in.Effort,
+		}
+		if in.Branch != nil {
+			body["branch"] = *in.Branch
+		}
+		if in.ExecutionMode != nil {
+			body["execution_mode"] = *in.ExecutionMode
+		}
+		if in.Paths != nil {
+			body["paths"] = *in.Paths
+		}
+		if in.Skills != nil {
+			body["skills"] = *in.Skills
+		}
+		return "/api/v1/tasks/" + esc(id), body
 	})
 	tool(s, b, "move_task", "Move a task to another status", "POST", func(in struct {
 		ID     string `json:"id"`
@@ -151,12 +176,26 @@ func NewServer(b Backend) *sdk.Server {
 		return "/api/v1/tasks/" + esc(in.ID) + "/reject", map[string]string{"feedback": in.Feedback, "comment": in.Feedback}
 	})
 	tool(s, b, "list_workers", "List registered workers", "GET", func(empty) (string, any) { return "/api/v1/workers", nil })
-	tool(s, b, "list_models", "List available models", "GET", func(empty) (string, any) { return "/api/v1/models", nil })
+	tool(s, b, "list_models", "List available models (optionally scoped to executor or cache-busted)", "GET", func(in struct {
+		Executor string `json:"executor,omitempty"`
+		Refresh  bool   `json:"refresh,omitempty"`
+	}) (string, any) {
+		return "/api/v1/models" + q("executor", in.Executor, "refresh", boolFlag(in.Refresh)), nil
+	})
 	tool(s, b, "list_templates", "List pipeline templates", "GET", func(empty) (string, any) { return "/api/v1/pipelines/templates", nil })
-	tool(s, b, "start_pipeline", "Start a pipeline run from a template", "POST", func(in struct {
-		Template string `json:"template"`
-		BoardID  string `json:"board_id"`
-		Goal     string `json:"goal"`
+	tool(s, b, "start_pipeline", "Start a pipeline run (design-thinking or meta7) with full context & workspace options", "POST", func(in struct {
+		Template     string   `json:"template,omitempty"`
+		BoardID      string   `json:"board_id"`
+		Goal         string   `json:"goal"`
+		ProjectName  string   `json:"project_name,omitempty"`
+		Context      string   `json:"context,omitempty"`
+		Workspace    string   `json:"workspace,omitempty"`
+		Branch       string   `json:"branch,omitempty"`
+		Executor     string   `json:"executor,omitempty"`
+		Model        string   `json:"model,omitempty"`
+		Effort       string   `json:"effort,omitempty"`
+		ContextPaths []string `json:"context_paths,omitempty"`
+		Skills       []string `json:"skills,omitempty"`
 	}) (string, any) {
 		return "/api/v1/pipelines", in
 	})
@@ -166,6 +205,7 @@ func NewServer(b Backend) *sdk.Server {
 	tool(s, b, "cancel_pipeline", "Cancel a pipeline run", "POST", func(in idArg) (string, any) {
 		return "/api/v1/pipelines/" + esc(in.ID) + "/cancel", map[string]any{}
 	})
+	registerExtraTools(s, b)
 	return s
 }
 

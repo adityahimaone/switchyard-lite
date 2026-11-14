@@ -11,12 +11,14 @@ import {
   ExternalLink,
   FolderGit2,
   GitPullRequest,
+  HelpCircle,
   Inbox,
   LayoutGrid,
   ListTodo,
   MoreHorizontal,
   Play,
   Plus,
+  RotateCcw,
   Search,
   Settings2,
   ShieldAlert,
@@ -44,6 +46,7 @@ import {
 import { OsIcon, StatusBadge } from "@/components/board/taskDetailParts";
 import { RunningIndicator } from "@/components/board/AgentStatus";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
+import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
 import { relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -225,6 +228,16 @@ export function BoardScreen({
       toast("Task dispatched", { tone: "success" });
     },
     onError: (e) => toastError(e, "Dispatch failed"),
+  });
+
+  const retryTask = useMutation({
+    mutationFn: (id: string) => post(`/api/v1/tasks/${id}/retry`, { dispatch_now: true }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+      toast("Task requeued & retrying", { tone: "success" });
+    },
+    onError: (e) => toastError(e, "Retry failed"),
   });
 
   const runBoardMeta7 = useMutation({
@@ -848,6 +861,17 @@ export function BoardScreen({
                                 <span className="truncate font-mono text-[10px] font-medium text-ink-4">
                                   {t.id}
                                 </span>
+                                {t.execution_mode === "tracker" && (
+                                  <span className="badge" title="Passive MCP monitor card (skipped by dispatcher)">
+                                    monitor
+                                  </span>
+                                )}
+                                {t.question?.status === "pending" && (
+                                  <span className="badge review inline-flex items-center gap-0.5" title={t.question.question}>
+                                    <HelpCircle className="size-2.5" />
+                                    question
+                                  </span>
+                                )}
                                 {t.run_id && <span className="badge review">pipeline</span>}
                               </div>
 
@@ -877,9 +901,14 @@ export function BoardScreen({
                                   >
                                     Copy id
                                   </MenuItem>
-                                  {t.status === "todo" && (
+                                  {t.status === "todo" && t.execution_mode !== "tracker" && (
                                     <MenuItem icon={Play} onSelect={() => dispatch.mutate(t.id)}>
                                       Dispatch now
+                                    </MenuItem>
+                                  )}
+                                  {(t.status === "failed" || t.status === "blocked") && t.execution_mode !== "tracker" && (
+                                    <MenuItem icon={RotateCcw} onSelect={() => retryTask.mutate(t.id)}>
+                                      Retry now
                                     </MenuItem>
                                   )}
                                   {(t.status === "todo" || t.status === "backlog") &&
@@ -950,11 +979,13 @@ export function BoardScreen({
                               )}
                             </div>
 
+                            {t.question?.status === "pending" && <TaskQuestionCard task={t} variant="card" />}
+
                             <div className="card-footer">
                               <span className="font-mono text-[10px] tabular text-ink-4" title="Last updated">
                                 {relativeTime(t.updated_at)}
                               </span>
-                              {t.status === "todo" ? (
+                              {t.status === "todo" && t.execution_mode !== "tracker" ? (
                                 <button
                                   className="btn primary xs"
                                   onClick={(e) => {
@@ -965,6 +996,18 @@ export function BoardScreen({
                                 >
                                   <Play className="size-2.5 fill-current" />
                                   <span>Dispatch</span>
+                                </button>
+                              ) : t.status === "failed" && t.execution_mode !== "tracker" ? (
+                                <button
+                                  className="btn outline xs text-danger-text border-danger/35 hover:bg-danger-tint"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    retryTask.mutate(t.id);
+                                  }}
+                                  disabled={retryTask.isPending}
+                                >
+                                  <RotateCcw className="size-2.5" />
+                                  <span>Retry</span>
                                 </button>
                               ) : t.status === "in_progress" ? (
                                 <RunningIndicator task={t} compact />

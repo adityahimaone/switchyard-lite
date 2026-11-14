@@ -32,15 +32,41 @@ var (
 	ErrBadRequest = errors.New("bad request")
 )
 
-// allowed lists legal manual/engine transitions.
+const (
+	ExecManaged = "managed"
+	ExecTracker = "tracker"
+)
+
+// allowed lists legal manual/engine transitions for managed tasks.
+// Passive tracker tasks can transition freely across operational statuses.
 var allowed = map[string][]string{
 	Backlog:    {Todo},
 	Todo:       {Backlog, Blocked, InProgress},
 	Blocked:    {Todo},
-	InProgress: {Review, Todo, Failed},
+	InProgress: {Review, Todo, Blocked, Failed},
 	Review:     {Done, Todo},
 	Failed:     {Todo},
 	Done:       {},
+}
+
+func validStatus(s string) bool {
+	switch s {
+	case Backlog, Todo, Blocked, InProgress, Review, Done, Failed:
+		return true
+	default:
+		return false
+	}
+}
+
+func NormalizeExecutionMode(m string) string {
+	switch strings.ToLower(strings.TrimSpace(m)) {
+	case "", ExecManaged:
+		return ExecManaged
+	case ExecTracker, "monitor", "external":
+		return ExecTracker
+	default:
+		return ""
+	}
 }
 
 type Board struct {
@@ -66,22 +92,27 @@ type Task struct {
 	Effort     string `json:"effort,omitempty"`
 	// Paths / Skills are the @file and $skill references attached in the
 	// composer. Branch is the base branch for the isolated worktree.
-	Paths      []string `json:"paths"`
-	Skills     []string `json:"skills"`
-	Branch      string   `json:"branch,omitempty"`
-	RetryCount  int      `json:"retry_count"`
-	ErrorSig    string   `json:"error_sig,omitempty"`
-	Result      string   `json:"result,omitempty"`
-	StartedAt   int64    `json:"started_at,omitempty"`
-	CompletedAt int64    `json:"completed_at,omitempty"`
-	BlockedBy   []string `json:"blocked_by"`
-	CreatedAt   int64    `json:"created_at"`
-	UpdatedAt   int64    `json:"updated_at"`
+	Paths          []string      `json:"paths"`
+	Skills         []string      `json:"skills"`
+	Branch         string        `json:"branch,omitempty"`
+	ExecutionMode  string        `json:"execution_mode,omitempty"`
+	Question       *TaskQuestion `json:"question,omitempty"`
+	SessionID      string        `json:"session_id,omitempty"`
+	DSHWorkspaceID string        `json:"dsh_workspace_id,omitempty"`
+	LastTurnSeq    *int64        `json:"last_turn_seq,omitempty"`
+	RetryCount     int           `json:"retry_count"`
+	ErrorSig       string        `json:"error_sig,omitempty"`
+	Result         string        `json:"result,omitempty"`
+	StartedAt      int64         `json:"started_at,omitempty"`
+	CompletedAt    int64         `json:"completed_at,omitempty"`
+	BlockedBy      []string      `json:"blocked_by"`
+	CreatedAt      int64         `json:"created_at"`
+	UpdatedAt      int64         `json:"updated_at"`
 }
 
 type NewTask struct {
 	BoardID, ParentID, Title, Prompt, Acceptance, Status, Workspace, Executor, Model, Effort string
-	Branch                                                                                   string
+	Branch, ExecutionMode, SessionID                                                         string
 	Paths, Skills, BlockedBy                                                                 []string
 }
 
@@ -212,6 +243,10 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	if n.Title == "" || n.BoardID == "" {
 		return Task{}, fmt.Errorf("%w: title and board_id required", ErrBadRequest)
 	}
+	execMode := NormalizeExecutionMode(n.ExecutionMode)
+	if execMode == "" {
+		return Task{}, fmt.Errorf("%w: invalid execution_mode %q", ErrBadRequest, n.ExecutionMode)
+	}
 	tx, err := v.S.DB.Begin()
 	if err != nil {
 		return Task{}, err
@@ -233,13 +268,18 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	id := newID("t")
 	now := v.Now().Unix()
 	initialStatus := Todo
-	if n.Status == Backlog {
-		initialStatus = Backlog
+	switch n.Status {
+	case Backlog, Todo, InProgress, Blocked:
+		initialStatus = n.Status
 	}
-	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,paths,skills,branch,created_at,updated_at)
-		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	var startedAt int64
+	if initialStatus == InProgress {
+		startedAt = now
+	}
+	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,paths,skills,branch,execution_mode,session_id,started_at,created_at,updated_at)
+		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		id, n.BoardID, n.ParentID, n.Title, n.Prompt, n.Acceptance, initialStatus, n.Workspace, n.Executor, n.Model, n.Effort,
-		encodeList(n.Paths), encodeList(n.Skills), strings.TrimSpace(n.Branch), now, now)
+		encodeList(n.Paths), encodeList(n.Skills), strings.TrimSpace(n.Branch), execMode, strings.TrimSpace(n.SessionID), startedAt, now, now)
 	if err != nil {
 		return Task{}, err
 	}
@@ -251,7 +291,7 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	if err := refreshBlocked(tx, id); err != nil {
 		return Task{}, err
 	}
-	if err := v.event(tx, id, "task.created", map[string]string{"title": n.Title}); err != nil {
+	if err := v.event(tx, id, "task.created", map[string]string{"title": n.Title, "execution_mode": execMode}); err != nil {
 		return Task{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -261,18 +301,45 @@ func (v *Service) Create(n NewTask) (Task, error) {
 }
 
 const cols = `id,board_id,COALESCE(parent_id,''),run_id,stage_id,title,prompt,acceptance,status,workspace,executor,model,effort,
-	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(branch,''),retry_count,COALESCE(error_sig,''),COALESCE(result,''),COALESCE(started_at,0),COALESCE(completed_at,0),created_at,updated_at`
+	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(branch,''),COALESCE(execution_mode,'managed'),COALESCE(question_json,''),COALESCE(session_id,''),COALESCE(dsh_workspace_id,''),COALESCE(last_turn_seq,-1),
+	retry_count,COALESCE(error_sig,''),COALESCE(result,''),COALESCE(started_at,0),COALESCE(completed_at,0),created_at,updated_at`
 
 func scan(r interface{ Scan(...any) error }) (Task, error) {
 	var t Task
-	var pathsRaw, skillsRaw string
+	var pathsRaw, skillsRaw, qRaw string
+	var turnSeq int64
 	err := r.Scan(&t.ID, &t.BoardID, &t.ParentID, &t.RunID, &t.StageID, &t.Title, &t.Prompt, &t.Acceptance,
 		&t.Status, &t.Workspace, &t.Executor, &t.Model, &t.Effort, &pathsRaw, &skillsRaw, &t.Branch,
+		&t.ExecutionMode, &qRaw, &t.SessionID, &t.DSHWorkspaceID, &turnSeq,
 		&t.RetryCount, &t.ErrorSig, &t.Result, &t.StartedAt, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt)
+	if t.ExecutionMode == "" {
+		t.ExecutionMode = ExecManaged
+	}
+	if turnSeq >= 0 {
+		v := turnSeq
+		t.LastTurnSeq = &v
+	}
+	if strings.TrimSpace(qRaw) != "" {
+		var q TaskQuestion
+		if json.Unmarshal([]byte(qRaw), &q) == nil && q.Question != "" {
+			t.Question = &q
+		}
+	}
 	t.BlockedBy = []string{}
 	t.Paths = decodeList(pathsRaw)
 	t.Skills = decodeList(skillsRaw)
 	return t, err
+}
+
+func (v *Service) Delete(id string) error {
+	res, err := v.S.DB.Exec(`DELETE FROM tasks WHERE id=?`, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("%w: task", ErrNotFound)
+	}
+	return nil
 }
 
 func (v *Service) deps(id string) []string {
@@ -335,21 +402,26 @@ func (v *Service) List(boardID, status string) ([]Task, error) {
 
 // Move applies a status transition and unblocks dependents when a task is done.
 func (v *Service) Move(id, to, actor string) (Task, error) {
+	if !validStatus(to) {
+		return Task{}, fmt.Errorf("%w: invalid status %q", ErrBadMove, to)
+	}
 	tx, err := v.S.DB.Begin()
 	if err != nil {
 		return Task{}, err
 	}
 	defer tx.Rollback()
-	var from string
-	if err := tx.QueryRow(`SELECT status FROM tasks WHERE id=?`, id).Scan(&from); err != nil {
+	var from, execMode string
+	if err := tx.QueryRow(`SELECT status, COALESCE(execution_mode,'managed') FROM tasks WHERE id=?`, id).Scan(&from, &execMode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Task{}, ErrNotFound
 		}
 		return Task{}, err
 	}
-	ok := false
-	for _, s := range allowed[from] {
-		ok = ok || s == to
+	ok := execMode == ExecTracker || actor == "tracker" || ((actor == "retry" || actor == "question") && to == Todo)
+	if !ok {
+		for _, s := range allowed[from] {
+			ok = ok || s == to
+		}
 	}
 	if !ok {
 		return Task{}, fmt.Errorf("%w: %s -> %s", ErrBadMove, from, to)

@@ -37,6 +37,7 @@ import {
 } from "@/api";
 import { AgentTaskStatus, ToneBadge } from "@/components/board/AgentStatus";
 import { TaskOutput, WorkerLogPanel } from "@/components/board/OutputPanels";
+import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { parseEventCards, traceSpansFromHistory, type EventTone } from "@/components/board/taskTrace";
 import { AgentTrace } from "@/components/ui/agent-trace";
 import { EFFORTS, EXECUTORS, useBoardId } from "@/Board";
@@ -210,6 +211,7 @@ export function TaskDetailPanels({
     executor: "",
     model: "",
     effort: "",
+    execution_mode: "managed" as "managed" | "tracker",
   });
 
   const [commentBody, setCommentBody] = useState("");
@@ -231,6 +233,7 @@ export function TaskDetailPanels({
       executor: t.executor || "",
       model: t.model || "",
       effort: t.effort || "",
+      execution_mode: t.execution_mode === "tracker" ? "tracker" : "managed",
     });
   }, [editing, t, workspaces.data]);
 
@@ -265,6 +268,15 @@ export function TaskDetailPanels({
       toast("Task dispatched", { tone: "success", description: "A worker will pick this up shortly." });
     },
     onError: (e) => toastError(e, "Dispatch failed"),
+  });
+
+  const retryTask = useMutation({
+    mutationFn: () => post(`/api/v1/tasks/${id}/retry`, { dispatch_now: true }),
+    onSuccess: () => {
+      inval();
+      toast("Task requeued & retrying", { tone: "success" });
+    },
+    onError: (e) => toastError(e, "Retry failed"),
   });
 
   const approve = useMutation({
@@ -543,6 +555,8 @@ export function TaskDetailPanels({
                   task={t}
                   onDispatch={() => dispatch.mutate()}
                   dispatchPending={dispatch.isPending}
+                  onRetry={() => retryTask.mutate()}
+                  retryPending={retryTask.isPending}
                   onMove={(to) => move.mutate(to)}
                   movePending={move.isPending}
                   onOpenReview={() => (onReviewPage ? onReviewPage(id) : setTab("diff"))}
@@ -709,6 +723,24 @@ export function TaskDetailPanels({
                     </div>
                   </div>
 
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-task-mode">Execution mode</Label>
+                    <Select
+                      value={editDraft.execution_mode}
+                      onValueChange={(v) =>
+                        setEditDraft((p) => ({ ...p, execution_mode: v as "managed" | "tracker" }))
+                      }
+                    >
+                      <SelectTrigger id="edit-task-mode" size="sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="managed">Managed (auto-dispatch & retry)</SelectItem>
+                        <SelectItem value="tracker">Tracker (monitor-only via MCP)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="flex justify-end gap-2 pt-1">
                     <Button type="button" variant="outline" size="xs" onClick={() => setEditing(false)}>
                       Cancel
@@ -727,7 +759,11 @@ export function TaskDetailPanels({
                     variant === "page" ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2"
                   )}
                 >
-                  <FactTile label="Status" value={<StatusBadge status={t.status} />} />
+                  <FactTile
+                    label="Status"
+                    value={<StatusBadge status={t.status} />}
+                    hint={t.execution_mode === "tracker" ? "monitor-only (MCP)" : t.session_id ? `sess ${t.session_id.slice(0, 10)}` : "managed worker"}
+                  />
                   <FactTile
                     label="Executor"
                     icon={<Cpu className="size-3" />}
@@ -756,6 +792,8 @@ export function TaskDetailPanels({
                     tone={t.retry_count > 0 ? "danger" : "default"}
                   />
                 </div>
+
+                <TaskQuestionCard task={t} variant="detail" />
 
                 <AgentTaskStatus
                   task={t}

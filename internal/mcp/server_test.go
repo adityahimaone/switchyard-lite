@@ -45,7 +45,7 @@ func TestToolsProxyREST(t *testing.T) {
 	ctx := context.Background()
 
 	tl, err := cs.ListTools(ctx, nil)
-	if err != nil || len(tl.Tools) != 20 {
+	if err != nil || len(tl.Tools) != 62 {
 		t.Fatalf("tools: %v %d", err, len(tl.Tools))
 	}
 	res, err := cs.CallTool(ctx, &sdk.CallToolParams{Name: "list_tasks", Arguments: map[string]any{"board_id": "b1", "status": "todo"}})

@@ -15,18 +15,26 @@ import (
 
 // Request mirrors kanban NodeDispatchRequest (shared subset, same JSON keys).
 type Request struct {
-	TaskID        string `json:"task_id"`
-	Title         string `json:"title,omitempty"`
-	Board         string `json:"board"`
-	Message       string `json:"message"`
-	Workspace     string `json:"workspace"`
-	Model         string `json:"model,omitempty"`
-	Effort        string `json:"effort,omitempty"`
-	Executor      string `json:"executor,omitempty"`
-	ExecutionMode string `json:"execution_mode,omitempty"`
-	Acceptance    string `json:"acceptance,omitempty"`
-	RunID         string `json:"run_id,omitempty"`
-	TimeoutS      int    `json:"timeout_s,omitempty"`
+	TaskID               string `json:"task_id"`
+	Title                string `json:"title,omitempty"`
+	Board                string `json:"board"`
+	Message              string `json:"message"`
+	Workspace            string `json:"workspace"`
+	Model                string `json:"model,omitempty"`
+	Effort               string `json:"effort,omitempty"`
+	Executor             string `json:"executor,omitempty"`
+	ExecutionMode        string `json:"execution_mode,omitempty"`
+	Acceptance           string `json:"acceptance,omitempty"`
+	RunID                string `json:"run_id,omitempty"`
+	TimeoutS             int    `json:"timeout_s,omitempty"`
+	HarnessKind          string `json:"harness_kind,omitempty"`
+	DSHWorkspaceID       string `json:"dsh_workspace_id,omitempty"`
+	DSHSessionID         string `json:"dsh_session_id,omitempty"`
+	CommandCodeSessionID string `json:"commandcode_session_id,omitempty"`
+	ClaudeSessionID      string `json:"claude_session_id,omitempty"`
+	OMPSessionID         string `json:"omp_session_id,omitempty"`
+	LastTurnSeq          *int64 `json:"last_turn_seq,omitempty"`
+	SessionContinuation  bool   `json:"session_continuation,omitempty"`
 	// Composer context. node-agent ignores unknown keys, but keeping them in
 	// the wire payload means a future agent can resolve skills itself.
 	Paths  []string `json:"paths,omitempty"`
@@ -36,16 +44,22 @@ type Request struct {
 
 // Result mirrors kanban NodeDispatchResult (shared subset).
 type Result struct {
-	TaskID       string         `json:"task_id"`
-	Success      bool           `json:"success"`
-	Output       string         `json:"output"`
-	Error        string         `json:"error,omitempty"`
-	DurationMs   int64          `json:"duration_ms"`
-	SessionID    string         `json:"session_id,omitempty"`
-	DshSessionID string         `json:"dsh_session_id,omitempty"`
-	Executor     string         `json:"executor,omitempty"`
-	Model        string         `json:"model,omitempty"`
-	Usage        map[string]any `json:"usage,omitempty"`
+	TaskID               string         `json:"task_id"`
+	Success              bool           `json:"success"`
+	Output               string         `json:"output"`
+	Error                string         `json:"error,omitempty"`
+	DurationMs           int64          `json:"duration_ms"`
+	SessionID            string         `json:"session_id,omitempty"`
+	DshSessionID         string         `json:"dsh_session_id,omitempty"`
+	DSHWorkspaceID       string         `json:"dsh_workspace_id,omitempty"`
+	WorkspaceID          string         `json:"workspace_id,omitempty"`
+	CommandCodeSessionID string         `json:"commandcode_session_id,omitempty"`
+	ClaudeSessionID      string         `json:"claude_session_id,omitempty"`
+	OMPSessionID         string         `json:"omp_session_id,omitempty"`
+	LastTurnSeq          *int64         `json:"last_turn_seq,omitempty"`
+	Executor             string         `json:"executor,omitempty"`
+	Model                string         `json:"model,omitempty"`
+	Usage                map[string]any `json:"usage,omitempty"`
 }
 
 // Ack holds optional metadata returned by POST /api/dispatch.
