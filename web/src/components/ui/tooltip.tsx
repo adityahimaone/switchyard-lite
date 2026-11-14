@@ -35,12 +35,12 @@ export function Tip({
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             side={side}
-            sideOffset={10}
+            sideOffset={8}
             className={cn(
               "z-[220] max-w-[240px] rounded-[8px] border border-line-strong/90 bg-raised/98 px-2.5 py-1 text-xs font-medium leading-snug",
               "text-ink shadow-[var(--lift-2),var(--lift-inset)] backdrop-blur-md",
-              "data-[state=closed]:opacity-0 data-[state=delayed-open]:opacity-100",
-              "transition-opacity duration-100",
+              "data-[state=closed]:opacity-0 data-[state=closed]:scale-95 data-[state=delayed-open]:opacity-100 data-[state=delayed-open]:scale-100",
+              "transition-all duration-120 ease-out will-change-transform",
               className
             )}
           >

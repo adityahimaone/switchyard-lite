@@ -172,7 +172,7 @@ code, pre, .mono {
   background-repeat: no-repeat;
   background-size: cover, 100% 100%;
   background-position: center center, center top;
-  transition: grid-template-columns 200ms var(--ease-out-expo);
+  transition: grid-template-columns 220ms var(--ease-out);
   will-change: grid-template-columns;
 }
 
@@ -196,14 +196,13 @@ nav.side {
   overflow: hidden;
   z-index: 20;
   contain: layout style;
-  transition: padding 180ms var(--ease-out-expo);
 }
 
 .side-top-pod {
   background: var(--c-surface);
   border: 1px solid var(--c-line);
   border-radius: 12px;
-  padding: 8px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -214,7 +213,7 @@ nav.side {
 .side-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-height: 32px;
   padding: 2px 4px;
   flex-shrink: 0;
@@ -303,69 +302,91 @@ nav.side h1 {
   color: var(--c-ink-4);
   padding: 2px 8px 4px;
   white-space: nowrap;
+  height: 18px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 140ms var(--ease-out) 30ms, transform 140ms var(--ease-out) 30ms, height 180ms var(--ease-out);
 }
 
-.side-top-pod,
-.nav-group,
-.side-footer {
-  transition: padding 180ms var(--ease-out-expo);
+nav.side .nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 150ms var(--ease-out) 35ms, transform 150ms var(--ease-out) 35ms;
 }
 
-nav.side .nav-label,
 nav.side .side-brand h1,
 nav.side .side-board-box,
-nav.side .nav-group-label,
 nav.side .nav-badge,
 nav.side .side-footer-status {
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 140ms var(--ease-out-expo), transform 140ms var(--ease-out-expo);
   white-space: nowrap;
+  transition: opacity 150ms var(--ease-out) 35ms, transform 150ms var(--ease-out) 35ms;
 }
 
 .shell.collapsed nav.side .nav-label,
 .shell.collapsed nav.side .side-brand h1,
 .shell.collapsed nav.side .side-board-box,
-.shell.collapsed nav.side .nav-group-label,
 .shell.collapsed nav.side .nav-badge,
 .shell.collapsed nav.side .side-footer-status {
   opacity: 0;
-  transform: translateX(-6px);
+  transform: translateX(-4px);
   pointer-events: none;
+  width: 0;
   max-width: 0;
-  max-height: 0;
-  overflow: hidden;
   margin: 0;
   padding: 0;
   border-width: 0;
-  transition: opacity 100ms ease-out, transform 100ms ease-out, max-width 180ms var(--ease-out-expo), max-height 180ms var(--ease-out-expo);
+  overflow: hidden;
+  transition: opacity 90ms ease-out, transform 90ms ease-out;
+}
+
+.shell.collapsed nav.side .nav-group-label {
+  opacity: 0;
+  transform: translateY(-2px);
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 80ms ease-out, transform 80ms ease-out, height 160ms ease-out;
 }
 
 .shell.collapsed nav.side .side-top-pod,
 .shell.collapsed nav.side .nav-group,
 .shell.collapsed nav.side .side-footer {
-  padding: 6px;
   align-items: center;
 }
 
 .shell.collapsed nav.side .side-brand {
   justify-content: center;
-  padding: 0;
+  padding: 2px 0;
+}
+
+.shell.collapsed nav.side .side-footer > div {
+  justify-content: center;
+  padding-top: 2px;
 }
 
 .shell.collapsed nav.side a {
   justify-content: center;
-  width: 36px;
-  height: 36px;
   padding: 0;
+  gap: 0;
 }
 
 nav.side a {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  padding: 0 10px;
+  height: 34px;
+  width: 100%;
+  padding: 0 8px;
   border-radius: 8px;
   border: 1px solid transparent;
   color: var(--c-ink-2);
@@ -373,7 +394,8 @@ nav.side a {
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background-color 140ms, border-color 140ms, box-shadow 140ms, color 140ms, transform 120ms var(--ease-out), width 180ms var(--ease-out-expo), height 180ms var(--ease-out-expo), padding 180ms var(--ease-out-expo);
+  position: relative;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 100ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1600,105 +1622,64 @@ label.f {
   pointer-events: none;
 }
 
-.oscilloscope-radar-sweep {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.18), transparent);
-  pointer-events: none;
-  animation: radar-sweep 2.4s linear infinite;
-}
-
-.oscilloscope-bay.running .oscilloscope-radar-sweep {
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c-accent) 30%, transparent), transparent);
-  animation-duration: 1.6s;
-}
-
-.oscilloscope-bay.unreachable .oscilloscope-radar-sweep {
-  display: none;
-}
-
-@keyframes radar-sweep {
-  0% {
-    transform: translateX(-60px);
-  }
-  100% {
-    transform: translateX(380px);
-  }
-}
-
-/* Lightweight Oscilloscope Pulse & Scan Line */
+/* High-performance GPU-composited CRT scan beam */
 .oscilloscope-scan-beam {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 24px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--scope-stroke, #10b981) 10%, transparent) 60%,
-    color-mix(in srgb, var(--scope-stroke, #10b981) 30%, transparent) 92%,
-    var(--scope-stroke, #10b981) 100%
-  );
-  pointer-events: none;
-  opacity: 0.65;
   animation: scope-scan-travel var(--scope-duration, 2.8s) linear infinite;
   animation-delay: calc(-1 * var(--scope-delay, 0s));
   will-change: transform;
+  pointer-events: none;
 }
 
 @keyframes scope-scan-travel {
   0% {
-    transform: translateX(-28px);
-    opacity: 0;
-  }
-  3% {
-    opacity: 0.8;
-  }
-  95% {
-    opacity: 0.8;
+    transform: translate3d(-32px, 0, 0);
   }
   100% {
-    transform: translateX(290px);
-    opacity: 0;
+    transform: translate3d(292px, 0, 0);
   }
 }
 
-.oscilloscope-pulse-trace {
-  stroke-dasharray: 24 100;
-  stroke-dashoffset: 24;
+/* Luminous phosphor decay glow wave */
+.oscilloscope-pulse-glow {
+  stroke-dasharray: 26 100;
+  stroke-dashoffset: 26;
   animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
   animation-delay: calc(-1 * var(--scope-delay, 0s));
   will-change: stroke-dashoffset;
+  pointer-events: none;
+}
+
+/* High-intensity electron core impulse */
+.oscilloscope-pulse-core {
+  stroke-dasharray: 12 100;
+  stroke-dashoffset: 12;
+  animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
+  animation-delay: calc(-1 * var(--scope-delay, 0s));
+  will-change: stroke-dashoffset;
+  pointer-events: none;
 }
 
 @keyframes scope-pulse-travel {
   0% {
-    stroke-dashoffset: 24;
-    opacity: 0.3;
+    stroke-dashoffset: 26;
+    opacity: 0.2;
   }
-  4% {
+  3% {
     opacity: 1;
   }
-  94% {
+  92% {
     opacity: 1;
   }
   100% {
-    stroke-dashoffset: -76;
-    opacity: 0.3;
+    stroke-dashoffset: -100;
+    opacity: 0.2;
   }
 }
 
-.oscilloscope-running-dot {
-  will-change: transform;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .oscilloscope-radar-sweep,
   .oscilloscope-scan-beam,
-  .oscilloscope-pulse-trace,
-  .oscilloscope-running-dot {
+  .oscilloscope-pulse-glow,
+  .oscilloscope-pulse-core {
     animation: none !important;
     display: none !important;
   }

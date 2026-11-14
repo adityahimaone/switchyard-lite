@@ -129,6 +129,29 @@ export function groupWorkspacesByPlatform(workspaces: Workspace[]): [PlatformKey
   ]);
 }
 
+function pointsToSmoothPath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+
+  let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+
+    // Catmull-Rom to Cubic Bezier control points (tension = 0.5)
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 function OscilloscopeMonitor({
   points,
   ok,
@@ -190,6 +213,11 @@ function OscilloscopeMonitor({
     [wsId]
   );
 
+  const beamGradId = useMemo(
+    () => `scope-beam-${wsId ? wsId.replace(/[^a-zA-Z0-9]/g, "") : Math.random().toString(36).slice(2, 7)}`,
+    [wsId]
+  );
+
   const { pathD, areaD, blipPoint } = useMemo(() => {
     if (isOffline) {
       const d = `M 0 ${mid} L ${w} ${mid}`;
@@ -211,48 +239,48 @@ function OscilloscopeMonitor({
     let peakX = Math.round(9 * step);
     let peakY = mid;
 
-    const coords = Array.from({ length: 24 }, (_, i) => {
-      const x = Math.round(i * step);
+    const coords: { x: number; y: number }[] = Array.from({ length: 24 }, (_, i) => {
+      const x = Number((i * step).toFixed(1));
       const p = pts[i];
       const ms = p && p.ok && p.ms != null ? p.ms : currentMs;
 
       // Base line sits lower for local/low latency, rises higher as latency increases
-      const baseSignalY = mid + 4 - latScale * 11;
+      const baseSignalY = mid + 3 - latScale * 9;
 
       let dy = 0;
       if (running) {
-        if (i === 6 || i === 18) dy = -13;
-        else if (i === 7 || i === 19) dy = 9;
-        else if (i === 5 || i === 17) dy = -4;
-        else dy = Math.sin(i * 1.4) * 3;
+        if (i === 6 || i === 18) dy = -11;
+        else if (i === 7 || i === 19) dy = 8;
+        else if (i === 5 || i === 17) dy = -3;
+        else dy = Math.sin(i * 1.4) * 2.5;
       } else {
         const relNorm = (ms - minMs) / range;
-        const pingDelta = (0.5 - relNorm) * (8 * latScale);
+        const pingDelta = (0.5 - relNorm) * (6 * latScale);
 
         if (i === 9) {
-          dy = -10 - latScale * 6;
+          dy = -9 - latScale * 5;
           peakX = x;
-          peakY = Math.round(Math.max(4, baseSignalY + dy));
+          peakY = Math.round(Math.max(3, baseSignalY + dy));
         } else if (i === 10) {
-          dy = 8;
+          dy = 7;
         } else if (i === 8) {
-          dy = -3;
+          dy = -2.5;
         } else if (i === 12) {
-          dy = -4;
+          dy = -3;
         } else if (i === 21) {
-          dy = -6 - latScale * 5 + pingDelta;
+          dy = -5 - latScale * 4 + pingDelta;
         } else if (i === 22) {
-          dy = 5;
+          dy = 4;
         } else {
-          dy = Math.sin(i * 1.1 + (wsId ? wsId.charCodeAt(0) : 0)) * (2 + latScale * 4) + pingDelta;
+          dy = Math.sin(i * 1.1 + (wsId ? wsId.charCodeAt(0) : 0)) * (1.8 + latScale * 3) + pingDelta;
         }
       }
 
-      const y = Math.round(Math.min(h - 4, Math.max(4, baseSignalY + dy)));
-      return `${x} ${y}`;
+      const y = Number(Math.min(h - 3, Math.max(3, baseSignalY + dy)).toFixed(1));
+      return { x, y };
     });
 
-    const d = "M " + coords.join(" L ");
+    const d = pointsToSmoothPath(coords);
     const area = `${d} L ${w} ${h} L 0 ${h} Z`;
     return { pathD: d, areaD: area, blipPoint: { x: peakX, y: peakY } };
   }, [isOffline, running, pts, latencyMs, wsId, w, h, mid]);
@@ -276,8 +304,6 @@ function OscilloscopeMonitor({
       title="Live workspace telemetry oscilloscope"
     >
       <div className="oscilloscope-reticle-center" />
-      <div className="oscilloscope-scan-beam" />
-      {pinging && <div className="oscilloscope-radar-sweep" />}
 
       {/* Top micro HUD bar */}
       <div className="relative z-10 flex items-center justify-between gap-1 text-[9px] font-mono leading-none">
@@ -319,6 +345,12 @@ function OscilloscopeMonitor({
               <stop offset="0%" stopColor={strokeColor} stopOpacity="0.22" />
               <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
             </linearGradient>
+            <linearGradient id={beamGradId} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={strokeColor} stopOpacity="0" />
+              <stop offset="55%" stopColor={strokeColor} stopOpacity="0.08" />
+              <stop offset="88%" stopColor={strokeColor} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={strokeColor} stopOpacity="0.75" />
+            </linearGradient>
           </defs>
 
           {/* Area fill with subtle gradient */}
@@ -335,7 +367,22 @@ function OscilloscopeMonitor({
             opacity={isOffline ? 0.35 : 0.22}
           />
 
-          {/* Lightweight GPU-accelerated running impulse wave */}
+          {/* Diffused outer phosphor glow */}
+          {!isOffline && (
+            <path
+              d={pathD}
+              pathLength="100"
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="3.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="oscilloscope-pulse-glow"
+              opacity="0.36"
+            />
+          )}
+
+          {/* High-intensity electron core impulse */}
           {!isOffline && (
             <path
               d={pathD}
@@ -345,38 +392,15 @@ function OscilloscopeMonitor({
               strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="oscilloscope-pulse-trace"
+              className="oscilloscope-pulse-core"
             />
           )}
 
-          {isOffline && (
-            <path
-              d={pathD}
-              pathLength="100"
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="oscilloscope-pulse-trace"
-              opacity="0.85"
-            />
-          )}
-
-          {/* Running electron beam dot tracing the EKG waveform */}
+          {/* Lightweight GPU-composited vertical CRT scan front */}
           {!isOffline && (
-            <g className="oscilloscope-running-dot">
-              <animateMotion
-                path={pathD}
-                dur={`${durationSeconds}s`}
-                begin={`${-delaySeconds}s`}
-                repeatCount="indefinite"
-                calcMode="linear"
-              />
-              {/* Inner bright core */}
-              <circle r="2.6" fill={strokeColor} />
-              {/* Outer soft aura */}
-              <circle r="5" fill={strokeColor} opacity="0.35" />
+            <g className="oscilloscope-scan-beam" aria-hidden="true">
+              <rect x="-30" y="0" width="30" height={h} fill={`url(#${beamGradId})`} />
+              <line x1="0" y1="0" x2="0" y2={h} stroke={strokeColor} strokeWidth="1.2" opacity="0.9" />
             </g>
           )}
 
