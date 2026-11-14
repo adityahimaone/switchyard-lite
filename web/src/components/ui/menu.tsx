@@ -12,15 +12,17 @@ export function Menu({
   align = "end",
   side = "bottom",
   label = "Actions",
+  modal = false,
 }: {
   trigger: React.ReactElement;
   children: React.ReactNode;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
   label?: string;
+  modal?: boolean;
 }) {
   return (
-    <MenuPrimitive.Root>
+    <MenuPrimitive.Root modal={modal}>
       <MenuPrimitive.Trigger
         asChild
         onClick={(e) => e.stopPropagation()}
