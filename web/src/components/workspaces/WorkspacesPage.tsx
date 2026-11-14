@@ -137,6 +137,7 @@ function OscilloscopeMonitor({
   latencyMs,
   status,
   wsId,
+  staggerIndex = 0,
 }: {
   points: PingPoint[];
   ok: boolean;
@@ -145,6 +146,7 @@ function OscilloscopeMonitor({
   latencyMs?: number;
   status?: string;
   wsId?: string;
+  staggerIndex?: number;
 }) {
   const pts = points.slice(-24);
   const last = pts[pts.length - 1];
@@ -169,6 +171,19 @@ function OscilloscopeMonitor({
       : modeKey === "online"
         ? "#10b981"
         : "#94a3b8";
+
+  const delaySeconds = useMemo(() => {
+    let hash = 0;
+    const str = wsId || "workspace";
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    const step = ((Math.abs(hash) + staggerIndex * 3) % 6) * 0.45;
+    return Number(step.toFixed(2));
+  }, [wsId, staggerIndex]);
+
+  const durationSeconds = pinging ? 1.0 : running ? 1.5 : isOffline ? 4.2 : 2.8;
 
   const gradientId = useMemo(
     () => `scope-grad-${wsId ? wsId.replace(/[^a-zA-Z0-9]/g, "") : Math.random().toString(36).slice(2, 7)}`,
@@ -225,6 +240,9 @@ function OscilloscopeMonitor({
     return { pathD: d, areaD: area, blipPoint: { x: 94, y: 5 } };
   }, [isOffline, running, pts, w, h, mid]);
 
+  const peakFraction = blipPoint ? blipPoint.x / w : 0.36;
+  const pingOffsetSeconds = Number((durationSeconds * peakFraction).toFixed(2));
+
   return (
     <div
       className={cn(
@@ -232,9 +250,16 @@ function OscilloscopeMonitor({
         isOffline && "unreachable",
         running && "running"
       )}
+      style={{
+        ["--scope-delay" as string]: `${delaySeconds}s`,
+        ["--scope-duration" as string]: `${durationSeconds}s`,
+        ["--scope-ping-offset" as string]: `${pingOffsetSeconds}s`,
+        ["--scope-stroke" as string]: strokeColor,
+      }}
       title="Live workspace telemetry oscilloscope"
     >
       <div className="oscilloscope-reticle-center" />
+      <div className="oscilloscope-scan-beam" />
       {pinging && <div className="oscilloscope-radar-sweep" />}
 
       {/* Top micro HUD bar */}
@@ -285,33 +310,68 @@ function OscilloscopeMonitor({
 
           <path d={areaD} fill={`url(#${gradientId})`} />
 
+          {/* Static phosphor substrate baseline */}
           <path
             d={pathD}
             fill="none"
             stroke={strokeColor}
-            strokeWidth="3"
-            opacity="0.3"
-            filter={`url(#glow-${gradientId})`}
-          />
-
-          <path
-            d={pathD}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth="1.6"
+            strokeWidth="1.2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            opacity={isOffline ? 0.3 : 0.22}
           />
+
+          {/* Dynamic running electrical impulse wave */}
+          {!isOffline && (
+            <>
+              <path
+                d={pathD}
+                pathLength="100"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="3.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.45"
+                filter={`url(#glow-${gradientId})`}
+                className="oscilloscope-pulse-glow"
+              />
+              <path
+                d={pathD}
+                pathLength="100"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="oscilloscope-pulse-trace"
+              />
+            </>
+          )}
+
+          {isOffline && (
+            <path
+              d={pathD}
+              pathLength="100"
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="oscilloscope-pulse-trace"
+              opacity="0.85"
+            />
+          )}
 
           {blipPoint && !isOffline && (
             <g transform={`translate(${blipPoint.x}, ${blipPoint.y})`}>
               <circle r="2.5" fill={strokeColor} />
               <circle
-                r="5"
+                r="4.5"
                 fill="none"
                 stroke={strokeColor}
-                strokeWidth="1"
-                className="animate-ping opacity-60"
+                strokeWidth="1.2"
+                className="oscilloscope-blip-shockwave"
               />
             </g>
           )}
@@ -1106,7 +1166,7 @@ export function WorkspacesPage() {
                   className="grid gap-3"
                   style={{ gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))" }}
                 >
-                  {items.map((w) => {
+                  {items.map((w, idx) => {
                     const st = statusStyleFor(w);
                     const isRunning = runningWorkspaces.data?.has(w.path) ?? false;
                     return (
@@ -1255,6 +1315,7 @@ export function WorkspacesPage() {
                             latencyMs={w.latency_ms}
                             status={w.status}
                             wsId={w.id}
+                            staggerIndex={idx}
                           />
 
                           <div className="flex items-center justify-between gap-2 pt-0.5">

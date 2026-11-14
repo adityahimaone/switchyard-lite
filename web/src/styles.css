@@ -1589,8 +1589,105 @@ label.f {
   }
 }
 
+/* Running Oscilloscope Pulse & Sweep Beam */
+.oscilloscope-scan-beam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 52px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--scope-stroke, #10b981) 14%, transparent) 75%,
+    color-mix(in srgb, var(--scope-stroke, #10b981) 32%, transparent) 100%
+  );
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: scope-scan-travel var(--scope-duration, 2.8s) linear infinite;
+  animation-delay: var(--scope-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes scope-scan-travel {
+  0% {
+    transform: translateX(-56px);
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(310px);
+    opacity: 0;
+  }
+}
+
+.oscilloscope-pulse-trace {
+  stroke-dasharray: 26 100;
+  stroke-dashoffset: 126;
+  animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
+  animation-delay: var(--scope-delay, 0s);
+  will-change: stroke-dashoffset;
+}
+
+@keyframes scope-pulse-travel {
+  0% {
+    stroke-dashoffset: 126;
+    opacity: 0.15;
+  }
+  4% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -26;
+    opacity: 0.15;
+  }
+}
+
+.oscilloscope-pulse-glow {
+  stroke-dasharray: 22 100;
+  stroke-dashoffset: 122;
+  animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
+  animation-delay: var(--scope-delay, 0s);
+  will-change: stroke-dashoffset;
+}
+
+.oscilloscope-blip-shockwave {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: scope-blip-pulse var(--scope-duration, 2.8s) cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation-delay: calc(var(--scope-delay, 0s) + var(--scope-ping-offset, 0.98s));
+  will-change: transform, opacity;
+}
+
+@keyframes scope-blip-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  26% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .oscilloscope-radar-sweep {
+  .oscilloscope-radar-sweep,
+  .oscilloscope-scan-beam,
+  .oscilloscope-pulse-trace,
+  .oscilloscope-pulse-glow,
+  .oscilloscope-blip-shockwave {
+    animation: none !important;
     display: none !important;
   }
 }
