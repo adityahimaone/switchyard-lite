@@ -172,12 +172,24 @@ code, pre, .mono {
   background-repeat: no-repeat;
   background-size: cover, 100% 100%;
   background-position: center center, center top;
-  transition: grid-template-columns 220ms var(--ease-out);
-  will-change: grid-template-columns;
+  /* 唯一的布局动画：grid track。子元素一律不参与布局动画（见下方 clip 规则），
+     否则每次 tick 都会重排 12 个 nav 项 + 文本省略号计算。 */
+  transition: grid-template-columns 200ms var(--ease-out);
 }
 
 .shell.collapsed {
   grid-template-columns: 64px minmax(0, 1fr);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .shell * {
+    transition-duration: 1ms !important;
+  }
+  .nav-icon-wrap,
+  .brand-mark-tile {
+    transition: none !important;
+  }
 }
 
 /* Floating Left Sidebar Dock */
@@ -218,6 +230,7 @@ nav.side {
   padding: 2px 4px;
   flex-shrink: 0;
   width: 100%;
+  overflow: hidden;
 }
 
 .brand-mark-tile {
@@ -226,6 +239,8 @@ nav.side {
   justify-content: center;
   flex-shrink: 0;
   border-radius: 9px;
+  transform: translateX(0);
+  transition: transform 200ms var(--ease-out);
 }
 
 .brand-mark {
@@ -253,6 +268,10 @@ nav.side h1 {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 150ms var(--ease-out) 35ms, transform 150ms var(--ease-out) 35ms;
 }
 
 .lite-badge {
@@ -303,16 +322,19 @@ nav.side h1 {
   padding: 2px 8px 4px;
   white-space: nowrap;
   height: 18px;
+  overflow: hidden;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 140ms var(--ease-out) 30ms, transform 140ms var(--ease-out) 30ms, height 180ms var(--ease-out);
+  transition: opacity 140ms var(--ease-out) 30ms, transform 140ms var(--ease-out) 30ms;
 }
 
+/* 标签宽度恒定，切换态只做淡出/位移；溢出交给父级 clip。
+   任何 width / max-width / padding 变化都会让布局在动画期间逐帧重算。 */
 nav.side .nav-label {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
   opacity: 1;
   transform: translateX(0);
@@ -336,48 +358,25 @@ nav.side .side-footer-status {
   opacity: 0;
   transform: translateX(-4px);
   pointer-events: none;
-  width: 0;
-  max-width: 0;
-  margin: 0;
-  padding: 0;
-  border-width: 0;
-  overflow: hidden;
-  transition: opacity 90ms ease-out, transform 90ms ease-out;
+  transition: opacity 90ms var(--ease-out), transform 90ms var(--ease-out);
 }
 
 .shell.collapsed nav.side .side-brand h1 {
   opacity: 0;
   transform: translateX(-4px);
   pointer-events: none;
-  width: 0;
-  max-width: 0;
-  margin: 0;
-  padding: 0;
-  border-width: 0;
-  overflow: hidden;
-  position: absolute;
-  display: none;
-  transition: opacity 90ms ease-out, transform 90ms ease-out;
+  transition: opacity 90ms var(--ease-out), transform 90ms var(--ease-out);
 }
 
 .shell.collapsed nav.side .nav-group-label {
   opacity: 0;
   transform: translateY(-2px);
-  height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin: 0;
-  overflow: hidden;
   pointer-events: none;
-  transition: opacity 80ms ease-out, transform 80ms ease-out, height 160ms ease-out;
+  transition: opacity 80ms var(--ease-out), transform 80ms var(--ease-out);
 }
 
 .shell.collapsed nav.side .side-top-pod {
   padding: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 .shell.collapsed nav.side .nav-group,
@@ -387,19 +386,14 @@ nav.side .side-footer-status {
 
 .shell.collapsed nav.side .side-brand {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 2px 0;
-  gap: 0;
+  padding: 2px 4px;
   width: 100%;
-  margin: 0 auto;
 }
 
+/* 图标不靠 justify-content 抢位，只做 transform 位移：compositor 友好，也不触发重排。 */
 .shell.collapsed nav.side .brand-mark-tile {
-  margin: 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  transform: translateX(8px);
 }
 
 .shell.collapsed nav.side .side-footer > div {
@@ -408,9 +402,11 @@ nav.side .side-footer-status {
 }
 
 .shell.collapsed nav.side a {
-  justify-content: center;
-  padding: 0;
-  gap: 0;
+  min-width: 0;
+}
+
+.shell.collapsed nav.side .nav-icon-wrap {
+  transform: translateX(10px);
 }
 
 nav.side a {
@@ -428,6 +424,7 @@ nav.side a {
   font-weight: 500;
   white-space: nowrap;
   position: relative;
+  overflow: hidden;
   transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 100ms var(--ease-out);
 }
 
@@ -456,6 +453,8 @@ nav.side a[aria-current="page"] {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transform: translateX(0);
+  transition: transform 200ms var(--ease-out);
 }
 
 .nav-icon {
@@ -467,6 +466,7 @@ nav.side a[aria-current="page"] {
 
 .nav-badge {
   margin-left: auto;
+  flex: 0 0 auto;
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 700;
@@ -1624,6 +1624,19 @@ label.f {
   justify-content: space-between;
   padding: 6px 9px 5px 9px;
   user-select: none;
+  contain: layout paint;
+}
+
+/* 状态切换（standby → running → offline）时线条颜色渐变，避免硬切。 */
+.oscilloscope-bay path {
+  transition: stroke 240ms var(--ease-out);
+}
+
+/* 离屏卡片暂停 dash 扫描：animation-play-state 只是停下时钟，不重建 SVG。 */
+.oscilloscope-bay[data-paused="true"] .oscilloscope-scan-beam,
+.oscilloscope-bay[data-paused="true"] .oscilloscope-pulse-glow,
+.oscilloscope-bay[data-paused="true"] .oscilloscope-pulse-core {
+  animation-play-state: paused;
 }
 
 :root.dark .oscilloscope-bay {
@@ -1678,7 +1691,6 @@ label.f {
   stroke-dashoffset: 26;
   animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
   animation-delay: calc(-1 * var(--scope-delay, 0s));
-  will-change: stroke-dashoffset;
   pointer-events: none;
 }
 
@@ -1688,7 +1700,6 @@ label.f {
   stroke-dashoffset: 12;
   animation: scope-pulse-travel var(--scope-duration, 2.8s) linear infinite;
   animation-delay: calc(-1 * var(--scope-delay, 0s));
-  will-change: stroke-dashoffset;
   pointer-events: none;
 }
 

@@ -126,15 +126,18 @@ export function AppSidebarBrand({
     </div>
   );
 
-  if (collapsed) {
-    return (
-      <Tip side="right" delayDuration={80} label={`${name} ${tag}`.trim()}>
-        {brandEl}
-      </Tip>
-    );
-  }
-
-  return brandEl;
+  // Always mounted, tooltip只挂载在 collapsed 态：切换时 DOM 形状不变，
+  // 侧栏内的 nav 项不会在展开/收起动画中途重挂载。
+  return (
+    <Tip
+      side="right"
+      delayDuration={80}
+      label={`${name} ${tag}`.trim()}
+      disabled={!collapsed}
+    >
+      {brandEl}
+    </Tip>
+  );
 }
 
 export interface AppSidebarGroupProps extends React.ComponentProps<"div"> {
@@ -211,23 +214,21 @@ export function AppSidebarItem({
     </a>
   );
 
-  if (collapsed) {
-    const tipLabel = (
-      <span className="flex items-center gap-2 font-medium">
-        <span>{children}</span>
-        {badge !== undefined && badge !== null && badge !== false && (
-          <span className="nav-badge tabular">{badge}</span>
-        )}
-      </span>
-    );
-    return (
-      <Tip side="right" delayDuration={80} label={tipLabel}>
-        {item}
-      </Tip>
-    );
-  }
+  const tipLabel = (
+    <span className="flex items-center gap-2 font-medium">
+      <span>{children}</span>
+      {badge !== undefined && badge !== null && badge !== false && (
+        <span className="nav-badge tabular">{badge}</span>
+      )}
+    </span>
+  );
 
-  return item;
+  // 同上：始终保留 Tip 外壳，展开态只停用 popup。
+  return (
+    <Tip side="right" delayDuration={80} label={tipLabel} disabled={!collapsed}>
+      {item}
+    </Tip>
+  );
 }
 
 export function AppSidebarFooter({

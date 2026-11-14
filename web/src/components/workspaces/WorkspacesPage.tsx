@@ -175,6 +175,21 @@ function OscilloscopeMonitor({
   const last = pts[pts.length - 1];
   const isOffline = (!ok && pts.length > 0) || (last ? !last.ok : false) || status === "unreachable";
 
+  // 屏幕外的示波器不跑 dash 动画：每张卡片有两个逐帧重绘的 stroked path，
+  // 十几张卡片同时跑就是十几份 SVG 重绘负担。
+  const bayRef = useRef<HTMLDivElement>(null);
+  const [onScreen, setOnScreen] = useState(true);
+  useEffect(() => {
+    const el = bayRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => setOnScreen(entry.isIntersecting),
+      { rootMargin: "160px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   const w = 260;
   const h = 34;
   const mid = 17;
@@ -290,11 +305,13 @@ function OscilloscopeMonitor({
 
   return (
     <div
+      ref={bayRef}
       className={cn(
         "oscilloscope-bay",
         isOffline && "unreachable",
         running && "running"
       )}
+      data-paused={!onScreen || undefined}
       style={{
         ["--scope-delay" as string]: `${delaySeconds}s`,
         ["--scope-duration" as string]: `${durationSeconds}s`,
