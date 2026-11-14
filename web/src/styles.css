@@ -1512,6 +1512,89 @@ label.f {
   padding: 0 10px;
 }
 
+/* Oscilloscope Telemetry Monitor Bay */
+.oscilloscope-bay {
+  height: 68px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-line-strong);
+  background-color: color-mix(in srgb, var(--c-canvas) 85%, #05080c);
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.05) 1px, transparent 1px);
+  background-size: 14px 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 9px 5px 9px;
+  user-select: none;
+}
+
+:root.dark .oscilloscope-bay {
+  background-color: #03060a;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.oscilloscope-bay.running {
+  border-color: color-mix(in srgb, var(--c-accent) 45%, var(--c-line));
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--c-accent) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--c-accent) 7%, transparent) 1px, transparent 1px);
+}
+
+.oscilloscope-bay.unreachable {
+  border-color: color-mix(in srgb, var(--c-danger) 45%, var(--c-line));
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--c-danger) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--c-danger) 7%, transparent) 1px, transparent 1px);
+}
+
+.oscilloscope-reticle-center {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0, rgba(255, 255, 255, 0.07) 3px, transparent 3px, transparent 7px);
+  pointer-events: none;
+}
+
+.oscilloscope-radar-sweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.18), transparent);
+  pointer-events: none;
+  animation: radar-sweep 2.4s linear infinite;
+}
+
+.oscilloscope-bay.running .oscilloscope-radar-sweep {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c-accent) 30%, transparent), transparent);
+  animation-duration: 1.6s;
+}
+
+.oscilloscope-bay.unreachable .oscilloscope-radar-sweep {
+  display: none;
+}
+
+@keyframes radar-sweep {
+  0% {
+    transform: translateX(-60px);
+  }
+  100% {
+    transform: translateX(380px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oscilloscope-radar-sweep {
+    display: none !important;
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

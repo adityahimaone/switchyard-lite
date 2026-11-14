@@ -28,6 +28,7 @@ import {
   type Worker,
   type Workspace,
 } from "@/api";
+import { CopyButton } from "@/components/ui/copy-button";
 import { toast, toastError } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { ErrorBox } from "@/ui";
@@ -128,64 +129,208 @@ export function groupWorkspacesByPlatform(workspaces: Workspace[]): [PlatformKey
   ]);
 }
 
-function EkgTrace({
+function OscilloscopeMonitor({
   points,
   ok,
   running,
+  pinging,
   latencyMs,
+  status,
+  wsId,
 }: {
   points: PingPoint[];
   ok: boolean;
   running: boolean;
+  pinging: boolean;
   latencyMs?: number;
+  status?: string;
+  wsId?: string;
 }) {
   const pts = points.slice(-24);
   const last = pts[pts.length - 1];
-  const offline = (!ok && pts.length > 0) || (last ? !last.ok : false);
-  const stroke = offline ? "var(--c-danger)" : "var(--c-success)";
-  const good = pts.filter((p) => p.ok && p.ms != null).map((p) => p.ms!);
-  const min = good.length ? Math.min(...good) : 0;
-  const max = good.length ? Math.max(...good) : 10;
+  const isOffline = (!ok && pts.length > 0) || (last ? !last.ok : false) || status === "unreachable";
 
-  const w = 220;
+  const w = 260;
   const h = 34;
-  const mid = h / 2;
+  const mid = 17;
 
-  const pathD = useMemo(() => {
-    if (pts.length === 0) {
-      return `M 0 ${mid} L 52 ${mid} L 60 11 L 68 23 L 76 ${mid} L 146 ${mid} L 154 9 L 162 25 L 170 ${mid} L ${w} ${mid}`;
+  const modeKey = isOffline
+    ? "unreachable"
+    : running
+      ? "running"
+      : ok || status === "local" || status === "connected"
+        ? "online"
+        : "standby";
+
+  const strokeColor = isOffline
+    ? "#f43f5e"
+    : running
+      ? "#38bdf8"
+      : modeKey === "online"
+        ? "#10b981"
+        : "#94a3b8";
+
+  const gradientId = useMemo(
+    () => `scope-grad-${wsId ? wsId.replace(/[^a-zA-Z0-9]/g, "") : Math.random().toString(36).slice(2, 7)}`,
+    [wsId]
+  );
+
+  const { pathD, areaD, blipPoint } = useMemo(() => {
+    if (isOffline) {
+      const d = `M 0 ${mid} L 60 ${mid} L 62 ${mid - 0.5} L 64 ${mid + 0.5} L 66 ${mid} L 160 ${mid} L 162 ${mid - 0.5} L 164 ${mid + 0.5} L 166 ${mid} L ${w} ${mid}`;
+      const area = `${d} L ${w} ${h} L 0 ${h} Z`;
+      return { pathD: d, areaD: area, blipPoint: null };
     }
-    const step = w / 23;
-    const coords = Array.from({ length: 24 }, (_, idx) => {
-      const p = pts[idx - (24 - pts.length)];
-      const x = Math.round(idx * step);
-      if (!p || !p.ok || p.ms == null) return `${x} ${mid}`;
+
+    if (running) {
+      const d = `M 0 ${mid} L 28 ${mid} L 36 ${mid} L 42 ${mid - 2} L 46 ${mid + 2} L 52 4 L 58 ${h - 4} L 64 ${mid} L 74 ${mid - 4} L 84 ${mid} L 140 ${mid} L 148 ${mid - 2} L 152 ${mid + 2} L 158 3 L 164 ${h - 3} L 170 ${mid} L 180 ${mid - 4} L 190 ${mid} L ${w} ${mid}`;
+      const area = `${d} L ${w} ${h} L 0 ${h} Z`;
+      return { pathD: d, areaD: area, blipPoint: { x: 158, y: 3 } };
+    }
+
+    if (pts.length > 0) {
+      const good = pts.filter((p) => p.ok && p.ms != null).map((p) => p.ms!);
+      const min = good.length ? Math.min(...good) : 0;
+      const max = good.length ? Math.max(...good) : 10;
       const span = Math.max(1, max - min);
-      const norm = (p.ms - min) / span;
-      const y = Math.round(h - 6 - norm * (h - 12));
-      return `${x} ${y}`;
-    });
-    return "M " + coords.join(" L ");
-  }, [pts, max, min]);
+      const step = w / 23;
+
+      let lastX = 0;
+      let lastY = mid;
+
+      const coords = Array.from({ length: 24 }, (_, idx) => {
+        const p = pts[idx - (24 - pts.length)];
+        const x = Math.round(idx * step);
+        if (!p || !p.ok || p.ms == null) {
+          if (idx === 8) return `${x} ${mid - 1.5}`;
+          if (idx === 10) return `${x} 5`;
+          if (idx === 12) return `${x} ${h - 5}`;
+          if (idx === 14) return `${x} ${mid - 3}`;
+          return `${x} ${mid}`;
+        }
+        const norm = (p.ms - min) / span;
+        const y = Math.round(h - 5 - norm * (h - 10));
+        lastX = x;
+        lastY = y;
+        return `${x} ${y}`;
+      });
+
+      const d = "M " + coords.join(" L ");
+      const area = `${d} L ${w} ${h} L 0 ${h} Z`;
+      return { pathD: d, areaD: area, blipPoint: { x: lastX, y: lastY } };
+    }
+
+    const d = `M 0 ${mid} L 68 ${mid} L 78 ${mid} L 84 ${mid - 2} L 88 ${mid + 2} L 94 5 L 100 ${h - 5} L 106 ${mid} L 116 ${mid - 3.5} L 126 ${mid} L ${w} ${mid}`;
+    const area = `${d} L ${w} ${h} L 0 ${h} Z`;
+    return { pathD: d, areaD: area, blipPoint: { x: 94, y: 5 } };
+  }, [isOffline, running, pts, w, h, mid]);
 
   return (
-    <div className="ekg-box mt-2.5 flex items-center justify-between gap-2" title="Workspace heartbeat telemetry">
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-7 w-full overflow-visible">
-        <path
-          d={pathD}
-          fill="none"
-          stroke={stroke}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {running && (
-          <circle cx={w - 4} cy={mid} r="3" fill="var(--c-accent)" />
-        )}
-      </svg>
-      <span className="shrink-0 font-mono text-[10px] tabular-nums text-ink-3">
-        {latencyMs !== undefined ? `${latencyMs}ms` : running ? "active" : "ready"}
-      </span>
+    <div
+      className={cn(
+        "oscilloscope-bay",
+        isOffline && "unreachable",
+        running && "running"
+      )}
+      title="Live workspace telemetry oscilloscope"
+    >
+      <div className="oscilloscope-reticle-center" />
+      {pinging && <div className="oscilloscope-radar-sweep" />}
+
+      {/* Top micro HUD bar */}
+      <div className="relative z-10 flex items-center justify-between gap-1 text-[9px] font-mono leading-none">
+        <span className="tracking-[0.14em] text-neutral-400 uppercase">
+          CH-1 · {modeKey}
+        </span>
+        <div>
+          {isOffline ? (
+            <span className="font-bold tracking-wider text-rose-400">FLATLINE</span>
+          ) : running ? (
+            <span className="flex items-center gap-1 font-bold tracking-wider text-cyan-400">
+              <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              RUNNING
+            </span>
+          ) : pinging ? (
+            <span className="flex items-center gap-1 font-bold tracking-wider text-amber-400">
+              <RefreshCw className="size-2.5 animate-spin" />
+              PINGING
+            </span>
+          ) : latencyMs !== undefined ? (
+            <span className="font-bold tabular-nums text-emerald-400">
+              {latencyMs} ms
+            </span>
+          ) : (
+            <span className="text-neutral-400">STANDBY</span>
+          )}
+        </div>
+      </div>
+
+      {/* Waveform SVG */}
+      <div className="relative z-0 h-[34px] w-full">
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="none"
+          className="h-full w-full overflow-visible"
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+            </linearGradient>
+            <filter id={`glow-${gradientId}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <path d={areaD} fill={`url(#${gradientId})`} />
+
+          <path
+            d={pathD}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="3"
+            opacity="0.3"
+            filter={`url(#glow-${gradientId})`}
+          />
+
+          <path
+            d={pathD}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {blipPoint && !isOffline && (
+            <g transform={`translate(${blipPoint.x}, ${blipPoint.y})`}>
+              <circle r="2.5" fill={strokeColor} />
+              <circle
+                r="5"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="1"
+                className="animate-ping opacity-60"
+              />
+            </g>
+          )}
+        </svg>
+      </div>
+
+      {/* Bottom micro HUD bar */}
+      <div className="relative z-10 flex items-center justify-between gap-1 text-[8.5px] font-mono leading-none text-neutral-500">
+        <span>200mV / DIV</span>
+        <span>
+          {isOffline
+            ? "TIMEOUT"
+            : running
+              ? "EXEC LOAD 100%"
+              : pts.length > 0
+                ? `${pts.length} PTS`
+                : "READY"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -965,65 +1110,99 @@ export function WorkspacesPage() {
                     const st = statusStyleFor(w);
                     const isRunning = runningWorkspaces.data?.has(w.path) ?? false;
                     return (
-                      <div key={w.id} className="panel mb-0 flex flex-col justify-between gap-2">
+                      <div
+                        key={w.id}
+                        className={cn(
+                          "group relative flex flex-col justify-between rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]",
+                          "transition-[border-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)]",
+                          "hover:border-line-strong hover:shadow-[var(--lift-2),var(--lift-inset)]"
+                        )}
+                      >
                         <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <Icon className="size-3.5 shrink-0 text-ink-3" />
-                                <strong className="truncate text-sm text-ink">{w.name}</strong>
+                          {/* Card Tier 1: Identity, status, and quick management */}
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-line bg-well/70 shadow-[var(--well-inset)]">
+                                <Icon className="size-4 text-ink-2" />
                               </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium", st.tone)}>
-                                  <span className={cn("size-2 rounded-full", st.dot, isRunning && "animate-pulse")} />
-                                  {isRunning ? "Running task" : st.label}
-                                </span>
-                                <Badge variant="outline" className="px-1.5 py-0 font-mono text-[10px]">
-                                  {meta.badge}
-                                </Badge>
-                                {w.live && (
-                                  <Badge
-                                    variant="success"
-                                    className="px-1.5 py-0 font-mono text-[10px]"
-                                    title={`From kanban-board live registry${w.live_id ? ` · ${w.live_id}` : ""}`}
+                              <div className="min-w-0 flex-1">
+                                <h4 className="m-0 truncate text-[13.5px] font-semibold tracking-tight text-ink" title={w.name}>
+                                  {w.name}
+                                </h4>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                  <span
+                                    className={cn(
+                                      "inline-flex h-5 items-center gap-1.5 rounded-md border px-2 text-[10.5px] font-medium leading-none",
+                                      st.tone === "text-success-text" && "border-success/30 bg-success-tint text-success-text",
+                                      st.tone === "text-danger-text" && "border-danger/30 bg-danger-tint text-danger-text",
+                                      st.tone === "text-ink-2" && "border-line bg-well text-ink-2",
+                                      st.tone === "text-ink-3" && "border-line bg-well text-ink-3"
+                                    )}
                                   >
-                                    live · kanban-board
+                                    <span
+                                      className={cn(
+                                        "size-1.5 shrink-0 rounded-full",
+                                        st.dot,
+                                        isRunning && "animate-pulse"
+                                      )}
+                                      aria-hidden
+                                    />
+                                    {isRunning ? "Running task" : st.label}
+                                  </span>
+
+                                  <Badge variant="outline" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
+                                    {meta.badge}
                                   </Badge>
-                                )}
-                                {w.machine && w.machine !== pk && (
-                                  <Badge variant="outline" className="px-1.5 py-0 font-mono text-[10px]">
-                                    machine · {w.machine}
-                                  </Badge>
-                                )}
-                                {w.host && (
-                                  <Badge variant="secondary" className="px-1.5 py-0 font-mono text-[10px]">
-                                    ssh · {w.host}
-                                  </Badge>
-                                )}
-                                {!w.host && w.node && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="px-1.5 py-0 font-mono text-[10px]"
-                                    title={w.hostname || w.node}
-                                  >
-                                    node · {w.node}
-                                  </Badge>
-                                )}
-                                {(w.git || w.kind === "repo") && (
-                                  <Badge variant="success" className="px-1.5 py-0 font-mono text-[10px]">
-                                    <GitBranch className="size-2.5" />
-                                    git
-                                  </Badge>
-                                )}
-                                {(w.labels ?? []).map((lbl) => (
-                                  <Badge key={lbl} variant="review" className="px-1.5 py-0 text-[10px]">
-                                    {lbl}
-                                  </Badge>
-                                ))}
+
+                                  {w.live && (
+                                    <Badge
+                                      variant="success"
+                                      className="h-5 rounded-md px-1.5 font-mono text-[10px]"
+                                      title={`From kanban-board live registry${w.live_id ? ` · ${w.live_id}` : ""}`}
+                                    >
+                                      live · kanban
+                                    </Badge>
+                                  )}
+
+                                  {w.machine && w.machine !== pk && (
+                                    <Badge variant="outline" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
+                                      machine · {w.machine}
+                                    </Badge>
+                                  )}
+
+                                  {w.host && (
+                                    <Badge variant="secondary" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
+                                      ssh · {w.host}
+                                    </Badge>
+                                  )}
+
+                                  {!w.host && w.node && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="h-5 rounded-md px-1.5 font-mono text-[10px]"
+                                      title={w.hostname || w.node}
+                                    >
+                                      node · {w.node}
+                                    </Badge>
+                                  )}
+
+                                  {(w.git || w.kind === "repo") && (
+                                    <Badge variant="success" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
+                                      <GitBranch className="size-2.5" />
+                                      git
+                                    </Badge>
+                                  )}
+
+                                  {(w.labels ?? []).map((lbl) => (
+                                    <Badge key={lbl} variant="review" className="h-5 rounded-md px-1.5 text-[10px]">
+                                      {lbl}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex shrink-0 items-center gap-1">
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1048,46 +1227,65 @@ export function WorkspacesPage() {
                             </div>
                           </div>
 
-                          <div
-                            className="mt-2 break-all font-mono text-[11px] text-ink-3"
-                            title={w.path}
-                          >
-                            {w.path}
+                          {/* Card Tier 2: Path capsule and note */}
+                          <div className="mt-2.5 flex items-center justify-between gap-1.5 rounded-[7px] border border-line/70 bg-well/60 px-2 py-1 text-[11px]">
+                            <div className="flex min-w-0 flex-1 items-center gap-1.5 font-mono text-ink-3">
+                              <FolderGit2 className="size-3 shrink-0 text-ink-4" />
+                              <span className="truncate" title={w.path}>
+                                {w.path}
+                              </span>
+                            </div>
+                            <CopyButton value={w.path} label="Copy workspace path" />
                           </div>
 
                           {w.note && (
-                            <p className="mt-1.5 mb-0 line-clamp-2 text-xs text-ink-2">{w.note}</p>
+                            <p className="mt-1.5 mb-0 line-clamp-2 text-xs leading-relaxed text-ink-2">
+                              {w.note}
+                            </p>
                           )}
                         </div>
 
-                        <div>
-                          <EkgTrace
+                        {/* Card Tier 3: Oscilloscope Telemetry Bay & Actions */}
+                        <div className="mt-3 flex flex-col gap-2">
+                          <OscilloscopeMonitor
                             points={histories[w.id] ?? []}
                             ok={w.status !== "unreachable"}
                             running={isRunning}
+                            pinging={pinging === w.id || pinging === "__all__"}
                             latencyMs={w.latency_ms}
+                            status={w.status}
+                            wsId={w.id}
                           />
 
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              loading={pinging === w.id}
-                              onClick={() => void pingOne(w)}
-                            >
-                              <RefreshCw className="size-3" />
-                              Ping
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              onClick={() => setInspectTarget(w)}
-                            >
-                              <GitBranch className="size-3" />
-                              Inspect git
-                            </Button>
+                          <div className="flex items-center justify-between gap-2 pt-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="xs"
+                                loading={pinging === w.id}
+                                onClick={() => void pingOne(w)}
+                              >
+                                <RefreshCw className="size-3" />
+                                Ping
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="xs"
+                                onClick={() => setInspectTarget(w)}
+                              >
+                                <GitBranch className="size-3" />
+                                Inspect git
+                              </Button>
+                            </div>
+
+                            {isRunning && (
+                              <span className="inline-flex h-5 items-center gap-1 rounded-md border border-accent/30 bg-accent-tint px-2 font-mono text-[10px] font-semibold text-accent-text">
+                                <span className="size-1.5 rounded-full bg-accent animate-pulse" />
+                                active
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
