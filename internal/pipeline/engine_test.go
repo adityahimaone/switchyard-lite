@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -318,5 +320,185 @@ func TestCrossExamineSplitProtocol(t *testing.T) {
 	run, _ = eng.ProjectRun(run.ID)
 	if len(stageBy(run, "synthesize").Nodes) != 1 {
 		t.Fatalf("synthesize should materialize after split protocol passes")
+	}
+}
+
+func TestMeta7ArtifactsBoardAbsorptionGateChainingAndRetry(t *testing.T) {
+	eng, boardID := setupEngine(t)
+	ws := t.TempDir()
+
+	t1, err := eng.Tasks.Create(tasks.NewTask{
+		BoardID:   boardID,
+		Title:     "Add rate limit middleware",
+		Prompt:    "Enforce 100 req/min per token.",
+		Status:    tasks.Todo,
+		Workspace: ws,
+		Executor:  "claude",
+		Model:     "claude-sonnet-4-5",
+		Effort:    "high",
+		Branch:    "main",
+		Paths:     []string{"internal/api/router.go"},
+		Skills:    []string{"go-testing"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t2, err := eng.Tasks.Create(tasks.NewTask{
+		BoardID:    boardID,
+		Title:      "Add quota response headers",
+		Prompt:     "Return X-RateLimit-Remaining.",
+		Acceptance: "Unit tests verify remaining count.",
+		Status:     tasks.Backlog,
+		Workspace:  ws,
+		Paths:      []string{"internal/api/auth.go"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	run, err := eng.Start(StartInput{
+		Template:     "meta7",
+		BoardID:      boardID,
+		ProjectName:  "Rate Limit Rollout",
+		IncludeBoard: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.ProjectName != "rate-limit-rollout" {
+		t.Fatalf("want slugified project name rate-limit-rollout, got %q", run.ProjectName)
+	}
+	gotIDs := map[string]bool{}
+	for _, id := range run.SourceTaskIDs {
+		gotIDs[id] = true
+	}
+	if len(run.SourceTaskIDs) != 2 || !gotIDs[t1.ID] || !gotIDs[t2.ID] {
+		t.Fatalf("expected both board tasks absorbed (%s, %s), got %v", t1.ID, t2.ID, run.SourceTaskIDs)
+	}
+	t1After, _ := eng.Tasks.Get(t1.ID)
+	if t1After.Status != tasks.Backlog || t1After.ParentID != run.GoalTaskID {
+		t.Fatalf("absorbed todo task must park in backlog under goal task, got status=%s parent=%s", t1After.Status, t1After.ParentID)
+	}
+	if run.ArtifactDir == "" {
+		t.Fatalf("expected artifact_dir to be populated for local workspace")
+	}
+
+	exp := stageBy(run, "explore")
+	if len(exp.Nodes) < 3 {
+		t.Fatalf("expected >= 3 explore nodes, got %d", len(exp.Nodes))
+	}
+	expTask0, _ := eng.Tasks.Get(exp.Nodes[0].TaskID)
+	if expTask0.Workspace != ws || expTask0.Executor != "claude" || expTask0.Model != "claude-sonnet-4-5" || expTask0.Effort != "high" || expTask0.Branch != "main" {
+		t.Fatalf("explore node missing propagated routing fields: %+v", expTask0)
+	}
+	if len(expTask0.Paths) != 2 || len(expTask0.Skills) != 1 {
+		t.Fatalf("explore node missing propagated paths/skills: paths=%v skills=%v", expTask0.Paths, expTask0.Skills)
+	}
+
+	for _, n := range exp.Nodes {
+		completeNode(t, eng, n.TaskID, "findings for "+n.Key)
+	}
+	run, _ = eng.ProjectRun(run.ID)
+	for _, n := range stageBy(run, "cross_examine").Nodes {
+		completeNode(t, eng, n.TaskID, `{"verdict":"PASS","summary":"solid evidence"}`)
+	}
+	run, _ = eng.ProjectRun(run.ID)
+	completeNode(t, eng, stageBy(run, "synthesize").Nodes[0].TaskID, "unified synthesis doc")
+	run, _ = eng.ProjectRun(run.ID)
+	completeNode(t, eng, stageBy(run, "design").Nodes[0].TaskID, "architecture design v1")
+	run, _ = eng.ProjectRun(run.ID)
+	completeNode(t, eng, stageBy(run, "verify").Nodes[0].TaskID, `{"verdict":"PASS","summary":"all invariants green"}`)
+	run, _ = eng.ProjectRun(run.ID)
+	completeNode(t, eng, stageBy(run, "review").Nodes[0].TaskID, `{"verdict":"PASS","summary":"ready for impl"}`)
+
+	run, _ = eng.ProjectRun(run.ID)
+	impl := stageBy(run, "impl")
+	if len(impl.Nodes) != 1 {
+		t.Fatalf("expected 1 impl main node, got %d", len(impl.Nodes))
+	}
+	implTaskID := impl.Nodes[0].TaskID
+	completeNode(t, eng, implTaskID, "implemented middleware + headers")
+	if _, err := eng.Tasks.Move(implTaskID, tasks.Done, "reviewer"); err != nil {
+		t.Fatal(err)
+	}
+
+	run, _ = eng.ProjectRun(run.ID)
+	impl = stageBy(run, "impl")
+	if len(impl.Nodes) != 5 {
+		t.Fatalf("expected 1 main + 4 gate nodes, got %d", len(impl.Nodes))
+	}
+	for _, n := range impl.Nodes {
+		if n.Kind == "gate" {
+			gtk, _ := eng.Tasks.Get(n.TaskID)
+			if gtk.Branch != "sy/"+implTaskID {
+				t.Fatalf("gate %s must branch off sy/%s, got %q", n.Key, implTaskID, gtk.Branch)
+			}
+			completeNode(t, eng, n.TaskID, "gate verified")
+		}
+	}
+
+	run, _ = eng.ProjectRun(run.ID)
+	if run.Status != "completed" {
+		t.Fatalf("expected completed run, got %s", run.Status)
+	}
+	t1Done, _ := eng.Tasks.Get(t1.ID)
+	t2Done, _ := eng.Tasks.Get(t2.ID)
+	if t1Done.Status != tasks.Done || t2Done.Status != tasks.Done {
+		t.Fatalf("absorbed source tasks should be marked done on completion: t1=%s t2=%s", t1Done.Status, t2Done.Status)
+	}
+
+	var foundImplArtifact, foundReviewArtifact bool
+	for _, a := range run.Artifacts {
+		if a.Name == ".01.impl" && strings.Contains(a.Content, "architecture design v1") {
+			foundImplArtifact = true
+		}
+		if a.Name == "REVIEW.md" && strings.Contains(a.Content, "ready for impl") {
+			foundReviewArtifact = true
+		}
+	}
+	if !foundImplArtifact || !foundReviewArtifact {
+		t.Fatalf("expected .01.impl and REVIEW.md in run.Artifacts, got=%d", len(run.Artifacts))
+	}
+	implPath := filepath.Join(run.ArtifactDir, "projects", run.ProjectName, ".01.impl")
+	if b, err := os.ReadFile(implPath); err != nil || !strings.Contains(string(b), "architecture design v1") {
+		t.Fatalf("expected .01.impl on disk at %s: err=%v", implPath, err)
+	}
+	sgPath := filepath.Join(run.ArtifactDir, "projects", run.ProjectName, ".state.graph")
+	if b, err := os.ReadFile(sgPath); err != nil || !strings.Contains(string(b), "pipeline.completed") {
+		t.Fatalf("expected .state.graph on disk at %s: err=%v", sgPath, err)
+	}
+
+	// Test Restart creates a fresh run without duplicating board task sections.
+	restarted, err := eng.Restart(run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.ID == run.ID || restarted.Status != "running" {
+		t.Fatalf("unexpected restart result: %+v", restarted)
+	}
+	if strings.Count(restarted.Context, "### Board Task "+t1.ID+":") != 1 {
+		t.Fatalf("restart must not duplicate board task context")
+	}
+
+	// Simulate exhaust-evolution failure -> RetryNode should recover needs_human -> running.
+	exp0 := stageBy(restarted, "explore").Nodes[0]
+	for i := 0; i < 4; i++ {
+		tk, _ := eng.Tasks.Get(exp0.TaskID)
+		if tk.Status == tasks.Todo {
+			failNode(t, eng, exp0.TaskID, "network_timeout")
+			r, _ := eng.ProjectRun(restarted.ID)
+			mod := stageBy(r, "explore").Nodes[0].ModifierTaskID
+			if mod != "" {
+				completeNode(t, eng, mod, "adapted after timeout")
+			}
+		}
+	}
+	// Manually retry explore:1 stage cleanly.
+	retried, err := eng.RetryNode(restarted.ID, "explore:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if retried.Status != "running" {
+		t.Fatalf("expected running after RetryNode, got %s", retried.Status)
 	}
 }

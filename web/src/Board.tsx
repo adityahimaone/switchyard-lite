@@ -22,6 +22,7 @@ import {
   ShieldAlert,
   Table2,
   Trash2,
+  Workflow,
 } from "@/components/ui/icons";
 import {
   api,
@@ -226,6 +227,67 @@ export function BoardScreen({
     onError: (e) => toastError(e, "Dispatch failed"),
   });
 
+  const runBoardMeta7 = useMutation({
+    mutationFn: () =>
+      post<{ id: string }>("/api/v1/pipelines", {
+        template: "meta7",
+        board_id: boardId,
+        include_board_tasks: true,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["pipelines"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+      toast("meta7 board run started", {
+        tone: "success",
+        description: "Coordinating eligible board tasks — open Pipelines to watch the state graph.",
+      });
+    },
+    onError: (e) => toastError(e, "Failed to run board with meta7"),
+  });
+
+  const runTaskMeta7 = useMutation({
+    mutationFn: (t: {
+      id: string;
+      title: string;
+      prompt?: string;
+      acceptance?: string;
+      workspace?: string;
+      branch?: string;
+      executor?: string;
+      model?: string;
+      effort?: string;
+      paths?: string[];
+      skills?: string[];
+    }) =>
+      post<{ id: string }>("/api/v1/pipelines", {
+        template: "meta7",
+        board_id: boardId,
+        goal: t.title,
+        context: [t.prompt, t.acceptance ? `Acceptance:\n${t.acceptance}` : ""]
+          .filter(Boolean)
+          .join("\n\n"),
+        workspace: t.workspace ?? "",
+        branch: t.branch ?? "",
+        executor: t.executor ?? "",
+        model: t.model ?? "",
+        effort: t.effort ?? "",
+        context_paths: t.paths,
+        skills: t.skills,
+        source_task_ids: [t.id],
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["pipelines"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+      toast("meta7 pipeline launched for task", {
+        tone: "success",
+        description: "Open Pipelines to inspect artifacts and the state graph.",
+      });
+    },
+    onError: (e) => toastError(e, "Failed to launch meta7"),
+  });
+
   const [over, setOver] = useState("");
   const [viewMode, setViewMode] = useState<"board" | "table" | "lanes">("board");
   const [creating, setCreating] = useState<{ startMode: StartMode } | null>(null);
@@ -245,6 +307,18 @@ export function BoardScreen({
   });
 
   const allTasks = tasks.data ?? [];
+
+  const eligibleMeta7Tasks = useMemo(
+    () =>
+      allTasks.filter(
+        (t) =>
+          (t.status === "todo" || t.status === "backlog") &&
+          !t.run_id &&
+          !t.parent_id &&
+          !t.title.startsWith("[pipeline]")
+      ),
+    [allTasks]
+  );
 
   const executorsOnBoard = useMemo(() => {
     const s = new Set<string>();
@@ -512,6 +586,20 @@ export function BoardScreen({
             ]}
           />
 
+          {eligibleMeta7Tasks.length > 0 && (
+            <button
+              type="button"
+              className="btn border-[var(--c-accent-line)] bg-[var(--c-accent-bg)] text-[var(--c-accent-text)] hover:bg-[var(--c-accent-bg)]/80"
+              onClick={() => runBoardMeta7.mutate()}
+              disabled={!boardId || runBoardMeta7.isPending}
+              title="Absorb all eligible todo/backlog tasks on this board into a single autonomous meta7 pipeline"
+            >
+              <Workflow className="size-3.5" />
+              <span>Run board with meta7</span>
+              <span className="pill-count tabular-nums">{eligibleMeta7Tasks.length}</span>
+            </button>
+          )}
+
           <button
             className="btn primary"
             onClick={() => setCreating({ startMode: "queue" })}
@@ -624,7 +712,7 @@ export function BoardScreen({
       )}
 
       <div style={{ padding: "0 24px" }}>
-        <ErrorBox error={tasks.error ?? move.error ?? boards.error ?? dispatch.error} />
+        <ErrorBox error={tasks.error ?? move.error ?? boards.error ?? dispatch.error ?? runBoardMeta7.error ?? runTaskMeta7.error} />
       </div>
 
       {creating && boardId && (
@@ -794,6 +882,18 @@ export function BoardScreen({
                                       Dispatch now
                                     </MenuItem>
                                   )}
+                                  {(t.status === "todo" || t.status === "backlog") &&
+                                    !t.run_id &&
+                                    !t.parent_id &&
+                                    !t.title.startsWith("[pipeline]") && (
+                                      <MenuItem
+                                        icon={Workflow}
+                                        disabled={runTaskMeta7.isPending}
+                                        onSelect={() => runTaskMeta7.mutate(t)}
+                                      >
+                                        Run with meta7
+                                      </MenuItem>
+                                    )}
                                   {NEXT[t.status].length > 0 && (
                                     <>
                                       <MenuSeparator />

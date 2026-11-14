@@ -136,6 +136,56 @@ func init() {
 			ok(w, run)
 		}))
 
+		m.HandleFunc("POST /api/v1/pipelines/{id}/retry", a.require("write", func(w http.ResponseWriter, r *http.Request) {
+			e, okEng := eng(w)
+			if !okEng {
+				return
+			}
+			var in struct {
+				Key   string `json:"key"`
+				Stage string `json:"stage"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&in)
+			target := in.Key
+			if target == "" {
+				target = in.Stage
+			}
+			run, err := e.RetryNode(r.PathValue("id"), target)
+			if errors.Is(err, pipeline.ErrNotFound) {
+				fail(w, 404, err.Error())
+				return
+			}
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			if x, err := getDeps(a); err == nil && x.d != nil {
+				x.d.Wake()
+			}
+			ok(w, run)
+		}))
+
+		m.HandleFunc("POST /api/v1/pipelines/{id}/restart", a.require("write", func(w http.ResponseWriter, r *http.Request) {
+			e, okEng := eng(w)
+			if !okEng {
+				return
+			}
+			run, err := e.Restart(r.PathValue("id"))
+			if errors.Is(err, pipeline.ErrNotFound) {
+				fail(w, 404, err.Error())
+				return
+			}
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			if x, err := getDeps(a); err == nil && x.d != nil {
+				x.d.Wake()
+			}
+			w.WriteHeader(201)
+			ok(w, run)
+		}))
+
 		// Admin token management for Settings screen.
 		m.HandleFunc("GET /api/v1/tokens", a.require("admin", func(w http.ResponseWriter, r *http.Request) {
 			rows, err := a.S.DB.Query(`SELECT id,name,scope,created_at FROM api_tokens ORDER BY id`)

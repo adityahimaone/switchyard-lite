@@ -284,7 +284,7 @@ export function App() {
             <TaskDetailPage id={arg} onBack={() => go("board")} onReview={(id) => go("review/" + id)} />
           )}
           {page === "review" && <ReviewScreen taskId={arg} pick={(id) => go("review/" + id)} />}
-          {page === "pipelines" && <PipelineScreen />}
+          {page === "pipelines" && <PipelineScreen open={setDrawer} />}
           {page === "flow" && <FlowScreen open={setDrawer} />}
           {page === "workspaces" && <WorkspacesScreen />}
           {page === "overview" && <OverviewScreen />}

@@ -43,29 +43,54 @@ type StageView struct {
 }
 
 type RunState struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Template    string      `json:"template"`
-	BoardID     string      `json:"board_id"`
-	GoalTaskID  string      `json:"goal_task_id"`
-	Goal        string      `json:"goal"`
-	Workspace   string      `json:"workspace,omitempty"`
-	Status      string      `json:"status"` // running | completed | needs_human | cancelled
-	Reason      string      `json:"reason,omitempty"`
-	ReviewLoops int         `json:"review_loops"`
-	Evolutions  int         `json:"evolutions"`
-	Budget      Budget      `json:"budget"`
-	Stages      []StageView `json:"stages"`
-	CreatedAt   int64       `json:"created_at"`
-	UpdatedAt   int64       `json:"updated_at"`
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Template      string         `json:"template"`
+	BoardID       string         `json:"board_id"`
+	GoalTaskID    string         `json:"goal_task_id"`
+	Goal          string         `json:"goal"`
+	ProjectName   string         `json:"project_name,omitempty"`
+	Context       string         `json:"context,omitempty"`
+	Workspace     string         `json:"workspace,omitempty"`
+	Branch        string         `json:"branch,omitempty"`
+	Executor      string         `json:"executor,omitempty"`
+	Model         string         `json:"model,omitempty"`
+	Effort        string         `json:"effort,omitempty"`
+	ContextPaths  []string       `json:"context_paths,omitempty"`
+	Skills        []string       `json:"skills,omitempty"`
+	AutoMerge     bool           `json:"auto_merge,omitempty"`
+	Items         []string       `json:"items,omitempty"`
+	SourceTaskIDs []string       `json:"source_task_ids,omitempty"`
+	ArtifactDir   string         `json:"artifact_dir,omitempty"`
+	StateGraph    []string       `json:"state_graph,omitempty"`
+	Artifacts     []ArtifactFile `json:"artifacts,omitempty"`
+	Status        string         `json:"status"` // running | completed | needs_human | cancelled
+	Reason        string         `json:"reason,omitempty"`
+	ReviewLoops   int            `json:"review_loops"`
+	Evolutions    int            `json:"evolutions"`
+	Budget        Budget         `json:"budget"`
+	Stages        []StageView    `json:"stages"`
+	CreatedAt     int64          `json:"created_at"`
+	UpdatedAt     int64          `json:"updated_at"`
 }
 
 type StartInput struct {
-	Template  string   `json:"template"`
-	BoardID   string   `json:"board_id"`
-	Goal      string   `json:"goal"`
-	Workspace string   `json:"workspace,omitempty"`
-	Items     []string `json:"items,omitempty"`
+	Template      string   `json:"template"`
+	BoardID       string   `json:"board_id"`
+	Goal          string   `json:"goal"`
+	ProjectName   string   `json:"project_name,omitempty"`
+	Context       string   `json:"context,omitempty"`
+	Workspace     string   `json:"workspace,omitempty"`
+	Branch        string   `json:"branch,omitempty"`
+	Executor      string   `json:"executor,omitempty"`
+	Model         string   `json:"model,omitempty"`
+	Effort        string   `json:"effort,omitempty"`
+	ContextPaths  []string `json:"context_paths,omitempty"`
+	Skills        []string `json:"skills,omitempty"`
+	AutoMerge     bool     `json:"auto_merge,omitempty"`
+	Items         []string `json:"items,omitempty"`
+	SourceTaskIDs []string `json:"source_task_ids,omitempty"`
+	IncludeBoard  bool     `json:"include_board_tasks,omitempty"`
 }
 
 type Engine struct {
@@ -171,14 +196,32 @@ func (e *Engine) Start(in StartInput) (*RunState, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: unknown template %s", ErrInvalidTemplate, in.Template)
 	}
-	if in.BoardID == "" || strings.TrimSpace(in.Goal) == "" {
-		return nil, fmt.Errorf("%w: board_id and goal are required", tasks.ErrBadRequest)
+	if in.BoardID == "" {
+		return nil, fmt.Errorf("%w: board_id is required", tasks.ErrBadRequest)
+	}
+	absorbed, err := e.absorbBoardTasks(&in)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(in.Goal) == "" {
+		return nil, fmt.Errorf("%w: goal is required", tasks.ErrBadRequest)
+	}
+	in.ProjectName = slugifyProjectName(in.ProjectName, in.Goal)
+	goalPrompt := in.Goal
+	if strings.TrimSpace(in.Context) != "" {
+		goalPrompt += "\n\n" + strings.TrimSpace(in.Context)
 	}
 	goalTask, err := e.Tasks.Create(tasks.NewTask{
 		BoardID:   in.BoardID,
 		Title:     "[pipeline] " + in.Goal,
-		Prompt:    in.Goal,
+		Prompt:    goalPrompt,
 		Workspace: in.Workspace,
+		Executor:  in.Executor,
+		Model:     in.Model,
+		Effort:    in.Effort,
+		Branch:    in.Branch,
+		Paths:     in.ContextPaths,
+		Skills:    in.Skills,
 	})
 	if err != nil {
 		return nil, err
@@ -195,26 +238,304 @@ func (e *Engine) Start(in StartInput) (*RunState, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, stk := range absorbed {
+		if stk.Status == tasks.Todo {
+			_, _ = e.Tasks.Move(stk.ID, tasks.Backlog, "pipeline")
+		}
+		_, _ = e.S.DB.Exec(`UPDATE tasks SET parent_id=?, updated_at=? WHERE id=?`, goalTask.ID, now, stk.ID)
+		_, _ = e.Tasks.AddComment(stk.ID, "pipeline", fmt.Sprintf("Absorbed into %s pipeline run %s (%s)", tpl.Name, runID, in.ProjectName))
+	}
 	_ = e.emit(runID, "pipeline.started", map[string]any{
-		"template":     tpl.Name,
-		"board_id":     in.BoardID,
-		"goal_task_id": goalTask.ID,
-		"goal":         in.Goal,
-		"workspace":    in.Workspace,
-		"items":        in.Items,
+		"template":        tpl.Name,
+		"board_id":        in.BoardID,
+		"goal_task_id":    goalTask.ID,
+		"goal":            in.Goal,
+		"project_name":    in.ProjectName,
+		"context":         in.Context,
+		"workspace":       in.Workspace,
+		"branch":          in.Branch,
+		"executor":        in.Executor,
+		"model":           in.Model,
+		"effort":          in.Effort,
+		"context_paths":   in.ContextPaths,
+		"skills":          in.Skills,
+		"auto_merge":      in.AutoMerge,
+		"items":           in.Items,
+		"source_task_ids": in.SourceTaskIDs,
 	})
 	return e.Tick(runID)
 }
 
-// Cancel marks a running pipeline as cancelled.
+func (e *Engine) absorbBoardTasks(in *StartInput) ([]tasks.Task, error) {
+	if !in.IncludeBoard && len(in.SourceTaskIDs) == 0 {
+		return nil, nil
+	}
+	boardTasks, err := e.Tasks.List(in.BoardID, "")
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[string]tasks.Task, len(boardTasks))
+	for _, t := range boardTasks {
+		byID[t.ID] = t
+	}
+	seen := map[string]bool{}
+	var collected []tasks.Task
+	for _, rawID := range in.SourceTaskIDs {
+		id := strings.TrimSpace(rawID)
+		if id == "" || seen[id] {
+			continue
+		}
+		if t, ok := byID[id]; ok {
+			seen[id] = true
+			collected = append(collected, t)
+		} else if t, err := e.Tasks.Get(id); err == nil {
+			seen[id] = true
+			collected = append(collected, t)
+		}
+	}
+	if in.IncludeBoard && len(collected) == 0 {
+		for _, t := range boardTasks {
+			if (t.Status != tasks.Todo && t.Status != tasks.Backlog) || t.RunID != "" || t.ParentID != "" {
+				continue
+			}
+			if strings.HasPrefix(t.Title, "[pipeline]") || seen[t.ID] {
+				continue
+			}
+			seen[t.ID] = true
+			collected = append(collected, t)
+		}
+	}
+	if len(collected) == 0 {
+		if strings.TrimSpace(in.Goal) == "" && in.IncludeBoard {
+			return nil, fmt.Errorf("%w: no todo or backlog tasks on board to run", tasks.ErrBadRequest)
+		}
+		return nil, nil
+	}
+
+	in.SourceTaskIDs = make([]string, 0, len(collected))
+	var ctxParts []string
+	if strings.TrimSpace(in.Context) != "" {
+		ctxParts = append(ctxParts, strings.TrimSpace(in.Context))
+	}
+	seenItems := map[string]bool{}
+	for _, it := range in.Items {
+		seenItems[it] = true
+	}
+	for _, t := range collected {
+		in.SourceTaskIDs = append(in.SourceTaskIDs, t.ID)
+		topic := fmt.Sprintf("%s (%s)", strings.TrimSpace(t.Title), t.ID)
+		if !seenItems[topic] {
+			in.Items = append(in.Items, topic)
+			seenItems[topic] = true
+		}
+		if in.Workspace == "" && t.Workspace != "" {
+			in.Workspace = t.Workspace
+		}
+		if in.Branch == "" && t.Branch != "" {
+			in.Branch = t.Branch
+		}
+		if in.Executor == "" && t.Executor != "" {
+			in.Executor = t.Executor
+		}
+		if in.Model == "" && t.Model != "" {
+			in.Model = t.Model
+		}
+		if in.Effort == "" && t.Effort != "" {
+			in.Effort = t.Effort
+		}
+		in.ContextPaths = appendUniqueStrings(in.ContextPaths, t.Paths)
+		in.Skills = appendUniqueStrings(in.Skills, t.Skills)
+
+		header := fmt.Sprintf("### Board Task %s:", t.ID)
+		if !strings.Contains(in.Context, header) {
+			var tb strings.Builder
+			fmt.Fprintf(&tb, "### Board Task %s: %s (status=%s)", t.ID, t.Title, t.Status)
+			if strings.TrimSpace(t.Prompt) != "" {
+				fmt.Fprintf(&tb, "\n%s", strings.TrimSpace(t.Prompt))
+			}
+			if strings.TrimSpace(t.Acceptance) != "" {
+				fmt.Fprintf(&tb, "\nAcceptance: %s", strings.TrimSpace(t.Acceptance))
+			}
+			ctxParts = append(ctxParts, tb.String())
+		}
+	}
+	in.Context = strings.Join(ctxParts, "\n\n")
+	if strings.TrimSpace(in.Goal) == "" {
+		if len(collected) == 1 {
+			in.Goal = collected[0].Title
+		} else {
+			in.Goal = fmt.Sprintf("Unified board architecture & implementation (%d tasks)", len(collected))
+		}
+	}
+	return collected, nil
+}
+
+func appendUniqueStrings(dst, src []string) []string {
+	seen := make(map[string]bool, len(dst))
+	for _, s := range dst {
+		if s = strings.TrimSpace(s); s != "" {
+			seen[s] = true
+		}
+	}
+	for _, s := range src {
+		if s = strings.TrimSpace(s); s != "" && !seen[s] {
+			seen[s] = true
+			dst = append(dst, s)
+		}
+	}
+	return dst
+}
+
+// Cancel marks a running pipeline as cancelled and parks queued/blocked stage nodes.
 func (e *Engine) Cancel(runID string) (*RunState, error) {
 	if _, err := e.ProjectRun(runID); err != nil {
 		return nil, err
 	}
 	now := e.Now().Unix()
 	_, _ = e.S.DB.Exec(`UPDATE pipeline_runs SET status='cancelled', reason='cancelled by user', updated_at=? WHERE id=?`, now, runID)
+	rows, err := e.S.DB.Query(`SELECT id, status FROM tasks WHERE run_id=? AND status IN ('todo','blocked')`, runID)
+	if err == nil {
+		var parked []struct{ id, status string }
+		for rows.Next() {
+			var id, st string
+			if rows.Scan(&id, &st) == nil {
+				parked = append(parked, struct{ id, status string }{id, st})
+			}
+		}
+		rows.Close()
+		for _, p := range parked {
+			_, _ = e.S.DB.Exec(`UPDATE tasks SET status='backlog', updated_at=? WHERE id=?`, now, p.id)
+			_ = e.Tasks.RecordEvent(p.id, "task.moved", map[string]string{"from": p.status, "to": tasks.Backlog, "actor": "pipeline"})
+		}
+	}
 	_ = e.emit(runID, "pipeline.cancelled", map[string]string{"reason": "cancelled by user"})
 	return e.ProjectRun(runID)
+}
+
+// RetryNode requeues a specific node key, an entire stage, or all failed nodes
+// (when target is empty or "failed") and resumes the run if it paused.
+func (e *Engine) RetryNode(runID, target string) (*RunState, error) {
+	run, err := e.ProjectRun(runID)
+	if err != nil {
+		return nil, err
+	}
+	if run.Status == "cancelled" {
+		return nil, fmt.Errorf("%w: cannot retry cancelled run", tasks.ErrBadMove)
+	}
+	target = strings.TrimSpace(target)
+
+	var matched []NodeView
+	touchedStages := map[string]int{}
+	for idx, stg := range run.Stages {
+		for _, n := range stg.Nodes {
+			if n.Kind == "modifier" {
+				continue
+			}
+			isMatch := false
+			switch {
+			case target == "" || target == "failed":
+				isMatch = n.Status == tasks.Failed
+			default:
+				isMatch = n.Key == target || stg.ID == target
+			}
+			if isMatch {
+				matched = append(matched, n)
+				if _, seen := touchedStages[stg.ID]; !seen {
+					touchedStages[stg.ID] = idx
+				}
+			}
+		}
+	}
+	if len(matched) == 0 {
+		if target == "" || target == "failed" {
+			return e.Tick(runID)
+		}
+		return nil, fmt.Errorf("%w: stage or node %q not found", tasks.ErrBadRequest, target)
+	}
+
+	requeueClean := func(n NodeView) {
+		_, _ = e.S.DB.Exec(`UPDATE tasks SET error_sig='' WHERE id=?`, n.TaskID)
+		_ = e.emit(runID, "pipeline.stage_reset", map[string]string{"stage": n.Stage, "key": n.Key})
+		_ = e.emit(runID, "pipeline.node_retry", map[string]string{"key": n.Key})
+		e.requeueTask(n.TaskID)
+	}
+
+	allMainRetried := false
+	for _, n := range matched {
+		if n.Kind == "main" {
+			allMainRetried = true
+		}
+		requeueClean(n)
+	}
+
+	if allMainRetried {
+		dirty := map[string]bool{}
+		for stgID := range touchedStages {
+			dirty[stgID] = true
+		}
+		for _, stg := range run.Stages {
+			if dirty[stg.ID] {
+				continue
+			}
+			dependsOnDirty := false
+			for _, d := range stg.DependsOn {
+				if dirty[d] {
+					dependsOnDirty = true
+					break
+				}
+			}
+			if !dependsOnDirty {
+				continue
+			}
+			dirty[stg.ID] = true
+			for _, n := range stg.Nodes {
+				if n.Kind == "modifier" {
+					continue
+				}
+				if n.Status == tasks.Done || n.Status == "evolved" || n.Status == tasks.Review || n.Status == tasks.Failed {
+					requeueClean(n)
+				}
+			}
+		}
+	}
+
+	now := e.Now().Unix()
+	_, _ = e.S.DB.Exec(`UPDATE pipeline_runs SET status='running', reason='', updated_at=? WHERE id=?`, now, runID)
+	if run.Status != "running" {
+		_ = e.emit(runID, "pipeline.resumed", map[string]string{"target": target})
+	}
+	return e.Tick(runID)
+}
+
+// Restart cancels the previous run (if active) and starts a fresh run carrying
+// forward the exact workspace, branch, executor/model/effort, context, and source tasks.
+func (e *Engine) Restart(runID string) (*RunState, error) {
+	run, err := e.ProjectRun(runID)
+	if err != nil {
+		return nil, err
+	}
+	if run.Status == "running" || run.Status == "needs_human" {
+		now := e.Now().Unix()
+		_, _ = e.S.DB.Exec(`UPDATE pipeline_runs SET status='cancelled', reason='restarted into new run', updated_at=? WHERE id=?`, now, runID)
+		_ = e.emit(runID, "pipeline.cancelled", map[string]string{"reason": "restarted into new run"})
+	}
+	return e.Start(StartInput{
+		Template:      run.Template,
+		BoardID:       run.BoardID,
+		Goal:          run.Goal,
+		ProjectName:   run.ProjectName,
+		Context:       run.Context,
+		Workspace:     run.Workspace,
+		Branch:        run.Branch,
+		Executor:      run.Executor,
+		Model:         run.Model,
+		Effort:        run.Effort,
+		ContextPaths:  run.ContextPaths,
+		Skills:        run.Skills,
+		AutoMerge:     run.AutoMerge,
+		Items:         run.Items,
+		SourceTaskIDs: run.SourceTaskIDs,
+	})
 }
 
 // ListRuns returns all runs projected from the event log.
@@ -256,19 +577,28 @@ func (e *Engine) ProjectRun(runID string) (*RunState, error) {
 	}
 	nodesByStage := map[string][]*nodeState{}
 	nodeByKey := map[string]*nodeState{}
-	var seedItems []string
 
 	for _, ev := range evts {
 		switch ev.Kind {
 		case "pipeline.started":
 			started = true
 			var p struct {
-				Template   string   `json:"template"`
-				BoardID    string   `json:"board_id"`
-				GoalTaskID string   `json:"goal_task_id"`
-				Goal       string   `json:"goal"`
-				Workspace  string   `json:"workspace"`
-				Items      []string `json:"items"`
+				Template      string   `json:"template"`
+				BoardID       string   `json:"board_id"`
+				GoalTaskID    string   `json:"goal_task_id"`
+				Goal          string   `json:"goal"`
+				ProjectName   string   `json:"project_name"`
+				Context       string   `json:"context"`
+				Workspace     string   `json:"workspace"`
+				Branch        string   `json:"branch"`
+				Executor      string   `json:"executor"`
+				Model         string   `json:"model"`
+				Effort        string   `json:"effort"`
+				ContextPaths  []string `json:"context_paths"`
+				Skills        []string `json:"skills"`
+				AutoMerge     bool     `json:"auto_merge"`
+				Items         []string `json:"items"`
+				SourceTaskIDs []string `json:"source_task_ids"`
 			}
 			_ = json.Unmarshal(ev.Payload, &p)
 			st.Template = p.Template
@@ -276,10 +606,20 @@ func (e *Engine) ProjectRun(runID string) (*RunState, error) {
 			st.BoardID = p.BoardID
 			st.GoalTaskID = p.GoalTaskID
 			st.Goal = p.Goal
+			st.ProjectName = slugifyProjectName(p.ProjectName, p.Goal)
+			st.Context = p.Context
 			st.Workspace = p.Workspace
+			st.Branch = p.Branch
+			st.Executor = p.Executor
+			st.Model = p.Model
+			st.Effort = p.Effort
+			st.ContextPaths = p.ContextPaths
+			st.Skills = p.Skills
+			st.AutoMerge = p.AutoMerge
+			st.Items = p.Items
+			st.SourceTaskIDs = p.SourceTaskIDs
 			st.CreatedAt = ev.CreatedAt
 			st.UpdatedAt = ev.CreatedAt
-			seedItems = p.Items
 			tpl = e.templates[p.Template]
 			st.Budget = tpl.Budget
 		case "pipeline.node_spawned":
@@ -384,6 +724,10 @@ func (e *Engine) ProjectRun(runID string) (*RunState, error) {
 		case "pipeline.back_arc":
 			st.ReviewLoops++
 			st.UpdatedAt = ev.CreatedAt
+		case "pipeline.resumed":
+			st.Status = "running"
+			st.Reason = ""
+			st.UpdatedAt = ev.CreatedAt
 		case "pipeline.needs_human":
 			var p struct {
 				Reason string `json:"reason"`
@@ -418,10 +762,10 @@ func (e *Engine) ProjectRun(runID string) (*RunState, error) {
 		}
 		st.Template = tplName
 		st.Name = tplName
+		st.ProjectName = slugifyProjectName("", st.Goal)
 		tpl = e.templates[tplName]
 		st.Budget = tpl.Budget
 	}
-	_ = seedItems
 
 	// Refresh live task status & latest output for each node.
 	for _, list := range nodesByStage {
@@ -472,6 +816,7 @@ func (e *Engine) ProjectRun(runID string) (*RunState, error) {
 			Nodes:     views,
 		})
 	}
+	st.StateGraph, st.Artifacts, st.ArtifactDir = buildMeta7Artifacts(st, evts)
 	return st, nil
 }
 
@@ -622,15 +967,28 @@ func (e *Engine) Tick(runID string) (*RunState, error) {
 						mainIDs = append(mainIDs, n.TaskID)
 					}
 				}
+				gateBranch := run.Branch
+				if len(mainIDs) > 0 {
+					gateBranch = "sy/" + mainIDs[0]
+				}
 				for _, g := range sp.GateBand {
 					key := sp.ID + ":gate:" + g
 					prompt := fmt.Sprintf("Verify %s gate for stage %s.\nGoal: %s", g, sp.ID, run.Goal)
+					if run.ArtifactDir != "" {
+						prompt += "\nMeta7 artifacts: " + run.ArtifactDir
+					}
 					gtk, err := e.Tasks.Create(tasks.NewTask{
 						BoardID:   run.BoardID,
 						ParentID:  run.GoalTaskID,
 						Title:     fmt.Sprintf("[%s] gate:%s", sp.ID, g),
 						Prompt:    prompt,
 						Workspace: run.Workspace,
+						Executor:  run.Executor,
+						Model:     run.Model,
+						Effort:    run.Effort,
+						Branch:    gateBranch,
+						Paths:     run.ContextPaths,
+						Skills:    run.Skills,
 						BlockedBy: mainIDs,
 					})
 					if err == nil {
@@ -682,6 +1040,13 @@ func (e *Engine) Tick(runID string) (*RunState, error) {
 			now := e.Now().Unix()
 			_, _ = e.S.DB.Exec(`UPDATE pipeline_runs SET status='completed', updated_at=? WHERE id=?`, now, runID)
 			_, _ = e.S.DB.Exec(`UPDATE tasks SET status='done', updated_at=? WHERE id=?`, now, run.GoalTaskID)
+			for _, srcID := range run.SourceTaskIDs {
+				if stk, err := e.Tasks.Get(srcID); err == nil && stk.Status != tasks.Done {
+					_, _ = e.S.DB.Exec(`UPDATE tasks SET status='done', completed_at=?, updated_at=? WHERE id=?`, now, now, srcID)
+					_ = e.Tasks.RecordEvent(srcID, "task.moved", map[string]string{"from": stk.Status, "to": tasks.Done, "actor": "pipeline"})
+					_, _ = e.Tasks.AddComment(srcID, "pipeline", fmt.Sprintf("Completed via pipeline run %s", runID))
+				}
+			}
 			_ = e.emit(runID, "pipeline.completed", map[string]string{})
 			return e.ProjectRun(runID)
 		}
@@ -739,8 +1104,16 @@ func (e *Engine) materializeStage(run *RunState, sp StageSpec, byID map[string]*
 		topics := e.resolveFanoutItems(run, sp.Fanout, byID)
 		for i, topic := range topics {
 			key := fmt.Sprintf("%s:%d", sp.ID, i+1)
-			prompt := fmt.Sprintf("%s\n\nGoal: %s\nTopic %d: %s", strings.TrimSpace(sp.Prompt), run.Goal, i+1, topic)
-			e.spawnNode(run, sp.ID, key, "main", fmt.Sprintf("[%s %d] %s", sp.ID, i+1, topic), prompt, depTaskIDs)
+			var pb strings.Builder
+			pb.WriteString(strings.TrimSpace(sp.Prompt))
+			fmt.Fprintf(&pb, "\n\nGoal: %s\nTopic %d: %s", run.Goal, i+1, topic)
+			if strings.TrimSpace(run.Context) != "" {
+				fmt.Fprintf(&pb, "\n\n--- Project Context (%s) ---\n%s", run.ProjectName, strings.TrimSpace(run.Context))
+			}
+			if run.ArtifactDir != "" {
+				fmt.Fprintf(&pb, "\n\nMeta7 Artifacts Dir: %s", run.ArtifactDir)
+			}
+			e.spawnNode(run, sp.ID, key, "main", fmt.Sprintf("[%s %d] %s", sp.ID, i+1, topic), pb.String(), depTaskIDs)
 		}
 		return true
 
@@ -769,6 +1142,12 @@ func (e *Engine) materializeStage(run *RunState, sp StageSpec, byID map[string]*
 		if len(sp.Inputs) == 0 {
 			b.WriteString("\n\nGoal: " + run.Goal)
 		}
+		if strings.TrimSpace(run.Context) != "" && (len(sp.Inputs) == 0 || sp.ID == "design" || sp.ID == "review" || sp.ID == "impl") {
+			fmt.Fprintf(&b, "\n\n--- Project Context (%s) ---\n%s", run.ProjectName, strings.TrimSpace(run.Context))
+		}
+		if run.ArtifactDir != "" && (sp.ID == "design" || sp.ID == "verify" || sp.ID == "review" || sp.ID == "impl") {
+			fmt.Fprintf(&b, "\n\nMeta7 Artifacts Dir: %s", run.ArtifactDir)
+		}
 		for _, inStage := range sp.Inputs {
 			if up, ok := byID[inStage]; ok {
 				for _, un := range up.Nodes {
@@ -793,8 +1172,15 @@ func (e *Engine) resolveFanoutItems(run *RunState, f *FanoutSpec, byID map[strin
 			}
 		}
 	} else {
-		pr := ParseResult(run.Goal)
-		items = append(items, pr.Items...)
+		if len(run.Items) > 0 {
+			items = append(items, run.Items...)
+		} else {
+			pr := ParseResult(run.Goal)
+			items = append(items, pr.Items...)
+			if len(items) == 0 && strings.TrimSpace(run.Context) != "" {
+				items = append(items, ParseResult(run.Context).Items...)
+			}
+		}
 	}
 	min := f.Min
 	if min <= 0 {
@@ -813,6 +1199,12 @@ func (e *Engine) spawnNode(run *RunState, stageID, key, kind, title, prompt stri
 		Title:     title,
 		Prompt:    prompt,
 		Workspace: run.Workspace,
+		Executor:  run.Executor,
+		Model:     run.Model,
+		Effort:    run.Effort,
+		Branch:    run.Branch,
+		Paths:     run.ContextPaths,
+		Skills:    run.Skills,
 		BlockedBy: blockedBy,
 	})
 	if err != nil {

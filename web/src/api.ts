@@ -286,6 +286,92 @@ export async function fetchTaskRuns(taskId: string): Promise<TaskRun[]> {
   return res.runs ?? [];
 }
 
+export interface PipelineNode {
+  key: string;
+  task_id: string;
+  stage: string;
+  kind: "main" | "gate" | "modifier" | string;
+  status: string;
+  evolved?: boolean;
+  modifier_task_id?: string;
+  retry_count: number;
+  consecutive_identical_failures: number;
+  last_error_sig?: string;
+  failure_payloads?: string[];
+  verdict?: string;
+  output?: string;
+  items?: string[];
+}
+
+export interface PipelineArtifact {
+  name: string;
+  path: string;
+  category: "context" | "state" | "research" | "design" | "review" | "impl" | "index" | string;
+  stage?: string;
+  content: string;
+  updated_at: number;
+}
+
+export interface PipelineStage {
+  id: string;
+  name?: string;
+  status: string;
+  depends_on?: string[];
+  nodes?: PipelineNode[];
+}
+
+export interface PipelineTemplateStage {
+  id: string;
+  verdict?: boolean;
+  back_arcs?: Record<string, string>;
+  review_gate?: boolean;
+  gate_band?: string[];
+}
+
+export interface PipelineTemplate {
+  name: string;
+  description?: string;
+  budget?: {
+    max_review_loops: number;
+    max_evolutions: number;
+  };
+  stages?: PipelineTemplateStage[];
+}
+
+export interface PipelineRun {
+  id: string;
+  name?: string;
+  template?: string;
+  board_id?: string;
+  goal_task_id?: string;
+  goal?: string;
+  project_name?: string;
+  context?: string;
+  workspace?: string;
+  branch?: string;
+  executor?: string;
+  model?: string;
+  effort?: string;
+  context_paths?: string[];
+  skills?: string[];
+  items?: string[];
+  source_task_ids?: string[];
+  artifact_dir?: string;
+  state_graph?: string[];
+  artifacts?: PipelineArtifact[];
+  status?: string;
+  reason?: string;
+  review_loops?: number;
+  evolutions?: number;
+  budget?: {
+    max_review_loops: number;
+    max_evolutions: number;
+  };
+  stages?: PipelineStage[];
+  created_at?: number;
+  updated_at?: number;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);

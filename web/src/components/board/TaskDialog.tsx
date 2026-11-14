@@ -15,6 +15,7 @@ import {
   Plus,
   Send,
   Sparkles,
+  Workflow,
   X,
 } from "@/components/ui/icons";
 import {
@@ -23,6 +24,7 @@ import {
   platformOfWorkspace,
   post,
   type Board,
+  type PipelineRun,
   type PlatformKey,
   type Task,
   type Workspace,
@@ -68,7 +70,7 @@ import {
 export const EXECUTORS = ["claude", "codex", "commandcode", "omp", "dsh"] as const;
 export const EFFORTS = ["low", "medium", "high"] as const;
 
-const EXECUTOR_LABELS: Record<string, string> = {
+export const EXECUTOR_LABELS: Record<string, string> = {
   claude: "Claude Code",
   codex: "Codex",
   commandcode: "Command Code",
@@ -76,14 +78,14 @@ const EXECUTOR_LABELS: Record<string, string> = {
   dsh: "DeepSeek Harness",
 };
 
-const PLATFORM_LABELS: Record<PlatformKey, string> = {
+export const PLATFORM_LABELS: Record<PlatformKey, string> = {
   mac: "macOS",
   windows: "Windows",
   current: "Current machine",
   linux: "Linux",
 };
 
-function PlatformIcon({ platform, className }: { platform: PlatformKey; className?: string }) {
+export function PlatformIcon({ platform, className }: { platform: PlatformKey; className?: string }) {
   if (platform === "windows") return <Laptop className={cn("size-3.5 shrink-0", className)} />;
   if (platform === "mac") return <Apple className={cn("size-3.5 shrink-0", className)} />;
   if (platform === "current") return <Monitor className={cn("size-3.5 shrink-0", className)} />;
@@ -93,7 +95,7 @@ function PlatformIcon({ platform, className }: { platform: PlatformKey; classNam
 const DEFAULT_SENTINEL = "__default__";
 const SCRATCH_SENTINEL = "__scratch__";
 
-export type StartMode = "manual" | "queue" | "now";
+export type StartMode = "manual" | "queue" | "now" | "meta7";
 
 interface PendingFile {
   id: string;
@@ -328,7 +330,39 @@ export function TaskDialog({
   }, [groupedWorkspaces, workspace]);
 
   const create = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ task?: Task; pipeline?: PipelineRun }> => {
+      if (startMode === "meta7") {
+        const ctxBody = [
+          prompt.trim(),
+          acceptance.trim() ? `Acceptance:\n${acceptance.trim()}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        const pipeline = await post<PipelineRun>("/api/v1/pipelines", {
+          template: "meta7",
+          board_id: boardId,
+          goal: title.trim(),
+          context: ctxBody || undefined,
+          workspace: workspace.trim(),
+          branch: branch.trim(),
+          executor,
+          model: model.trim(),
+          effort,
+          context_paths: paths.length ? paths : undefined,
+          skills: skills.length ? skills : undefined,
+        });
+        if (pipeline?.goal_task_id && pendingFiles.length > 0) {
+          for (const pf of pendingFiles) {
+            await post(`/api/v1/tasks/${pipeline.goal_task_id}/attachments`, {
+              name: pf.name,
+              mime: pf.mime,
+              data_base64: pf.dataBase64,
+            });
+          }
+        }
+        return { pipeline };
+      }
+
       const created = await post<Task>("/api/v1/tasks", {
         board_id: boardId,
         title: title.trim(),
@@ -358,19 +392,32 @@ export function TaskDialog({
       if (created?.id && startMode === "now" && created.status === "todo") {
         await post(`/api/v1/tasks/${created.id}/dispatch`);
       }
-      return created;
+      return { task: created };
     },
-    onSuccess: (created) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["pipelines"] });
       qc.invalidateQueries({ queryKey: ["overview"] });
       toast(
-        startMode === "now" ? "Task created & dispatched" : startMode === "manual" ? "Saved to backlog" : "Task created",
-        { tone: "success", description: title.trim() }
+        startMode === "meta7"
+          ? "meta7 pipeline launched"
+          : startMode === "now"
+            ? "Task created & dispatched"
+            : startMode === "manual"
+              ? "Saved to backlog"
+              : "Task created",
+        {
+          tone: "success",
+          description:
+            startMode === "meta7"
+              ? `${title.trim()} — 7-stage coordinator active on Pipelines`
+              : title.trim(),
+        }
       );
       onClose();
-      if (created?.id) onCreated?.(created);
+      if (res.task?.id) onCreated?.(res.task);
     },
-    onError: (e) => toastError(e, "Could not create task"),
+    onError: (e) => toastError(e, startMode === "meta7" ? "Could not start meta7 pipeline" : "Could not create task"),
   });
 
   const submitReady = title.trim().length > 0 && !create.isPending;
@@ -430,7 +477,13 @@ export function TaskDialog({
   const selectValue = workspace.trim() ? workspace.trim() : SCRATCH_SENTINEL;
 
   const startLabel =
-    startMode === "now" ? "Start now" : startMode === "manual" ? "Backlog" : "Todo";
+    startMode === "meta7"
+      ? "meta7 pipeline"
+      : startMode === "now"
+        ? "Start now"
+        : startMode === "manual"
+          ? "Backlog"
+          : "Todo";
 
   return (
     <Dialog
@@ -476,7 +529,7 @@ export function TaskDialog({
             <ErrorBox error={create.error} />
             <SaasRulesBanner active={saasActive} />
 
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_256px]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_272px]">
               {/* -------------------------------------------------- content */}
               <div className="min-w-0 space-y-3 rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
                 <div className="space-y-1.5">
@@ -894,15 +947,18 @@ export function TaskDialog({
                         { value: "manual", label: "Manual" },
                         { value: "queue", label: "Todo" },
                         { value: "now", label: "Now" },
+                        { value: "meta7", label: "meta7" },
                       ]}
-                      className="w-full justify-between"
+                      className="w-full justify-between [&>button]:px-1.5 [&>button]:text-[11px]"
                     />
                     <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                      {startMode === "now"
-                        ? "Created in Todo and dispatched immediately."
-                        : startMode === "manual"
-                          ? "Parked in Backlog until you triage it."
-                          : "Queued in Todo for the next worker poll."}
+                      {startMode === "meta7"
+                        ? "Runs the autonomous 7-stage coordinator (explore → cross_examine → synthesize → design → verify → review → impl + gate:*) on this board."
+                        : startMode === "now"
+                          ? "Created in Todo and dispatched immediately."
+                          : startMode === "manual"
+                            ? "Parked in Backlog until you triage it."
+                            : "Queued in Todo for the next worker poll."}
                     </p>
                   </RailGroup>
                 </div>
@@ -932,19 +988,27 @@ export function TaskDialog({
             </Button>
             <Button
               type="submit"
-              variant={startMode === "now" ? "prism" : "signal"}
+              variant={startMode === "now" || startMode === "meta7" ? "prism" : "signal"}
               size="sm"
               loading={create.isPending}
               disabled={!submitReady}
             >
-              {startMode === "now" ? (
+              {startMode === "meta7" ? (
+                <Workflow className="size-3" />
+              ) : startMode === "now" ? (
                 <Play className="size-3 fill-current" />
               ) : startMode === "manual" ? (
                 <Plus className="size-3" />
               ) : (
                 <Send className="size-3" />
               )}
-              {startMode === "now" ? "Create & dispatch" : startMode === "manual" ? "Save to backlog" : "Create task"}
+              {startMode === "meta7"
+                ? "Launch meta7 pipeline"
+                : startMode === "now"
+                  ? "Create & dispatch"
+                  : startMode === "manual"
+                    ? "Save to backlog"
+                    : "Create task"}
               <Kbd className="ml-1 border-white/25 bg-white/15 text-white shadow-none">⌘↵</Kbd>
             </Button>
           </DialogFooter>
