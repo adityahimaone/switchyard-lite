@@ -322,12 +322,16 @@ export function PromptOmnibox({
           </div>
         </div>
       )}
-      <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[10px] text-ink-4">
-        <span>Type</span>
-        <kbd className="font-mono text-ink-3">@</kbd>
-        <span>to reference a workspace file or</span>
-        <kbd className="font-mono text-ink-3">$</kbd>
-        <span>to attach an agent skill.</span>
+      <p className="m-0 mt-1.5 text-left text-[11px] leading-relaxed text-ink-4">
+        Type{" "}
+        <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-line bg-well px-1 font-mono text-[10px] font-semibold text-ink-2">
+          @
+        </kbd>{" "}
+        to reference a workspace file or{" "}
+        <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-line bg-well px-1 font-mono text-[10px] font-semibold text-ink-2">
+          $
+        </kbd>{" "}
+        to attach an agent skill.
       </p>
     </div>
   );
@@ -700,16 +704,22 @@ export function BranchField({
         <p className="m-0 text-[10px] text-ink-4">Reading branches on the owning node…</p>
       )}
       {inspect?.warning && (
-        <p className="m-0 flex items-start gap-1 text-[10px] leading-relaxed text-ink-4">
-          <Info className="mt-px size-2.5 shrink-0" />
-          {inspect.warning}
-        </p>
+        <div className="m-0 mt-1 flex items-start gap-1.5 text-left text-[11px] leading-relaxed text-ink-4">
+          <Info className="mt-0.5 size-3 shrink-0 text-ink-4" aria-hidden />
+          <span className="min-w-0 flex-1">{inspect.warning}</span>
+        </div>
       )}
-      <p className="m-0 flex items-start gap-1 text-[10px] leading-relaxed text-ink-4">
-        <Link2 className="mt-px size-2.5 shrink-0" />
-        An isolated <code className="font-mono">sy/&lt;task-id&gt;</code> worktree is created from this base on the owning node.
-        {isGit ? "" : " This workspace has no git repository; the value is kept for a future checkout."}
-      </p>
+      <div className="m-0 mt-1 flex items-start gap-1.5 text-left text-[11px] leading-relaxed text-ink-4">
+        <Link2 className="mt-0.5 size-3 shrink-0 text-ink-4" aria-hidden />
+        <span className="min-w-0 flex-1">
+          An isolated{" "}
+          <code className="rounded border border-line/60 bg-well px-1 py-0.5 font-mono text-[10.5px] font-medium text-ink-2">
+            sy/&lt;task-id&gt;
+          </code>{" "}
+          worktree is created from this base on the owning node.
+          {isGit ? "" : " This workspace has no git repository; the value is kept for a future checkout."}
+        </span>
+      </div>
     </div>
   );
 }

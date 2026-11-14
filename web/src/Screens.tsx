@@ -5,6 +5,7 @@ import { api, apiOr, del, LIVE_FALLBACK_MS, post, setToken, STATUSES, type FlowT
 import { ErrorBox, LABEL, Lamp, Panel, statusColor, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SearchSelect } from "@/components/ui/search-select";
 import {
   Select,
@@ -764,27 +765,26 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
           </span>
         }
       >
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-well/65 px-3.5 py-1.5 text-xs font-medium text-ink-2">
-            <input
-              type="checkbox"
-              className="w-auto"
+        <div className="mb-4 flex flex-wrap items-center gap-2.5">
+          <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-xs font-medium text-ink-2 shadow-[var(--lift-1),var(--lift-inset)] transition-colors hover:border-line-strong hover:bg-well/50 hover:text-ink select-none">
+            <Checkbox
               checked={dark}
-              onChange={(e) => {
-                setDark(e.target.checked);
-                document.documentElement.classList.toggle("dark", e.target.checked);
-                localStorage.setItem("switchyard.dark", e.target.checked ? "1" : "");
+              onCheckedChange={(checked) => {
+                const isDark = checked === true;
+                setDark(isDark);
+                document.documentElement.classList.toggle("dark", isDark);
+                localStorage.setItem("switchyard.dark", isDark ? "1" : "");
               }}
+              aria-label="Dark mode"
             />
             <span>Dark mode</span>
           </label>
 
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-well/65 px-3.5 py-1.5 text-xs font-medium text-ink-2">
-            <input
-              type="checkbox"
-              className="w-auto"
+          <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-xs font-medium text-ink-2 shadow-[var(--lift-1),var(--lift-inset)] transition-colors hover:border-line-strong hover:bg-well/50 hover:text-ink select-none">
+            <Checkbox
               checked={compact}
-              onChange={(e) => applyCompact(e.target.checked)}
+              onCheckedChange={(checked) => applyCompact(checked === true)}
+              aria-label="Compact card density"
             />
             <span>Compact card density</span>
           </label>

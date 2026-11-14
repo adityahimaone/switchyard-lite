@@ -5,6 +5,7 @@ import { api, ApiError, apiOr, LIVE_FALLBACK_MS, post, type Task } from "./api";
 import { ErrorBox, Lamp, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function DiffView({ text }: { text: string }) {
   const lines = text.split("\n");
@@ -106,12 +107,12 @@ export function ReviewScreen({ taskId, pick }: { taskId?: string; pick: (id: str
           {(boards.data?.length ?? 0) > 1 && (
             <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
           )}
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 shadow-[var(--lift-1)]">
-            <input
-              type="checkbox"
-              className="w-auto"
+          <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[10px] border border-line bg-surface px-2.5 text-xs font-medium text-ink-2 shadow-[var(--lift-1),var(--lift-inset)] transition-colors hover:border-line-strong hover:bg-well/50 hover:text-ink select-none">
+            <Checkbox
+              id="auto-merge-toggle"
               checked={reviewSettings.data?.auto_merge ?? false}
-              onChange={(e) => toggleAutoMerge.mutate(e.target.checked)}
+              onCheckedChange={(checked) => toggleAutoMerge.mutate(checked === true)}
+              aria-label="Auto-merge branch on approve"
             />
             <span>Auto-merge branch on approve</span>
           </label>
