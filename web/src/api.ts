@@ -146,14 +146,46 @@ export interface FlowTask {
   title: string;
   board: string;
   board_id?: string;
+  parent_id?: string;
+  run_id?: string;
+  stage_id?: string;
   node_id: string;
+  machine?: PlatformKey | string;
+  host?: string;
+  latency_ms?: number;
   executor: string;
+  model?: string;
+  branch?: string;
   transport?: string;
   stage: "dispatched" | "running" | "review" | "done" | "failed" | "queued" | "blocked";
   status?: Status;
   workspace?: string;
   blocked_by?: string[];
   updated_at: number;
+}
+
+export interface FlowBoardSummary {
+  id: string;
+  name: string;
+  total: number;
+  active: number;
+}
+
+export interface FlowWorkerSummary {
+  id: string;
+  name: string;
+  path: string;
+  machine: PlatformKey | string;
+  host?: string;
+  status: string;
+  latency_ms?: number;
+}
+
+export interface FlowActiveResponse {
+  tasks: FlowTask[];
+  boards?: FlowBoardSummary[];
+  workers?: FlowWorkerSummary[];
+  retention_seconds: number;
 }
 
 /** Slow safety-net polling; live updates come from the SSE event stream. */

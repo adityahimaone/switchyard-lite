@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DiffView } from "./Review";
-import { Dag, layers } from "./Screens";
+import { Dag, FlowScreen, layers } from "./Screens";
 import { Login } from "./Login";
 import { BoardScreen } from "./Board";
 import { TaskDrawer } from "./Drawer";
@@ -429,4 +429,87 @@ test("switchyard-lite brandkit base components (Button, Select, Pill, AppShell, 
   expect(container.querySelector('[data-slot="app-shell"]')).toBeTruthy();
   expect(container.querySelector('[data-slot="select-trigger"]')).toBeTruthy();
   expect(container.querySelector('[data-slot="search-select-trigger"]')).toBeTruthy();
+});
+
+test("flow screen renders global multi-board topology and traces selected task", async () => {
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/v1/flow/active")) {
+      return new Response(
+        JSON.stringify({
+          retention_seconds: 1800,
+          boards: [
+            { id: "b_1", name: "Alpha", total: 1, active: 1 },
+            { id: "b_2", name: "Beta", total: 1, active: 0 },
+          ],
+          workers: [
+            {
+              id: "w_mac",
+              name: "Mac Studio",
+              path: "/Users/dev/app",
+              machine: "mac",
+              status: "connected",
+              latency_ms: 14,
+            },
+          ],
+          tasks: [
+            {
+              task_id: "t_alpha1",
+              title: "Implement auth middleware",
+              board: "Alpha",
+              board_id: "b_1",
+              node_id: "mac-studio",
+              machine: "mac",
+              executor: "claude",
+              transport: "worker",
+              stage: "running",
+              status: "in_progress",
+              workspace: "/Users/dev/app",
+              blocked_by: [],
+              updated_at: 1000,
+            },
+            {
+              task_id: "t_beta2",
+              title: "Run meta7 design synthesis",
+              board: "Beta",
+              board_id: "b_2",
+              run_id: "run_1",
+              node_id: "",
+              machine: "linux",
+              executor: "codex",
+              transport: "http",
+              stage: "review",
+              status: "review",
+              workspace: "/srv/beta",
+              blocked_by: [],
+              updated_at: 990,
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.includes("/logs")) {
+      return new Response(JSON.stringify({ text: "log line 1", offset: 10, running: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <FlowScreen open={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(await screen.findByText("Implement auth middleware")).toBeTruthy();
+  expect(screen.getByText("Run meta7 design synthesis")).toBeTruthy();
+  expect(screen.getByText("Pipelines & meta7")).toBeTruthy();
+  expect(screen.getByText("14ms")).toBeTruthy();
+
+  fireEvent.click(screen.getByText("Implement auth middleware"));
+  expect(await screen.findByText("Route Hops")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Replay Flow/i })).toBeTruthy();
 });

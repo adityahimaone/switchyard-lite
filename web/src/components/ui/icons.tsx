@@ -97,5 +97,5 @@ export const Trash2 = make("Trash2", K.Trash, "#EF4444");
 export const AlertTriangle = make("AlertTriangle", K.TriangleAlert, "#F59E0B");
 export const Workflow = make("Workflow", K.Workflow, "#8B5CF6");
 
-/** Kubai's "apple" is the fruit; keep the macOS brand mark from lucide. */
-export { Apple } from "lucide-react";
+/** Kubai's "apple" is the fruit; keep the macOS brand mark and flow controls from lucide. */
+export { Apple, Brain, Database, Expand, Minimize2, ZoomIn, ZoomOut } from "lucide-react";

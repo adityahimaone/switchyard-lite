@@ -35,7 +35,6 @@ import {
   setToken,
   STATUSES,
   type Board,
-  type FlowTask,
   type PipelineArtifact,
   type PipelineNode,
   type PipelineRun,
@@ -72,6 +71,7 @@ import { toast, toastError } from "@/components/ui/toast";
 import { WorkerLogPanel } from "@/components/board/OutputPanels";
 import { BranchField, PromptOmnibox, SaasRulesBanner } from "@/components/board/TaskContextFields";
 import { EFFORTS, EXECUTOR_LABELS, EXECUTORS, PLATFORM_LABELS, PlatformIcon } from "@/components/board/TaskDialog";
+import { GlobalFlowMap } from "@/components/flow/GlobalFlowMap";
 
 interface Overview {
   counts: Record<string, number>;
@@ -1690,108 +1690,7 @@ export function PipelineScreen({ open }: { open?: (id: string) => void }) {
 }
 
 export function FlowScreen({ open }: { open: (id: string) => void }) {
-  const { boardId, activeBoard, boards, setBoardId } = useBoardId();
-  const [showAll, setShowAll] = useState(false);
-
-  // Live worker/task mapping from the append-only event state, like
-  // kanban-board's /api/flow/active. One query powers both the DAG and the
-  // live strip; SSE invalidation keeps it fresh without a 1s poll.
-  const q = useQuery({
-    queryKey: ["flow", boardId],
-    enabled: !!boardId,
-    refetchInterval: LIVE_FALLBACK_MS,
-    queryFn: () =>
-      api<{ tasks: FlowTask[]; retention_seconds: number }>(
-        `/api/v1/flow/active?board_id=${encodeURIComponent(boardId)}`
-      ),
-  });
-
-  const all = q.data?.tasks ?? [];
-  const connected = all.filter(
-    (t) => (t.blocked_by?.length ?? 0) > 0 || all.some((o) => (o.blocked_by ?? []).includes(t.task_id))
-  );
-  const source = showAll ? all : connected;
-
-  const stages: Stage[] = source.map((t) => ({
-    id: t.task_id,
-    name: t.title.slice(0, 22),
-    status: t.stage === "running" ? "in_progress" : t.status ?? "todo",
-    depends_on: t.blocked_by ?? [],
-  }));
-  const live = all.filter((t) => ["running", "dispatched", "review"].includes(t.stage));
-
-  return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2>Flow map</h2>
-            <span className="pill-count tabular-nums">{stages.length} nodes</span>
-            <span className="pill-count tabular-nums">{live.length} live</span>
-          </div>
-          <p className="page-subtitle">
-            Live worker mapping and dependency graph {activeBoard ? `for ${activeBoard.name}` : "across tasks"}. Click any node to open it.
-          </p>
-        </div>
-
-        <div className="page-header-actions">
-          <button
-            type="button"
-            className={"chip" + (showAll ? " active" : "")}
-            onClick={() => setShowAll((v) => !v)}
-          >
-            {showAll ? "Showing all board tasks" : "Dependencies only"}
-          </button>
-          {(boards.data?.length ?? 0) > 1 && (
-            <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-          )}
-        </div>
-      </div>
-
-      <ErrorBox error={q.error} />
-
-      {live.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-[18px] border border-line bg-surface/70 p-3 shadow-[var(--lift-1)]">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-3">
-            <Activity className="size-3" /> Live on workers
-          </span>
-          {live.map((t) => (
-            <button
-              key={t.task_id}
-              type="button"
-              onClick={() => open(t.task_id)}
-              title={`${t.stage} · ${t.node_id || "unassigned"} · ${t.executor || "auto"}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/70 px-2.5 py-1 text-[10px] text-ink-2 transition-colors hover:border-accent/50 hover:text-accent-text"
-            >
-              <span className="size-1.5 shrink-0 rounded-full" style={{ background: statusColor(t.status ?? "todo") }} />
-              <span className="max-w-[150px] truncate font-medium">{t.title}</span>
-              <span className="font-mono text-[9px] text-ink-4">{t.node_id || t.stage}</span>
-              {t.executor && <span className="font-mono text-[9px] text-ink-4">{t.executor}</span>}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {stages.length ? (
-        <div
-          className="dot-canvas shadow-[var(--lift-1)]"
-          onClick={(e) => {
-            const g = (e.target as Element).closest("g");
-            const i = g && [...g.parentElement!.querySelectorAll("g")].indexOf(g);
-            if (i !== null && i !== undefined && i >= 0) open(stages[i].id);
-          }}
-        >
-          <Dag stages={stages} />
-        </div>
-      ) : (
-        <div className="rounded-[22px] border border-dashed border-line-strong bg-surface/75 p-6 text-center">
-          <p className="muted m-0 text-xs">
-            No task dependencies yet. Toggle &ldquo;Showing all board tasks&rdquo; above or link tasks via Dependencies.
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  return <GlobalFlowMap open={open} renderDag={(stages) => <Dag stages={stages} />} />;
 }
 
 const PALETTES = [

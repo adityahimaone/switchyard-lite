@@ -2109,3 +2109,58 @@ pre.diff {
   flex: none;
   width: 100%;
 }
+
+/* ------------------------------------------------------------------------- */
+/* Global Interactive Flow Map                                                */
+/* ------------------------------------------------------------------------- */
+
+@keyframes flow-travel {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  50% { offset-distance: 100%; opacity: 1; }
+  58%, 100% { opacity: 0; }
+}
+
+@keyframes flow-idle {
+  0% { offset-distance: 0%; opacity: 0.35; }
+  12%, 88% { opacity: 0.9; }
+  100% { offset-distance: 100%; opacity: 0.35; }
+}
+
+@keyframes flow-active {
+  0% { offset-distance: 0%; opacity: 0; }
+  8%, 92% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+.flow-canvas-grid {
+  background-color: var(--c-canvas, var(--c-well));
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--c-line-strong) 72%, transparent) 1.1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.map-control {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--c-ink-3);
+  transition: color 120ms var(--ease-out-quint), background-color 120ms var(--ease-out-quint), transform 90ms ease;
+}
+
+.map-control:hover {
+  background: var(--c-well);
+  color: var(--c-ink);
+}
+
+.map-control:active {
+  transform: scale(0.95);
+}
+
+.map-control:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: -2px;
+}

@@ -165,3 +165,68 @@ func TestFlowActiveReportsStageAndDependencies(t *testing.T) {
 		t.Fatalf("deps = %+v", byID[second].BlockedBy)
 	}
 }
+
+func TestFlowActiveGlobalAndSmartWindowFallback(t *testing.T) {
+	s, _ := store.Open(":memory:")
+	defer s.Close()
+	h := New(s).Handler()
+	tok, _ := CreateToken(s, "admin", "admin")
+
+	w := do(t, h, "POST", "/api/v1/boards", tok, `{"name":"alpha"}`)
+	b1 := between(w.Body.String(), `"id":"`, `"`)
+	w = do(t, h, "POST", "/api/v1/boards", tok, `{"name":"beta"}`)
+	b2 := between(w.Body.String(), `"id":"`, `"`)
+
+	w = do(t, h, "POST", "/api/v1/tasks", tok, `{"board_id":"`+b1+`","title":"mac-task","workspace":"/Users/dev/app"}`)
+	t1 := between(w.Body.String(), `"id":"`, `"`)
+	w = do(t, h, "POST", "/api/v1/tasks", tok, `{"board_id":"`+b2+`","title":"win-task","workspace":"D:\\xampp\\htdocs\\app"}`)
+	t2 := between(w.Body.String(), `"id":"`, `"`)
+
+	// Mark both done and move their updated_at past the 30-minute window to test smart fallback.
+	if _, err := s.DB.Exec(`UPDATE tasks SET status='done', updated_at=1000 WHERE id IN (?,?)`, t1, t2); err != nil {
+		t.Fatal(err)
+	}
+
+	w = do(t, h, "GET", "/api/v1/flow/active", tok, "")
+	if w.Code != 200 {
+		t.Fatalf("global flow %d %s", w.Code, w.Body)
+	}
+	var res struct {
+		Tasks  []flowTask         `json:"tasks"`
+		Boards []flowBoardSummary `json:"boards"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Tasks) != 2 {
+		t.Fatalf("expected smart fallback across both boards, got %d tasks: %+v", len(res.Tasks), res.Tasks)
+	}
+	if len(res.Boards) != 2 {
+		t.Fatalf("expected 2 board summaries, got %+v", res.Boards)
+	}
+	byID := map[string]flowTask{}
+	for _, ft := range res.Tasks {
+		byID[ft.TaskID] = ft
+	}
+	if byID[t1].Machine != "mac" {
+		t.Fatalf("expected mac inferred machine for /Users/dev/app, got %q", byID[t1].Machine)
+	}
+	if byID[t2].Machine != "windows" {
+		t.Fatalf("expected windows inferred machine for D:\\ path, got %q", byID[t2].Machine)
+	}
+
+	// Explicit 30m window respects strict cutoff.
+	w = do(t, h, "GET", "/api/v1/flow/active?window=30m", tok, "")
+	if w.Code != 200 {
+		t.Fatalf("30m flow %d %s", w.Code, w.Body)
+	}
+	var strict struct {
+		Tasks []flowTask `json:"tasks"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &strict); err != nil {
+		t.Fatal(err)
+	}
+	if len(strict.Tasks) != 0 {
+		t.Fatalf("expected 0 tasks in strict 30m window, got %+v", strict.Tasks)
+	}
+}
