@@ -21,14 +21,12 @@ export function Menu({
 }) {
   return (
     <MenuPrimitive.Root>
-      <MenuPrimitive.Trigger asChild>
-        <span
-          className="contents"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          {trigger}
-        </span>
+      <MenuPrimitive.Trigger
+        asChild
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        {trigger}
       </MenuPrimitive.Trigger>
       <MenuPrimitive.Portal>
         <MenuPrimitive.Content
