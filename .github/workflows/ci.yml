@@ -1,37 +1,149 @@
-name: CI
+name: CI/CD
 
 on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
+    name: Verify (Vet, Test, Build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.x"
+
       - name: Configure git identity for worktree tests
         run: |
           git config --global user.email "ci@switchyard.local"
           git config --global user.name "Switchyard CI"
-      - name: Web install, test, and build
+
+      - name: Web install, test, and typecheck
         run: |
           pnpm -C web install --frozen-lockfile
           pnpm -C web test
+          pnpm -C web exec tsc --noEmit
           pnpm -C web build
-      - name: Go vet, test, and build single binary
+
+      - name: Go vet, test, and build binary
         run: |
           go vet ./...
           go test -race ./...
-          go build -o bin/switchyard-lite ./cmd/switchyard-lite
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/switchyard-lite ./cmd/switchyard-lite
+
+      - name: Upload production binary artifact
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: actions/upload-artifact@v4
+        with:
+          name: switchyard-lite-linux-amd64
+          path: bin/switchyard-lite
+          if-no-files-found: error
+          retention-days: 3
+
+  deploy:
+    name: Auto Deploy to VPS
+    needs: verify
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download production binary
+        uses: actions/download-artifact@v4
+        with:
+          name: switchyard-lite-linux-amd64
+          path: bin
+
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT || 22 }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          APP_DIR: "apps/switchyard-lite"
+          SERVICE: "switchyard-lite"
+          PORT: "8791"
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "Skipping deploy: VPS secrets not configured"
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+          chmod +x bin/switchyard-lite
+          STAMP="$(date +%Y%m%d-%H%M%S)"
+          BIN_SHA="$(sha256sum bin/switchyard-lite | awk '{print $1}')"
+
+          echo "==> Uploading binary ($BIN_SHA)"
+          scp -P "$VPS_PORT" -o BatchMode=yes bin/switchyard-lite "$VPS_USER@$VPS_HOST:/tmp/switchyard-lite.$STAMP"
+
+          echo "==> Remote swap, restart & health check"
+          ssh -p "$VPS_PORT" -o BatchMode=yes "$VPS_USER@$VPS_HOST" bash -s -- "$BIN_SHA" "$STAMP" "$APP_DIR" "$PORT" "$SERVICE" << 'REMOTE'
+          set -euo pipefail
+          SHA="$1"; STAMP="$2"; APP_DIR="$3"; PORT="$4"; SERVICE="$5"
+          cd "$HOME/$APP_DIR"
+
+          git fetch -q origin main 2>/dev/null || true
+          git merge --ff-only -q origin/main 2>/dev/null || true
+          echo "    source $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+
+          echo "$SHA  /tmp/switchyard-lite.$STAMP" | sha256sum -c - >/dev/null \
+            || { echo "checksum mismatch"; exit 3; }
+
+          BK="$HOME/backups/switchyard-lite-$STAMP"
+          mkdir -p "$BK"
+          if [ -f bin/switchyard-lite ]; then
+            cp -a bin/switchyard-lite "$BK/switchyard-lite"
+            echo "    backup saved to $BK"
+          fi
+
+          mkdir -p bin
+          chmod 755 "/tmp/switchyard-lite.$STAMP"
+          cp "/tmp/switchyard-lite.$STAMP" bin/switchyard-lite.new
+          chmod 755 bin/switchyard-lite.new
+          mv -f bin/switchyard-lite.new bin/switchyard-lite
+
+          sudo systemctl restart "$SERVICE"
+
+          code=""
+          for _ in $(seq 1 20); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" || true)"
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+
+          if [ "$code" != "200" ]; then
+            echo "Health check failed (HTTP ${code:-none}) — rolling back" >&2
+            if [ -f "$BK/switchyard-lite" ]; then
+              cp -a "$BK/switchyard-lite" bin/switchyard-lite
+              sudo systemctl restart "$SERVICE" || true
+            fi
+            exit 5
+          fi
+
+          rm -f "/tmp/switchyard-lite.$STAMP"
+          echo "    live sha=$SHA"
+          echo "    health check OK (HTTP 200)"
+          REMOTE
+
+          echo "==> Successfully deployed to $VPS_HOST ($SERVICE)"

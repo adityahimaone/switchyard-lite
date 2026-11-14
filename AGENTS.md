@@ -17,10 +17,12 @@
 - `internal/api` — REST `/api/v1/*` handlers (including `/tasks/{id}/retry`, `/tasks/track/*`, `/tasks/{id}/questions*`, `/knowledge*`), token scope middleware (`read`, `write`, `admin`), admin password session login, and SPA static handler.
 - `internal/webui` + `web/` — Embedded React + Vite + TanStack Query UI (Kanban board with inline question choices & retry controls, Global Flow Map, and 3-column Knowledge Center).
 
-## Verification Commands
+## Verification & Ops Commands
 
 ```bash
 make test
 make lint
 make build
+make ship          # verify + build + deploy to VPS
+make ship-fast     # deploy to VPS without tests
 ```

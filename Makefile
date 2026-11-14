@@ -1,4 +1,4 @@
-.PHONY: dev build test lint web
+.PHONY: dev build test lint web ship ship-fast
 
 build: web
 	@mkdir -p bin
@@ -15,6 +15,12 @@ test:
 lint:
 	go vet ./...
 	pnpm -C web exec tsc --noEmit
+
+ship:
+	./scripts/ship.sh
+
+ship-fast:
+	SHIP_SKIP_TESTS=1 ./scripts/ship.sh
 
 dev:
 	go run ./cmd/switchyard-lite serve
