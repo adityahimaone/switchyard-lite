@@ -63,6 +63,7 @@ type Dispatcher struct {
 	Client *Client
 	Remote *worker.Client
 	Now    func() time.Time
+	LogDir string
 
 	wake    chan struct{}
 	mu      sync.Mutex
@@ -224,6 +225,15 @@ func (d *Dispatcher) Start(ctx context.Context, taskID string) (string, error) {
 		d.release(taskID, runID)
 		return "", ErrNotClaimable
 	}
+	now := d.Now().Unix()
+	_, _ = d.S.DB.Exec(`UPDATE tasks SET started_at=?, completed_at=0, error_sig='', result='' WHERE id=?`, now, taskID)
+	_ = ResetWorkerLog(d.WorkerLogDir(), taskID)
+	_ = d.Tasks.RecordEvent(taskID, "claimed", map[string]any{
+		"run_id":    runID,
+		"worker_id": d.Cfg.WorkerID,
+		"executor":  t.Executor,
+		"model":     t.Model,
+	})
 	d.mu.Lock()
 	d.running[taskID] = true
 	d.mu.Unlock()
@@ -258,12 +268,19 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 	wt, transport, err := d.prepareWorktree(ctx, t)
 	close(stopRenew)
 	if err != nil {
-		d.fail(t, runID, "worktree: "+err.Error())
+		d.failRun(t, runID, "worktree: "+err.Error(), nil, false)
 		return
 	}
 	if wt != nil {
 		d.saveWorktree(t.ID, *wt, transport)
 		workspace = wt.Path
+		_ = d.Tasks.RecordEvent(t.ID, "worktree_ready", map[string]any{
+			"run_id":    runID,
+			"path":      wt.Path,
+			"branch":    wt.Branch,
+			"base_sha":  wt.BaseSHA,
+			"transport": transport,
+		})
 	}
 	var boardName string
 	_ = d.S.DB.QueryRow(`SELECT name FROM boards WHERE id=?`, t.BoardID).Scan(&boardName)
@@ -272,17 +289,47 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 		Model: t.Model, Effort: t.Effort, Executor: t.Executor, Acceptance: t.Acceptance,
 		Paths: t.Paths, Skills: t.Skills, Branch: t.Branch,
 		RunID: runID, TimeoutS: d.Cfg.TimeoutS}
-	if err := d.Client.Dispatch(ctx, req); err != nil {
-		d.fail(t, runID, err.Error())
+	ack, err := d.Client.DispatchWithAck(ctx, req)
+	if err != nil {
+		d.failRun(t, runID, err.Error(), nil, false)
 		return
 	}
+	_ = d.Tasks.RecordEvent(t.ID, "remote_dispatched", map[string]any{
+		"run_id":     runID,
+		"worker_id":  d.Cfg.WorkerID,
+		"executor":   firstNonEmpty(ack.Executor, t.Executor),
+		"model":      firstNonEmpty(ack.Model, t.Model),
+		"session_id": ack.SessionID,
+		"workspace":  workspace,
+	})
+
+	var logOffset int64
+	streamedBytes := 0
+	flushProgress := func() {
+		chunk, nextOff, perr := d.Client.FetchProgress(ctx, t.ID, logOffset)
+		if perr != nil {
+			return
+		}
+		if chunk != "" {
+			_ = AppendWorkerLog(d.WorkerLogDir(), t.ID, chunk)
+			_ = d.Tasks.RecordEvent(t.ID, "worker_output", map[string]any{
+				"run_id": runID,
+				"output": chunk,
+			})
+			streamedBytes += len(chunk)
+		}
+		logOffset = nextOff
+	}
+
 	for {
 		if !d.renew(t.ID, runID) { // lease lost (reaped/stolen): stop touching the task
 			return
 		}
+		flushProgress()
 		res, err := d.Client.FetchResult(ctx, t.ID)
 		if err == nil {
-			d.finish(t, runID, res)
+			flushProgress()
+			d.finishWithStream(t, runID, res, streamedBytes > 0)
 			return
 		}
 		if !errors.Is(err, ErrPending) {
@@ -323,17 +370,39 @@ func (d *Dispatcher) owns(taskID, runID string) bool {
 }
 
 func (d *Dispatcher) finish(t tasks.Task, runID string, res *Result) {
+	d.finishWithStream(t, runID, res, false)
+}
+
+func (d *Dispatcher) finishWithStream(t tasks.Task, runID string, res *Result, streamed bool) {
 	if !res.Success {
-		msg := res.Error
-		if msg == "" {
-			msg = res.Output
-		}
-		d.fail(t, runID, msg)
+		d.failRun(t, runID, res.Error, res, streamed)
 		return
 	}
 	if !d.owns(t.ID, runID) {
 		return
 	}
+	if !streamed && res.Output != "" {
+		_ = AppendWorkerLog(d.WorkerLogDir(), t.ID, res.Output)
+		_ = d.Tasks.RecordEvent(t.ID, "worker_output", map[string]any{
+			"run_id": runID,
+			"output": res.Output,
+		})
+	}
+	now := d.Now().Unix()
+	_, _ = d.S.DB.Exec(`UPDATE tasks SET result=?, error_sig='', completed_at=? WHERE id=?`, res.Output, now, t.ID)
+	payload := map[string]any{
+		"run_id":      runID,
+		"worker_id":   d.Cfg.WorkerID,
+		"executor":    firstNonEmpty(res.Executor, t.Executor),
+		"model":       firstNonEmpty(res.Model, t.Model),
+		"session_id":  firstNonEmpty(res.SessionID, res.DshSessionID),
+		"duration_ms": res.DurationMs,
+		"output":      trunc(res.Output, 65536),
+	}
+	if u := UsageFromJSON(res.Usage, res.Output); u != nil {
+		payload["usage"] = u
+	}
+	_ = d.Tasks.RecordEvent(t.ID, "completed", payload)
 	if res.Output != "" {
 		_, _ = d.Tasks.AddComment(t.ID, "worker", res.Output)
 	}
@@ -342,16 +411,62 @@ func (d *Dispatcher) finish(t tasks.Task, runID string, res *Result) {
 }
 
 func (d *Dispatcher) fail(t tasks.Task, runID, reason string) {
+	d.failRun(t, runID, reason, nil, false)
+}
+
+func (d *Dispatcher) failRun(t tasks.Task, runID, rawErr string, res *Result, streamed bool) {
 	if !d.owns(t.ID, runID) {
 		return
 	}
-	_, _ = d.Tasks.AddComment(t.ID, "dispatcher", "attempt failed: "+reason)
+	var rawOut, sessionID, executor, model string
+	var durationMs int64
+	var rawUsage map[string]any
+	if res != nil {
+		rawOut = res.Output
+		if rawErr == "" {
+			rawErr = res.Error
+		}
+		sessionID = firstNonEmpty(res.SessionID, res.DshSessionID)
+		executor = res.Executor
+		model = res.Model
+		durationMs = res.DurationMs
+		rawUsage = res.Usage
+	}
+	if !streamed && rawOut != "" {
+		_ = AppendWorkerLog(d.WorkerLogDir(), t.ID, rawOut)
+		_ = d.Tasks.RecordEvent(t.ID, "worker_output", map[string]any{
+			"run_id": runID,
+			"output": rawOut,
+		})
+	}
+	reason, permanent := ExtractFailureReason(rawErr, rawOut)
+	now := d.Now().Unix()
+
 	var retries int
 	_ = d.S.DB.QueryRow(`SELECT retry_count FROM tasks WHERE id=?`, t.ID).Scan(&retries)
 	retries++
-	_, _ = d.S.DB.Exec(`UPDATE tasks SET retry_count=?, error_sig=? WHERE id=?`, retries, trunc(reason, 200), t.ID)
+	_, _ = d.S.DB.Exec(`UPDATE tasks SET retry_count=?, error_sig=?, result=?, completed_at=? WHERE id=?`,
+		retries, trunc(reason, 200), rawOut, now, t.ID)
+
+	payload := map[string]any{
+		"run_id":      runID,
+		"worker_id":   d.Cfg.WorkerID,
+		"executor":    firstNonEmpty(executor, t.Executor),
+		"model":       firstNonEmpty(model, t.Model),
+		"session_id":  sessionID,
+		"duration_ms": durationMs,
+		"error":       reason,
+		"permanent":   permanent,
+		"output":      trunc(rawOut, 65536),
+	}
+	if u := UsageFromJSON(rawUsage, rawOut); u != nil {
+		payload["usage"] = u
+	}
+	_ = d.Tasks.RecordEvent(t.ID, "failed", payload)
+	_, _ = d.Tasks.AddComment(t.ID, "dispatcher", "attempt failed: "+reason)
+
 	next := tasks.Todo
-	if retries > d.Cfg.MaxRetries {
+	if retries > d.Cfg.MaxRetries || permanent {
 		next = tasks.Failed
 	}
 	_, _ = d.Tasks.Move(t.ID, next, "dispatcher")

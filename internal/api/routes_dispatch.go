@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -432,6 +433,85 @@ func init() {
 				return
 			}
 			ok(w, map[string]any{"exists": true, "repo": repo, "path": path, "branch": branch, "base_sha": baseSHA})
+		}))
+		m.HandleFunc("GET /api/v1/tasks/{id}/logs", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			id := r.PathValue("id")
+			t, err := a.Tasks.Get(id)
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			var offset int64
+			if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
+				if v, perr := strconv.ParseInt(raw, 10, 64); perr == nil && v >= 0 {
+					offset = v
+				}
+			}
+			text, nextOffset, err := dispatch.WorkerLogTail(x.d.WorkerLogDir(), id, offset)
+			if err != nil {
+				fail(w, 500, err.Error())
+				return
+			}
+			if text == "" && nextOffset == 0 && offset == 0 && t.Result != "" {
+				text = t.Result
+				nextOffset = int64(len(t.Result))
+			}
+			ok(w, map[string]any{
+				"text":    text,
+				"offset":  nextOffset,
+				"running": t.Status == tasks.InProgress,
+			})
+		}))
+		m.HandleFunc("GET /api/v1/tasks/{id}/runs", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			id := r.PathValue("id")
+			t, err := a.Tasks.Get(id)
+			if err != nil {
+				fromErr(w, err)
+				return
+			}
+			var all []tasks.Event
+			var since int64
+			for len(all) < 5000 {
+				batch, err := a.Tasks.Events(id, since, 500)
+				if err != nil {
+					fail(w, 500, err.Error())
+					return
+				}
+				all = append(all, batch...)
+				if len(batch) < 500 {
+					break
+				}
+				since = batch[len(batch)-1].ID
+			}
+			runs := dispatch.GroupTaskRuns(all)
+			if len(runs) == 0 && (t.StartedAt > 0 || t.Result != "" || t.ErrorSig != "") {
+				status := string(t.Status)
+				switch t.Status {
+				case tasks.InProgress:
+					status = "running"
+				case tasks.Review, tasks.Done:
+					status = "completed"
+				}
+				var durS, durMS int64
+				if t.StartedAt > 0 && t.CompletedAt >= t.StartedAt {
+					durS = t.CompletedAt - t.StartedAt
+					durMS = durS * 1000
+				}
+				runs = append(runs, dispatch.TaskRun{
+					Run:        1,
+					Executor:   t.Executor,
+					Model:      t.Model,
+					Status:     status,
+					StartedAt:  t.StartedAt,
+					EndedAt:    t.CompletedAt,
+					DurationS:  durS,
+					DurationMS: durMS,
+					Error:      t.ErrorSig,
+					Output:     t.Result,
+					Usage:      dispatch.UsageFromJSON(nil, t.Result),
+				})
+			}
+			ok(w, map[string]any{"runs": runs})
 		}))
 		m.HandleFunc("DELETE /api/v1/workspaces/{id}", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			_, _ = a.S.DB.Exec(`DELETE FROM dispatch_workspaces WHERE id=?`, r.PathValue("id"))

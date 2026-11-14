@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   branch TEXT NOT NULL DEFAULT '',
   retry_count INTEGER NOT NULL DEFAULT 0,
   error_sig TEXT NOT NULL DEFAULT '',
+  result TEXT NOT NULL DEFAULT '',
+  started_at INTEGER NOT NULL DEFAULT 0,
+  completed_at INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

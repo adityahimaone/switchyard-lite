@@ -19,6 +19,10 @@ export interface Task {
   /** Base branch for the isolated worktree (empty = current HEAD). */
   branch?: string;
   retry_count: number;
+  error_sig?: string;
+  result?: string;
+  started_at?: number;
+  completed_at?: number;
   blocked_by: string[];
   run_id?: string;
   stage_id?: string;
@@ -230,6 +234,56 @@ export interface TaskEvent {
   kind: string;
   payload?: unknown;
   created_at: number;
+}
+
+export interface WorkerLogChunk {
+  text: string;
+  offset: number;
+  running: boolean;
+}
+
+export interface TaskRunUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_tokens?: number;
+  cache_write_tokens?: number;
+  total_tokens?: number;
+  cost_usd?: number;
+  duration_ms?: number;
+  turns?: number;
+  model?: string;
+}
+
+export interface TaskRun {
+  run: number;
+  worker_id?: string;
+  session_id?: string;
+  executor?: string;
+  model?: string;
+  status: string;
+  started_at: number;
+  ended_at?: number;
+  duration_s?: number;
+  duration_ms?: number;
+  error?: string;
+  output?: string;
+  usage?: TaskRunUsage;
+  events: number;
+}
+
+export function fetchWorkerLog(taskId: string, offset = 0): Promise<WorkerLogChunk> {
+  return apiOr<WorkerLogChunk>(
+    `/api/v1/tasks/${encodeURIComponent(taskId)}/logs?offset=${offset}`,
+    { text: "", offset, running: false }
+  );
+}
+
+export async function fetchTaskRuns(taskId: string): Promise<TaskRun[]> {
+  const res = await apiOr<{ runs?: TaskRun[] }>(
+    `/api/v1/tasks/${encodeURIComponent(taskId)}/runs`,
+    { runs: [] }
+  );
+  return res.runs ?? [];
 }
 
 export class ApiError extends Error {

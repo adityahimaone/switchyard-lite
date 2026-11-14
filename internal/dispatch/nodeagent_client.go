@@ -36,12 +36,30 @@ type Request struct {
 
 // Result mirrors kanban NodeDispatchResult (shared subset).
 type Result struct {
-	TaskID     string `json:"task_id"`
-	Success    bool   `json:"success"`
-	Output     string `json:"output"`
-	Error      string `json:"error,omitempty"`
-	DurationMs int64  `json:"duration_ms"`
-	SessionID  string `json:"session_id,omitempty"`
+	TaskID       string         `json:"task_id"`
+	Success      bool           `json:"success"`
+	Output       string         `json:"output"`
+	Error        string         `json:"error,omitempty"`
+	DurationMs   int64          `json:"duration_ms"`
+	SessionID    string         `json:"session_id,omitempty"`
+	DshSessionID string         `json:"dsh_session_id,omitempty"`
+	Executor     string         `json:"executor,omitempty"`
+	Model        string         `json:"model,omitempty"`
+	Usage        map[string]any `json:"usage,omitempty"`
+}
+
+// Ack holds optional metadata returned by POST /api/dispatch.
+type Ack struct {
+	Accepted  bool   `json:"accepted,omitempty"`
+	Executor  string `json:"executor,omitempty"`
+	Model     string `json:"model,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
+}
+
+// ProgressChunk represents incremental worker output returned by GET /api/progress/{taskID}.
+type ProgressChunk struct {
+	Text   string `json:"text"`
+	Offset int64  `json:"offset"`
 }
 
 // ErrPending means the node-agent has no result yet.
@@ -85,14 +103,46 @@ func (c *Client) do(ctx context.Context, method, path string, body any) (int, []
 
 // Dispatch submits a task.
 func (c *Client) Dispatch(ctx context.Context, r Request) error {
+	_, err := c.DispatchWithAck(ctx, r)
+	return err
+}
+
+// DispatchWithAck submits a task and decodes optional executor/model/session ack fields.
+func (c *Client) DispatchWithAck(ctx context.Context, r Request) (Ack, error) {
 	code, b, err := c.do(ctx, "POST", "/api/dispatch", r)
 	if err != nil {
-		return err
+		return Ack{}, err
 	}
 	if code/100 != 2 {
-		return fmt.Errorf("node-agent dispatch: %d %s", code, strings.TrimSpace(string(b)))
+		return Ack{}, fmt.Errorf("node-agent dispatch: %d %s", code, strings.TrimSpace(string(b)))
 	}
-	return nil
+	var ack Ack
+	if len(b) > 0 {
+		_ = json.Unmarshal(b, &ack)
+	}
+	return ack, nil
+}
+
+// FetchProgress retrieves incremental log output from offset.
+func (c *Client) FetchProgress(ctx context.Context, taskID string, offset int64) (string, int64, error) {
+	code, b, err := c.do(ctx, "GET", fmt.Sprintf("/api/progress/%s?offset=%d", taskID, offset), nil)
+	if err != nil {
+		return "", offset, err
+	}
+	if code == http.StatusNotFound || code == http.StatusNoContent {
+		return "", offset, nil
+	}
+	if code/100 != 2 {
+		return "", offset, fmt.Errorf("node-agent progress: %d %s", code, strings.TrimSpace(string(b)))
+	}
+	var chunk ProgressChunk
+	if err := json.Unmarshal(b, &chunk); err != nil {
+		return "", offset, err
+	}
+	if chunk.Offset < offset {
+		chunk.Offset = offset
+	}
+	return chunk.Text, chunk.Offset, nil
 }
 
 // FetchResult returns ErrPending while the job is unfinished (202/404).

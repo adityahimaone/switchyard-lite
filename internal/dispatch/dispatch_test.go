@@ -72,6 +72,7 @@ func setup(t *testing.T, f *fake) (*Dispatcher, tasks.Task) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	d.LogDir = t.TempDir()
 	b, _ := d.Tasks.CreateBoard("b")
 	tk, err := d.Tasks.Create(tasks.NewTask{BoardID: b.ID, Title: "t", Prompt: "do it", Workspace: t.TempDir()})
 	if err != nil {
@@ -177,5 +178,137 @@ func TestFailureRetriesThenFails(t *testing.T) {
 func TestNonGitSkipsWorktree(t *testing.T) {
 	if IsGit(t.TempDir()) {
 		t.Fatal("tempdir is not git")
+	}
+}
+
+func TestExtractFailureReasonDshQuota(t *testing.T) {
+	dshOutput := strings.Join([]string{
+		`{"type":"turn_start","turn":1,"model":"alicn/deepseek-v4.1-flash-1017"}`,
+		`{"type":"turn_end","turn":1,"error":{"code":"QUOTA","source":"inferhub","status":402,"message":"balance too low for this request — deposit USDC to continue"}}`,
+		`{"type":"final","status":"error","error":"balance too low for this request — deposit USDC to continue"}`,
+	}, "\n")
+	reason, permanent := ExtractFailureReason("exit status 1", dshOutput)
+	if !permanent {
+		t.Fatalf("expected permanent=true, got false (reason=%q)", reason)
+	}
+	if !strings.Contains(strings.ToLower(reason), "balance too low") {
+		t.Fatalf("unexpected reason: %q", reason)
+	}
+}
+
+func TestWorkerLogTailIncrementalAndReset(t *testing.T) {
+	dir := t.TempDir()
+	if err := AppendWorkerLog(dir, "t_1", "line 1\n"); err != nil {
+		t.Fatal(err)
+	}
+	text, off, err := WorkerLogTail(dir, "t_1", 0)
+	if err != nil || text != "line 1\n" || off != 7 {
+		t.Fatalf("tail1: text=%q off=%d err=%v", text, off, err)
+	}
+	if err := AppendWorkerLog(dir, "t_1", "line 2\n"); err != nil {
+		t.Fatal(err)
+	}
+	text2, off2, err := WorkerLogTail(dir, "t_1", off)
+	if err != nil || text2 != "line 2\n" || off2 != 14 {
+		t.Fatalf("tail2: text=%q off=%d err=%v", text2, off2, err)
+	}
+	if err := ResetWorkerLog(dir, "t_1"); err != nil {
+		t.Fatal(err)
+	}
+	text3, off3, err := WorkerLogTail(dir, "t_1", off2)
+	if err != nil || text3 != "" || off3 != 0 {
+		t.Fatalf("tail after reset: text=%q off=%d err=%v", text3, off3, err)
+	}
+}
+
+func TestProgressPollingAndHardQuotaFailsImmediately(t *testing.T) {
+	dshOutput := `{"type":"turn_start","turn":1,"model":"alicn/deepseek-v4.1-flash-1017"}` + "\n" +
+		`{"type":"turn_end","turn":1,"error":{"code":"QUOTA","source":"inferhub","status":402,"message":"balance too low for this request — deposit USDC to continue"}}` + "\n"
+
+	var progressHits int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "POST" && r.URL.Path == "/api/dispatch":
+			w.WriteHeader(202)
+			_, _ = w.Write([]byte(`{"accepted":true,"executor":"dsh","model":"alicn/deepseek-v4.1-flash-1017"}`))
+		case strings.HasPrefix(r.URL.Path, "/api/progress/"):
+			n := atomic.AddInt32(&progressHits, 1)
+			offStr := r.URL.Query().Get("offset")
+			if n == 1 || offStr == "0" || offStr == "" {
+				_ = json.NewEncoder(w).Encode(ProgressChunk{Text: dshOutput[:40], Offset: 40})
+			} else if offStr == "40" {
+				_ = json.NewEncoder(w).Encode(ProgressChunk{Text: dshOutput[40:], Offset: int64(len(dshOutput))})
+			} else {
+				_ = json.NewEncoder(w).Encode(ProgressChunk{Text: "", Offset: int64(len(dshOutput))})
+			}
+		case strings.HasPrefix(r.URL.Path, "/api/results/"):
+			if atomic.LoadInt32(&progressHits) < 2 {
+				w.WriteHeader(202)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(Result{
+				TaskID:       "t_quota",
+				Success:      false,
+				Error:        "exit status 1",
+				Output:       dshOutput,
+				DurationMs:   10397,
+				DshSessionID: "session-c1f8aa59",
+			})
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := New(s, Config{NodeAgentURL: srv.URL, Token: "tok", Poll: 5 * time.Millisecond, Lease: time.Minute, MaxRetries: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.LogDir = t.TempDir()
+	b, _ := d.Tasks.CreateBoard("b")
+	tk, err := d.Tasks.Create(tasks.NewTask{BoardID: b.ID, Title: "Git Pull", Prompt: "git pull", Workspace: t.TempDir(), Executor: "dsh"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := d.Start(context.Background(), tk.ID); err != nil {
+		t.Fatal(err)
+	}
+	d.Wait()
+
+	got, err := d.Tasks.Get(tk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != tasks.Failed {
+		t.Fatalf("expected permanent quota error to move immediately to failed, got %s (error_sig=%q)", got.Status, got.ErrorSig)
+	}
+	if !strings.Contains(strings.ToLower(got.ErrorSig), "balance too low") {
+		t.Fatalf("expected extracted error_sig, got %q", got.ErrorSig)
+	}
+	if got.Result != dshOutput {
+		t.Fatalf("expected persisted result, got %q", got.Result)
+	}
+
+	logText, _, err := WorkerLogTail(d.WorkerLogDir(), tk.ID, 0)
+	if err != nil || logText != dshOutput {
+		t.Fatalf("worker log mismatch: %q (err=%v)", logText, err)
+	}
+
+	evs, err := d.Tasks.Events(tk.ID, 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runs := GroupTaskRuns(evs)
+	if len(runs) != 1 {
+		t.Fatalf("expected 1 run, got %d (%+v)", len(runs), runs)
+	}
+	if runs[0].Status != "failed" || runs[0].SessionID != "session-c1f8aa59" || runs[0].Executor != "dsh" {
+		t.Fatalf("unexpected run summary: %+v", runs[0])
+	}
+	if runs[0].Usage == nil || runs[0].Usage.Turns != 1 {
+		t.Fatalf("expected turns=1 from dsh output, got %+v", runs[0].Usage)
 	}
 }

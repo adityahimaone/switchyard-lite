@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronDown,
   ChevronRight,
   CircleDot,
   Cpu,
@@ -11,6 +12,7 @@ import {
   MessageSquare,
   Paperclip,
   Pencil,
+  ScrollText,
   Send,
   Trash2,
 } from "@/components/ui/icons";
@@ -18,6 +20,7 @@ import {
   api,
   apiOr,
   del,
+  fetchTaskRuns,
   getToken,
   LIVE_FALLBACK_MS,
   parseModelCatalog,
@@ -28,9 +31,14 @@ import {
   type Status,
   type Task,
   type TaskEvent,
+  type TaskRun,
   type Workspace,
   type WorktreeInfo,
 } from "@/api";
+import { AgentTaskStatus, ToneBadge } from "@/components/board/AgentStatus";
+import { TaskOutput, WorkerLogPanel } from "@/components/board/OutputPanels";
+import { parseEventCards, traceSpansFromHistory, type EventTone } from "@/components/board/taskTrace";
+import { AgentTrace } from "@/components/ui/agent-trace";
 import { EFFORTS, EXECUTORS, useBoardId } from "@/Board";
 import { cn } from "@/lib/utils";
 import { ErrorBox } from "@/ui";
@@ -88,10 +96,17 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 const EVENT_META: Record<string, { label: string; tone: "default" | "success" | "danger" | "accent" | "review" }> = {
+  "task.created": { label: "Task created", tone: "accent" },
   created: { label: "Task created", tone: "accent" },
+  "task.moved": { label: "Status changed", tone: "accent" },
   moved: { label: "Status changed", tone: "accent" },
   status_changed: { label: "Status changed", tone: "accent" },
+  "task.dep_added": { label: "Dependency added", tone: "default" },
+  "comment.added": { label: "Comment added", tone: "default" },
   dispatched: { label: "Dispatched to worker", tone: "accent" },
+  remote_dispatched: { label: "Dispatched to node-agent", tone: "accent" },
+  worktree_ready: { label: "Git worktree prepared", tone: "accent" },
+  worker_output: { label: "Worker output chunk", tone: "default" },
   claimed: { label: "Claimed by worker", tone: "accent" },
   lease_renewed: { label: "Lease renewed", tone: "default" },
   completed: { label: "Run completed", tone: "success" },
@@ -102,6 +117,14 @@ const EVENT_META: Record<string, { label: string; tone: "default" | "success" | 
   dependency_added: { label: "Dependency added", tone: "default" },
   dependency_removed: { label: "Dependency removed", tone: "default" },
   comment_added: { label: "Comment added", tone: "default" },
+};
+
+const GROUP_DOT: Record<EventTone, string> = {
+  accent: "bg-accent",
+  success: "bg-success",
+  danger: "bg-danger",
+  warning: "bg-warning",
+  neutral: "bg-ink-4",
 };
 
 export function TaskDetailPanels({
@@ -129,8 +152,9 @@ export function TaskDetailPanels({
   const task = useQuery({
     queryKey: ["task", id],
     queryFn: () => api<Task>(`/api/v1/tasks/${id}`),
-    refetchInterval: LIVE_FALLBACK_MS,
+    refetchInterval: (q) => (q.state.data?.status === "in_progress" ? 3000 : LIVE_FALLBACK_MS),
   });
+  const isInProgress = task.data?.status === "in_progress";
 
   const workspaces = useQuery({
     queryKey: ["workspaces"],
@@ -151,8 +175,14 @@ export function TaskDetailPanels({
 
   const events = useQuery({
     queryKey: ["events", id],
-    refetchInterval: LIVE_FALLBACK_MS,
+    refetchInterval: isInProgress ? 3000 : LIVE_FALLBACK_MS,
     queryFn: () => api<TaskEvent[]>(`/api/v1/events?task_id=${id}`),
+  });
+
+  const runs = useQuery({
+    queryKey: ["runs", id],
+    refetchInterval: isInProgress ? 3000 : LIVE_FALLBACK_MS,
+    queryFn: () => fetchTaskRuns(id),
   });
 
   const attachments = useQuery({
@@ -436,6 +466,15 @@ export function TaskDetailPanels({
 
   const eventCount = events.data?.length ?? 0;
   const commentCount = comments.data?.length ?? 0;
+  const runsList: TaskRun[] = runs.data ?? [];
+  const runCount = runsList.length;
+
+  const traceData = useMemo(() => {
+    if (!t) return { originMs: Date.now(), totalDurationMs: 1000, spans: [] };
+    return traceSpansFromHistory(t, events.data ?? [], runsList);
+  }, [t, events.data, runsList]);
+
+  const eventGroups = useMemo(() => parseEventCards(events.data ?? []), [events.data]);
 
   return (
     <Tabs value={tab} onValueChange={setTab} className="gap-0">
@@ -451,6 +490,17 @@ export function TaskDetailPanels({
         <TabsTrigger value="overview">
           <CircleDot className="size-3.5" />
           Overview
+        </TabsTrigger>
+        <TabsTrigger value="output">
+          <ScrollText className="size-3.5" />
+          Output
+          {t?.status === "in_progress" ? (
+            <span className="size-1.5 rounded-full bg-accent animate-pulse" aria-hidden />
+          ) : runCount > 0 ? (
+            <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-2">
+              {runCount}
+            </span>
+          ) : null}
         </TabsTrigger>
         <TabsTrigger value="diff">
           <FileCode2 className="size-3.5" />
@@ -707,6 +757,70 @@ export function TaskDetailPanels({
                   />
                 </div>
 
+                <AgentTaskStatus
+                  task={t}
+                  runs={runsList}
+                  events={events.data ?? []}
+                  onOpenOutput={() => setTab("output")}
+                  onOpenHistory={() => setTab("history")}
+                />
+
+                {(t.status === "in_progress" ||
+                  t.status === "failed" ||
+                  Boolean(t.result || t.error_sig || runCount > 0)) && (
+                  <WorkerLogPanel
+                    taskId={t.id}
+                    running={t.status === "in_progress"}
+                    initialText={t.result || runsList[runsList.length - 1]?.output || ""}
+                    compact
+                    title={t.status === "in_progress" ? "Live worker output" : "Latest worker log"}
+                  />
+                )}
+
+                {runCount > 0 && (
+                  <Section
+                    title={`Execution runs (${runCount})`}
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => setTab("output")}
+                        className="text-[10.5px] font-medium text-accent-text hover:underline"
+                      >
+                        Open Output
+                      </button>
+                    }
+                  >
+                    <div className="flex flex-wrap gap-1.5">
+                      {[...runsList].reverse().map((r) => {
+                        const tone =
+                          r.status === "failed" || r.status === "interrupted" || r.status === "timeout"
+                            ? "danger"
+                            : r.status === "running"
+                              ? "accent"
+                              : "success";
+                        const dur = r.duration_ms
+                          ? `${(r.duration_ms / 1000).toFixed(1)}s`
+                          : r.duration_s
+                            ? `${r.duration_s}s`
+                            : "";
+                        return (
+                          <button
+                            key={r.run}
+                            type="button"
+                            onClick={() => setTab("output")}
+                            className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-well/60 px-2 py-1 text-[11px] hover:border-line-strong hover:bg-well"
+                          >
+                            <span className="font-mono font-medium text-ink">#{r.run}</span>
+                            <ToneBadge tone={tone}>{r.status}</ToneBadge>
+                            {r.executor && <span className="font-mono text-ink-3">{r.executor}</span>}
+                            {dur && <span className="font-mono tabular-nums text-ink-2">{dur}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Section>
+                )}
+
                 <Section
                   title="Prompt"
                   action={<CopyButton value={t.prompt || ""} label="Copy prompt" />}
@@ -960,6 +1074,11 @@ export function TaskDetailPanels({
         )}
       </TabsContent>
 
+      {/* ------------------------------------------------------------ Output */}
+      <TabsContent value="output" className="pt-3">
+        {t && <TaskOutput task={t} runs={runsList} />}
+      </TabsContent>
+
       {/* ---------------------------------------------------- Diff & Worktree */}
       <TabsContent value="diff" className="pt-3">
         {t && (
@@ -1054,7 +1173,72 @@ export function TaskDetailPanels({
       </TabsContent>
 
       {/* ----------------------------------------------------------- History */}
-      <TabsContent value="history" className="pt-3">
+      <TabsContent value="history" className="space-y-3 pt-3">
+        {t && traceData.spans.length > 0 && (
+          <AgentTrace
+            spans={traceData.spans}
+            originMs={traceData.originMs}
+            totalDurationMs={traceData.totalDurationMs}
+            title="Tracer History"
+            subtitle={t.id}
+          />
+        )}
+
+        {eventGroups.length > 0 && (
+          <Section
+            title={`Run & Lifecycle Groups (${eventGroups.length})`}
+            action={<span className="text-[10px] text-ink-4">newest first</span>}
+          >
+            <div className="space-y-2">
+              {[...eventGroups].reverse().map((grp, idx) => (
+                <details
+                  key={grp.id}
+                  open={idx === 0 || grp.status === "danger"}
+                  className="overflow-hidden rounded-[8px] border border-line bg-surface"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-well/40 px-3 py-2 text-xs hover:bg-well/70">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <ChevronDown className="size-3.5 shrink-0 text-ink-3" />
+                      <span className={cn("size-2 shrink-0 rounded-full", GROUP_DOT[grp.status])} />
+                      <span className="truncate font-medium text-ink">{grp.title}</span>
+                      <ToneBadge tone={grp.status}>{grp.events.length} events</ToneBadge>
+                    </span>
+                    <span className="font-mono text-[10.5px] text-ink-4" title={fmtDateTime(grp.startedAt)}>
+                      {fmtTime(grp.startedAt)} · {relativeTime(grp.startedAt)}
+                    </span>
+                  </summary>
+                  <div className="divide-y divide-line/60 border-t border-line">
+                    {grp.events.map((card) => (
+                      <div key={card.id} className="flex items-start justify-between gap-2 px-3 py-1.5 text-xs">
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={cn("size-1.5 rounded-full", GROUP_DOT[card.tone])} />
+                            <span className="font-medium text-ink">{card.title}</span>
+                            {card.actor && (
+                              <span className="rounded border border-line bg-well px-1 py-0.5 font-mono text-[10px] leading-none text-ink-3">
+                                {card.actor}
+                              </span>
+                            )}
+                            {card.badge && <ToneBadge tone={card.tone}>{card.badge}</ToneBadge>}
+                          </div>
+                          {card.subtitle && (
+                            <p className="m-0 break-words pl-3 font-mono text-[11px] text-ink-3">
+                              {card.subtitle}
+                            </p>
+                          )}
+                        </div>
+                        <span className="shrink-0 font-mono text-[10px] text-ink-4">
+                          {fmtTime(card.at)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </Section>
+        )}
+
         <Section
           title={`Activity${eventCount ? ` (${eventCount})` : ""}`}
           action={eventCount > 0 ? <span className="text-[10px] text-ink-4">newest first</span> : undefined}

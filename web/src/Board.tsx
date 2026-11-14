@@ -41,6 +41,7 @@ import {
   type Workspace,
 } from "./api";
 import { OsIcon, StatusBadge } from "@/components/board/taskDetailParts";
+import { RunningIndicator } from "@/components/board/AgentStatus";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
 import { relativeTime } from "@/lib/time";
@@ -839,6 +840,14 @@ export function BoardScreen({
                               {!t.blocked_by?.length && t.retry_count > 0 && (
                                 <span className="badge warn shrink-0">retry {t.retry_count}</span>
                               )}
+                              {t.error_sig && (
+                                <span
+                                  className="badge border-danger/35 bg-danger-tint text-danger-text max-w-[165px] truncate"
+                                  title={t.error_sig}
+                                >
+                                  {t.error_sig}
+                                </span>
+                              )}
                             </div>
 
                             <div className="card-footer">
@@ -857,6 +866,8 @@ export function BoardScreen({
                                   <Play className="size-2.5 fill-current" />
                                   <span>Dispatch</span>
                                 </button>
+                              ) : t.status === "in_progress" ? (
+                                <RunningIndicator task={t} compact />
                               ) : (
                                 <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-accent-text opacity-0 transition-opacity group-hover:opacity-100">
                                   Open

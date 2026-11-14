@@ -68,11 +68,15 @@ type Task struct {
 	// composer. Branch is the base branch for the isolated worktree.
 	Paths      []string `json:"paths"`
 	Skills     []string `json:"skills"`
-	Branch     string   `json:"branch,omitempty"`
-	RetryCount int      `json:"retry_count"`
-	BlockedBy  []string `json:"blocked_by"`
-	CreatedAt  int64    `json:"created_at"`
-	UpdatedAt  int64    `json:"updated_at"`
+	Branch      string   `json:"branch,omitempty"`
+	RetryCount  int      `json:"retry_count"`
+	ErrorSig    string   `json:"error_sig,omitempty"`
+	Result      string   `json:"result,omitempty"`
+	StartedAt   int64    `json:"started_at,omitempty"`
+	CompletedAt int64    `json:"completed_at,omitempty"`
+	BlockedBy   []string `json:"blocked_by"`
+	CreatedAt   int64    `json:"created_at"`
+	UpdatedAt   int64    `json:"updated_at"`
 }
 
 type NewTask struct {
@@ -131,6 +135,19 @@ func (v *Service) event(tx *sql.Tx, taskID, kind string, payload any) error {
 	b, _ := json.Marshal(payload)
 	_, err := tx.Exec(`INSERT INTO events(task_id,kind,payload,created_at) VALUES(?,?,?,?)`,
 		taskID, kind, string(b), v.Now().Unix())
+	return err
+}
+
+// RecordEvent appends a structured lifecycle event to the task history stream.
+func (v *Service) RecordEvent(taskID, kind string, payload any) error {
+	raw := "{}"
+	if payload != nil {
+		if b, err := json.Marshal(payload); err == nil && len(b) > 0 {
+			raw = string(b)
+		}
+	}
+	_, err := v.S.DB.Exec(`INSERT INTO events(task_id,kind,payload,created_at) VALUES(?,?,?,?)`,
+		taskID, kind, raw, v.Now().Unix())
 	return err
 }
 
@@ -244,14 +261,14 @@ func (v *Service) Create(n NewTask) (Task, error) {
 }
 
 const cols = `id,board_id,COALESCE(parent_id,''),run_id,stage_id,title,prompt,acceptance,status,workspace,executor,model,effort,
-	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(branch,''),retry_count,created_at,updated_at`
+	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(branch,''),retry_count,COALESCE(error_sig,''),COALESCE(result,''),COALESCE(started_at,0),COALESCE(completed_at,0),created_at,updated_at`
 
 func scan(r interface{ Scan(...any) error }) (Task, error) {
 	var t Task
 	var pathsRaw, skillsRaw string
 	err := r.Scan(&t.ID, &t.BoardID, &t.ParentID, &t.RunID, &t.StageID, &t.Title, &t.Prompt, &t.Acceptance,
 		&t.Status, &t.Workspace, &t.Executor, &t.Model, &t.Effort, &pathsRaw, &skillsRaw, &t.Branch,
-		&t.RetryCount, &t.CreatedAt, &t.UpdatedAt)
+		&t.RetryCount, &t.ErrorSig, &t.Result, &t.StartedAt, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt)
 	t.BlockedBy = []string{}
 	t.Paths = decodeList(pathsRaw)
 	t.Skills = decodeList(skillsRaw)
