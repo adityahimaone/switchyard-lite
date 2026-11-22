@@ -51,6 +51,7 @@ import {
   WorkspacesScreen,
 } from "./Screens";
 import { KnowledgeScreen } from "@/components/knowledge/KnowledgeScreen";
+import { navigate, useRoute } from "@/lib/router";
 
 const NAV = [
   { id: "board", label: "Board", group: "Work", icon: Kanban },
@@ -66,14 +67,7 @@ const NAV = [
 ] as const;
 
 export function useHash() {
-  const read = () => location.hash.replace(/^#\/?/, "");
-  const [h, set] = useState(read);
-  useEffect(() => {
-    const f = () => set(read());
-    addEventListener("hashchange", f);
-    return () => removeEventListener("hashchange", f);
-  }, []);
-  return h;
+  return useRoute();
 }
 
 /**
@@ -142,7 +136,7 @@ export function App() {
   const [route, arg] = hash.split("/");
   const page = route === "task" && arg ? "task" : NAV.some((item) => item.id === route) ? route : "board";
   const go = (p: string) => {
-    location.hash = "/" + p;
+    navigate("/" + p.replace(/^\/+/, ""));
   };
 
   const taskList = tasks.data ?? [];
@@ -171,7 +165,7 @@ export function App() {
                 return (
                   <AppSidebarItem
                     key={item.id}
-                    href={`#/${item.id}`}
+                    href={`/${item.id}`}
                     active={page === item.id}
                     title={item.label}
                     icon={<Icon className="nav-icon" aria-hidden />}
@@ -191,7 +185,7 @@ export function App() {
             return (
               <AppSidebarItem
                 key={item.id}
-                href={`#/${item.id}`}
+                href={`/${item.id}`}
                 active={page === item.id}
                 title={item.label}
                 icon={<Icon className="nav-icon" aria-hidden />}
@@ -624,7 +618,7 @@ function CommandPaletteModal({
                   <Icon className="size-3.5 text-[var(--c-ink-3)] shrink-0" />
                   <span style={{ flex: 1 }}>{item.label}</span>
                   <span className="mono muted" style={{ fontSize: 11 }}>
-                    #/{item.id}
+                    /{item.id}
                   </span>
                 </button>
               );

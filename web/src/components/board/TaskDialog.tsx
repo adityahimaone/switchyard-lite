@@ -32,6 +32,7 @@ import {
   type WorkspaceInspect,
 } from "@/api";
 import { cn } from "@/lib/utils";
+import { Link } from "@/lib/router";
 import { fmtBytes } from "@/lib/time";
 import { ErrorBox } from "@/ui";
 import { toast, toastError } from "@/components/ui/toast";
@@ -873,9 +874,9 @@ export function TaskDialog({
                         ? "No saved workspaces yet — add one from the Workspaces page."
                         : "Scratch runs have no repository, branch, or diff."}
                       {" "}
-                      <a href="#/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
+                      <Link href="/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
                         Manage workspaces
-                      </a>
+                      </Link>
                     </p>
                   )}
 

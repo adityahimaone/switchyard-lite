@@ -53,6 +53,7 @@ import {
   type WorkspaceInspect,
 } from "./api";
 import { cn } from "@/lib/utils";
+import { Link } from "@/lib/router";
 import { ErrorBox, LABEL, Lamp, Panel, statusColor, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
@@ -152,10 +153,10 @@ export function OverviewScreen() {
           {(boards.data?.length ?? 0) > 1 && scopeBoard && (
             <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
           )}
-          <a href="#/logs" className="chip inline-flex items-center gap-1.5" title="Open the Logs page">
+          <Link href="/logs" className="chip inline-flex items-center gap-1.5" title="Open the Logs page">
             <Activity className="size-3.5" />
             <span>Live Activity Stream → Logs</span>
-          </a>
+          </Link>
           {q.data && (
             <span
               className="lamp rounded-full border border-line bg-surface px-3 py-1.5 text-xs shadow-[var(--lift-1)]"

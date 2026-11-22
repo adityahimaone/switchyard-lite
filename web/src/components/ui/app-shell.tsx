@@ -1,6 +1,7 @@
 import * as React from "react";
 import { PanelLeft, PanelLeftClose } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { navigate } from "@/lib/router";
 import { BrandMark } from "./brand";
 import { Tip } from "./tooltip";
 
@@ -233,9 +234,28 @@ export function AppSidebarItem({
   badge,
   className,
   children,
+  onClick,
   ...props
 }: AppSidebarItemProps) {
   const { collapsed } = useAppShell();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    onClick?.(e);
+    if (
+      !e.defaultPrevented &&
+      props.href &&
+      props.href.startsWith("/") &&
+      !props.target &&
+      e.button === 0 &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.shiftKey &&
+      !e.altKey
+    ) {
+      e.preventDefault();
+      navigate(props.href);
+    }
+  };
 
   const item = (
     <a
@@ -243,6 +263,7 @@ export function AppSidebarItem({
       data-kubai-trigger
       aria-current={active ? "page" : undefined}
       className={cn("nav-item", className)}
+      onClick={handleClick}
       {...props}
     >
       {icon && (

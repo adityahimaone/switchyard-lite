@@ -6,6 +6,7 @@ import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
 import { TaskHeader } from "@/components/board/taskDetailParts";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { navigate } from "@/lib/router";
 
 export function TaskDrawer({
   id,
@@ -56,7 +57,7 @@ export function TaskDrawer({
     if (onOpenPage) onOpenPage(id);
     else {
       onClose();
-      location.hash = `#/task/${id}`;
+      navigate(`/task/${id}`);
     }
   };
 

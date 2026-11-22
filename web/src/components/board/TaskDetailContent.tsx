@@ -40,6 +40,7 @@ import { TaskOutput, WorkerLogPanel } from "@/components/board/OutputPanels";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { parseEventCards, traceSpansFromHistory, type EventTone } from "@/components/board/taskTrace";
 import { AgentTrace } from "@/components/ui/agent-trace";
+import { Link } from "@/lib/router";
 import { useBoardId } from "@/Board";
 import {
   AgyAccountPicker,
@@ -673,9 +674,9 @@ export function TaskDetailPanels({
                     />
                     <p className="m-0 text-[10px] leading-relaxed text-ink-4">
                       Add or edit workspaces on the{" "}
-                      <a href="#/workspaces" className="text-accent-text underline-offset-2 hover:underline">
+                      <Link href="/workspaces" className="text-accent-text underline-offset-2 hover:underline">
                         Workspaces page
-                      </a>
+                      </Link>
                       .
                     </p>
                   </div>

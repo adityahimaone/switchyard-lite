@@ -401,7 +401,7 @@ test("switchyard-lite brandkit base components (Button, Select, Pill, AppShell, 
       <AppSidebar>
         <AppSidebarBrand name="Switchyard" tag="LITE" />
         <AppSidebarGroup label="Work">
-          <AppSidebarItem href="#/board" active badge={4}>
+          <AppSidebarItem href="/board" active badge={4}>
             Board
           </AppSidebarItem>
         </AppSidebarGroup>
@@ -664,7 +664,7 @@ test("sidebar toggle and Cmd+B collapse/expand AppShell and expose badge dot", (
           </div>
         </div>
         <AppSidebarGroup label="Work">
-          <AppSidebarItem href="#/review" icon={<Kanban className="nav-icon" />} badge={6}>
+          <AppSidebarItem href="/review" icon={<Kanban className="nav-icon" />} badge={6}>
             Review
           </AppSidebarItem>
         </AppSidebarGroup>
