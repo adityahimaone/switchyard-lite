@@ -37,7 +37,6 @@ import {
   AppSidebarFooter,
   AppSidebarGroup,
   AppSidebarItem,
-  AppSidebarToggle,
   AppSidebarTrack,
   useAppShell,
 } from "@/components/ui/app-shell";
@@ -161,7 +160,6 @@ export function App() {
         <div className="side-top-pod">
           <div className="side-top-row">
             <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
-            <AppSidebarToggle />
           </div>
         </div>
 
@@ -202,13 +200,10 @@ export function App() {
               </AppSidebarItem>
             );
           })}
-          <div className="flex items-center justify-between gap-2 border-t border-line/70 pt-1.5">
-            <span className="side-footer-status">
-              <StatusPill status="online" size="sm" label="Online" />
-            </span>
+          <div className="side-footer-bar">
             <button
               type="button"
-              className="btn ghost icon sm"
+              className="btn ghost icon sm shrink-0"
               onClick={() => {
                 const isDark = document.documentElement.classList.toggle("dark");
                 localStorage.setItem("switchyard.dark", isDark ? "1" : "");
@@ -218,6 +213,9 @@ export function App() {
             >
               <SunMoon className="size-4" />
             </button>
+            <span className="side-footer-status">
+              <StatusPill status="online" size="sm" label="Online" />
+            </span>
           </div>
         </AppSidebarFooter>
       </AppSidebar>

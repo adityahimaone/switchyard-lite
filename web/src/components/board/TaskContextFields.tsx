@@ -336,15 +336,24 @@ export function PromptOmnibox({
       >
         <div className="grid">
           {/* Rich syntax backdrop aligned on [grid-area:1/1].
-              When unfocused, inline tokens switch cleanly to monospace pills (`font-mono`) over `font-sans` prose.
-              While actively focused, glyph metrics lock to `font-sans` so the native caret never drifts horizontally. */}
+              When unfocused and has content, inline tokens switch cleanly to monospace pills (`font-mono`) over `font-sans` prose.
+              Clicking anywhere on the backdrop immediately focuses the native textarea at that point. */}
           <div
             ref={backdropRef}
-            aria-hidden="true"
+            aria-hidden={focused ? "true" : "false"}
             data-testid="prompt-rich-backdrop"
             data-mode={focused ? "editing" : "rich"}
+            onClick={() => {
+              const ta = inputRef.current;
+              const bd = backdropRef.current;
+              if (ta && bd) {
+                ta.scrollTop = bd.scrollTop;
+              }
+              inputRef.current?.focus();
+            }}
             className={cn(
-              "prompt-omnibox-backdrop col-start-1 row-start-1 min-h-[136px] whitespace-pre-wrap break-words",
+              "prompt-omnibox-backdrop col-start-1 row-start-1 min-h-[136px] whitespace-pre-wrap break-words transition-opacity duration-120",
+              focused || !value ? "opacity-0 pointer-events-none z-0" : "opacity-100 pointer-events-auto cursor-text z-10",
               className
             )}
           >
@@ -360,7 +369,7 @@ export function PromptOmnibox({
                     BACKDROP_TOKEN_BASE[seg.kind],
                     focused
                       ? "py-[1px] underline decoration-current/35 decoration-dotted underline-offset-2"
-                      : "px-1 py-px font-mono text-[12px] font-medium tracking-[-0.01em]"
+                      : "inline-block px-1.5 py-0.5 font-mono text-[11.5px] font-medium tracking-[-0.01em] align-baseline mx-0.5 shadow-xs"
                   )}
                 >
                   {seg.text}
@@ -409,7 +418,8 @@ export function PromptOmnibox({
             }}
             placeholder={placeholder}
             className={cn(
-              "prompt-omnibox-textarea col-start-1 row-start-1 min-h-[136px] resize-none",
+              "prompt-omnibox-textarea col-start-1 row-start-1 min-h-[136px] resize-none transition-opacity duration-120",
+              !focused && value ? "opacity-0 pointer-events-none z-0" : "opacity-100 pointer-events-auto z-10",
               className
             )}
           />

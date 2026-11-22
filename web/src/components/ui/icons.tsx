@@ -1,14 +1,46 @@
 /**
- * Kubai-backed icon set.
+ * Switchyard Lite icon set.
  *
- * Every export keeps the name the app previously used from lucide-react,
- * so call sites keep `className="size-*"` sizing. Each icon gets a semantic
- * tone and plays its hover motion when the parent control is hovered.
- * Solid buttons override the tone back to currentColor via CSS.
+ * Icons are divided into two categories:
+ * 1. Default UI primitives (Arrow, dropdown Menu, X/Close, Edit) from `lucide-react`
+ *    for standard, crisp, neutral UI controls.
+ * 2. Domain & semantic icons backed by `kubai-icons-react` with contextual tones.
+ *
+ * Every export preserves its existing name and accepts standard `className="size-*"` sizing.
  */
 import * as React from "react";
 import * as K from "kubai-icons-react";
 import type { KubaiIconComponent, KubaiIconProps } from "kubai-icons-react";
+import {
+  Apple,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Brain,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
+  ChevronsUpDown,
+  Database,
+  Edit,
+  Edit2,
+  Edit3,
+  Expand,
+  GripVertical,
+  HelpCircle,
+  Menu,
+  Minimize2,
+  MoreHorizontal,
+  MoreVertical,
+  Pencil,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 
 function make(name: string, Icon: KubaiIconComponent, tone?: string): KubaiIconComponent {
   const Wrapped = React.forwardRef<SVGSVGElement, KubaiIconProps>(function KubaiIcon(
@@ -21,25 +53,50 @@ function make(name: string, Icon: KubaiIconComponent, tone?: string): KubaiIconC
   return Wrapped as KubaiIconComponent;
 }
 
+// -----------------------------------------------------------------------------
+// Default standard UI primitives (lucide-react)
+// (Arrow, dropdown Menu, X/Close, Edit)
+// -----------------------------------------------------------------------------
+export {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
+  ChevronsUpDown,
+  Edit,
+  Edit2,
+  Edit3,
+  Menu,
+  MoreHorizontal,
+  MoreVertical,
+  Pencil,
+  X,
+};
+
+// Aliases matching existing usages in the app
+export const ChevronDownIcon = ChevronDown;
+export const ChevronUpIcon = ChevronUp;
+export const XIcon = X;
+export const Close = X;
+
+// -----------------------------------------------------------------------------
+// Domain & semantic Kubai-backed icons
+// -----------------------------------------------------------------------------
 export const Activity = make("Activity", K.Activity, "#EC4899");
-export const ArrowLeft = make("ArrowLeft", K.ArrowLeft, "#64748B");
-export const ArrowRight = make("ArrowRight", K.ArrowRight, "#64748B");
 export const AtSign = make("AtSign", K.AtSign, "#8B5CF6");
 export const BookOpen = make("BookOpen", K.BookOpen, "#8B5CF6");
-export const ChevronDown = make("ChevronDown", K.ChevronDown, "#64748B");
-export const ChevronDownIcon = make("ChevronDownIcon", K.ChevronDown, "#64748B");
-export const ChevronRight = make("ChevronRight", K.ChevronRight, "#64748B");
-export const ChevronUp = make("ChevronUp", K.ChevronUp, "#64748B");
-export const ChevronUpIcon = make("ChevronUpIcon", K.ChevronUp, "#64748B");
-export const ChevronsUpDown = make("ChevronsUpDown", K.ChevronsUp, "#64748B");
 export const AlertCircle = make("AlertCircle", K.CircleAlert, "#F59E0B");
 export const Check = make("Check", K.CircleCheck, "#16A34A");
 export const CheckCircle2 = make("CheckCircle2", K.CircleCheck, "#16A34A");
 export const CheckIcon = make("CheckIcon", K.CircleCheck, "#16A34A");
 export const CircleDot = make("CircleDot", K.CircleDot, "#2F5BFF");
 export const Plus = make("Plus", K.CirclePlus, "#2F5BFF");
-export const X = make("X", K.CircleX, "#EF4444");
-export const XIcon = make("XIcon", K.CircleX, "#EF4444");
 export const CloudDownload = make("CloudDownload", K.CloudDown, "#06B6D4");
 export const CloudUpload = make("CloudUpload", K.CloudUpload, "#06B6D4");
 export const Columns3 = make("Columns3", K.Columns, "#64748B");
@@ -71,11 +128,9 @@ export const Lock = make("Lock", K.Lock, "#F59E0B");
 export const Maximize2 = make("Maximize2", K.Maximize, "#64748B");
 export const MessageSquare = make("MessageSquare", K.MessageSquare, "#06B6D4");
 export const Monitor = make("Monitor", K.Monitor, "#64748B");
-export const MoreHorizontal = make("MoreHorizontal", K.MoreHorizontal, "#64748B");
 export const Network = make("Network", K.Network, "#06B6D4");
 export const Palette = make("Palette", K.Palette, "#EC4899");
 export const Paperclip = make("Paperclip", K.Paperclip, "#F59E0B");
-export const Pencil = make("Pencil", K.Pencil, "#F59E0B");
 export const Play = make("Play", K.Play, "#16A34A");
 export const Radio = make("Radio", K.Radio, "#EF4444");
 export const RotateCcw = make("RotateCcw", K.RotateCcw, "#64748B");
@@ -98,5 +153,5 @@ export const Trash2 = make("Trash2", K.Trash, "#EF4444");
 export const AlertTriangle = make("AlertTriangle", K.TriangleAlert, "#F59E0B");
 export const Workflow = make("Workflow", K.Workflow, "#8B5CF6");
 
-/** Kubai's "apple" is the fruit; keep the macOS brand mark and flow controls from lucide. */
-export { Apple, Brain, Database, Expand, GripVertical, HelpCircle, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+// Brand & flow controls from lucide
+export { Apple, Brain, Database, Expand, GripVertical, HelpCircle, Minimize2, ZoomIn, ZoomOut };
