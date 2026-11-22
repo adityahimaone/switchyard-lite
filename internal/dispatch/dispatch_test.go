@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -366,4 +367,170 @@ func TestHermesLiveWireFormatExtractionAndRuns(t *testing.T) {
 func mustJSONString(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
+}
+
+func TestNormalizeAgyEffortAndBuildArgs(t *testing.T) {
+	effCases := map[string]string{
+		"":        "",
+		"minimal": "low",
+		"MINIMAL": "low",
+		"low":     "low",
+		"medium":  "medium",
+		"high":    "high",
+		"xhigh":   "xhigh",
+		"max":     "max",
+		"invalid": "",
+	}
+	for in, want := range effCases {
+		if got := NormalizeAgyEffort(in); got != want {
+			t.Errorf("NormalizeAgyEffort(%q) = %q, want %q", in, got, want)
+		}
+	}
+
+	task := tasks.Task{
+		Model:     "gemini-4-neon-high",
+		Effort:    "minimal",
+		SessionID: "conv-abc-123",
+	}
+	args := BuildAgyArgs(task, "/tmp/ws", "-lead dash prompt", 120)
+	for _, wantFlag := range []string{"-p", "--dangerously-skip-permissions", "--mode", "auto", "--model", "gemini-4-neon-high", "--effort", "low", "--conversation", "conv-abc-123", "--add-dir", "/tmp/ws", "--print-timeout", "120s"} {
+		if !slices.Contains(args, wantFlag) {
+			t.Fatalf("expected arg %q in %v", wantFlag, args)
+		}
+	}
+	last := args[len(args)-1]
+	if !strings.HasPrefix(last, "Task:\n-lead dash prompt") {
+		t.Fatalf("expected dashed prompt guard, got %q", last)
+	}
+}
+
+func TestAgyLocalExecutionAuthAndGrillMeResume(t *testing.T) {
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	// Seed preferred agy account in dispatch_settings.
+	_, err = s.DB.Exec(`INSERT INTO dispatch_settings(key,value) VALUES('agy.active_account','work@example.com')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	svc := tasks.New(s)
+	board, err := svc.CreateBoard("AGY")
+	if err != nil {
+		t.Fatal(err)
+	}
+	task, err := svc.Create(tasks.NewTask{
+		BoardID:       board.ID,
+		Title:         "Implement agy feature",
+		Prompt:        "Build the feature",
+		Executor:      "agy",
+		Model:         "gemini-4-neon-xhigh",
+		Effort:        "max",
+		Workspace:     "",
+		ExecutionMode: tasks.ExecManaged,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var mu sync.Mutex
+	var authCalls [][]string
+	var execRuns []AgyExecInput
+	turn := 0
+
+	d, err := New(s, Config{WorkerID: "w-agy", Lease: time.Minute, MaxParallel: 2, TimeoutS: 90})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.AgyAuthRunner = func(ctx context.Context, args ...string) ([]byte, error) {
+		mu.Lock()
+		authCalls = append(authCalls, append([]string(nil), args...))
+		mu.Unlock()
+		return []byte("Switched"), nil
+	}
+	d.AgyRunner = func(ctx context.Context, in AgyExecInput, onChunk func(string)) (AgyExecResult, error) {
+		mu.Lock()
+		turn++
+		curTurn := turn
+		execRuns = append(execRuns, in)
+		mu.Unlock()
+
+		if curTurn == 1 {
+			onChunk(`{"conversation_id":"agy_conv_777","text":"Scanning codebase..."}` + "\n")
+			onChunk(`{"tool":"ask_question","args":{"questions":[{"question":"Which DB engine?","options":["SQLite","Postgres"]}]}}` + "\n")
+			return AgyExecResult{
+				Success:    true,
+				SessionID:  "agy_conv_777",
+				DurationMs: 120,
+			}, nil
+		}
+		onChunk(`{"conversation_id":"agy_conv_777","result":"Implemented using SQLite."}` + "\n")
+		return AgyExecResult{
+			Success:    true,
+			Output:     "Implemented using SQLite.",
+			SessionID:  "agy_conv_777",
+			DurationMs: 85,
+		}, nil
+	}
+
+	if _, err := d.Start(context.Background(), task.ID); err != nil {
+		t.Fatalf("Start turn 1: %v", err)
+	}
+	d.Wait()
+
+	// Check turn 1 state: question detected, session stored, auto-approve + max effort passed, agy-auth switched.
+	afterTurn1, err := svc.Get(task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterTurn1.SessionID != "agy_conv_777" {
+		t.Fatalf("expected persisted agy conversation id agy_conv_777, got %q", afterTurn1.SessionID)
+	}
+	if afterTurn1.Question == nil || afterTurn1.Question.Question != "Which DB engine?" || afterTurn1.Question.Status != "pending" {
+		t.Fatalf("expected pending open question after turn 1, got %+v", afterTurn1.Question)
+	}
+
+	// Answer the open question and resume without NODE_AGENT_URL configured.
+	_, _, err = svc.AnswerQuestion(task.ID, tasks.AnswerQuestionInput{
+		QuestionID:      afterTurn1.Question.ID,
+		SelectedOptions: []string{"SQLite"},
+		Author:          "user",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runID2, resumed, err := d.ResumeWithAnswer(context.Background(), task.ID, *afterTurn1.Question, "SQLite")
+	if err != nil || !resumed || runID2 == "" {
+		t.Fatalf("ResumeWithAnswer turn 2 failed: runID=%q resumed=%v err=%v", runID2, resumed, err)
+	}
+	d.Wait()
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(authCalls) < 2 || !slices.Equal(authCalls[0], []string{"switch", "work@example.com"}) {
+		t.Fatalf("expected agy-auth switch calls, got %+v", authCalls)
+	}
+	if len(execRuns) != 2 {
+		t.Fatalf("expected 2 agy executions, got %d", len(execRuns))
+	}
+	if !slices.Contains(execRuns[0].Args, "--dangerously-skip-permissions") || !slices.Contains(execRuns[0].Args, "--mode") {
+		t.Fatalf("turn 1 missing auto-approve flags: %v", execRuns[0].Args)
+	}
+	if !slices.Contains(execRuns[0].Args, "--effort") || !slices.Contains(execRuns[0].Args, "max") {
+		t.Fatalf("turn 1 missing --effort max: %v", execRuns[0].Args)
+	}
+	if !slices.Contains(execRuns[1].Args, "--conversation") || !slices.Contains(execRuns[1].Args, "agy_conv_777") {
+		t.Fatalf("turn 2 missing --conversation agy_conv_777: %v", execRuns[1].Args)
+	}
+
+	afterTurn2, err := svc.Get(task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterTurn2.Status != tasks.Review {
+		t.Fatalf("expected task in review after turn 2, got %s", afterTurn2.Status)
+	}
 }

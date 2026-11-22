@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Switchyard LITE — Liquid Glass Surface System & Contrast Tokens
+   ========================================================================== */
+
+:root {
+  /* App background — visible mesh gradient so glass depth reads cleanly */
+  --app-bg:
+    radial-gradient(65% 55% at 12% 8%, rgba(99, 102, 241, 0.16) 0%, transparent 70%),
+    radial-gradient(50% 45% at 88% 12%, rgba(56, 189, 248, 0.14) 0%, transparent 65%),
+    radial-gradient(60% 50% at 75% 88%, rgba(217, 70, 239, 0.10) 0%, transparent 70%),
+    linear-gradient(135deg, #eef2ff 0%, #e0e7ff 35%, #f0f9ff 70%, #fdf4ff 100%);
+
+  /* Glass surfaces — 3 strict hierarchy levels (+ popover) */
+  --glass-1: rgba(255, 255, 255, 0.80); /* Level 1: Sidebar / Topbar — most solid */
+  --glass-2: rgba(255, 255, 255, 0.38); /* Level 2: Kanban column — most transparent */
+  --glass-3: rgba(255, 255, 255, 0.85); /* Level 3: Card — solid */
+  --glass-4: rgba(255, 255, 255, 0.92); /* Popover / Modal */
+
+  /* Blur + saturate */
+  --glass-blur-1: blur(20px) saturate(180%);
+  --glass-blur-2: blur(12px) saturate(140%);
+  --glass-blur-3: blur(16px) saturate(160%);
+  --glass-blur-4: blur(24px) saturate(180%);
+
+  /* Border + specular highlight (liquid glass edge) */
+  --glass-border: rgba(255, 255, 255, 0.60);
+  --glass-border-soft: rgba(255, 255, 255, 0.40);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.80);
+  --glass-inner: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  --glass-specular: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 40%);
+
+  /* Shadows */
+  --glass-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --glass-shadow-md: 0 2px 4px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.10);
+  --glass-shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12), 0 24px 48px rgba(15, 23, 42, 0.12);
+
+  /* Text — WCAG AA compliant (never use slate-400 for body copy) */
+  --text-primary: #0f172a;   /* slate-900 */
+  --text-secondary: #475569; /* slate-600 */
+  --text-muted: #64748b;     /* slate-500 */
+
+  /* Primary solid CTA consistent with glass palette */
+  --glass-btn-primary-bg: #0f172a;
+  --glass-btn-primary-hover: #1e293b;
+  --glass-btn-primary-ink: #f8fafc;
+  --glass-btn-primary-border: rgba(255, 255, 255, 0.18);
+
+  /* Status tokens */
+  --status-backlog: #475569;
+  --status-todo: #334155;
+  --status-blocked: #dc2626;
+  --status-progress: #2563eb;
+  --status-review: #b45309;
+  --status-done: #059669;
+  --status-failed: #dc2626;
+
+  /* Status pill text/border/tint (light) */
+  --status-backlog-bg: rgba(71, 85, 105, 0.10);
+  --status-backlog-border: rgba(71, 85, 105, 0.24);
+  --status-todo-bg: rgba(51, 65, 85, 0.10);
+  --status-todo-border: rgba(51, 65, 85, 0.24);
+  --status-blocked-bg: rgba(220, 38, 38, 0.10);
+  --status-blocked-border: rgba(220, 38, 38, 0.28);
+  --status-progress-bg: rgba(37, 99, 235, 0.10);
+  --status-progress-border: rgba(37, 99, 235, 0.28);
+  --status-review-bg: rgba(180, 83, 9, 0.10);
+  --status-review-border: rgba(180, 83, 9, 0.28);
+  --status-done-bg: rgba(5, 150, 105, 0.10);
+  --status-done-border: rgba(5, 150, 105, 0.28);
+  --status-failed-bg: rgba(220, 38, 38, 0.10);
+  --status-failed-border: rgba(220, 38, 38, 0.28);
+
+  /* Retry amber badge */
+  --retry-bg: rgba(245, 158, 11, 0.14);
+  --retry-border: rgba(180, 83, 9, 0.30);
+  --retry-text: #92400e;
+
+  /* Radius system */
+  --radius-card: 16px;
+  --radius-column: 20px;
+  --radius-sidebar: 20px;
+  --radius-button: 12px;
+}
+
+.dark {
+  --app-bg:
+    radial-gradient(60% 50% at 15% 10%, rgba(59, 130, 246, 0.16) 0%, transparent 70%),
+    radial-gradient(50% 45% at 85% 15%, rgba(139, 92, 246, 0.14) 0%, transparent 65%),
+    linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #0c1222 100%);
+
+  --glass-1: rgba(15, 23, 42, 0.78);
+  --glass-2: rgba(15, 23, 42, 0.42);
+  --glass-3: rgba(30, 41, 59, 0.82);
+  --glass-4: rgba(30, 41, 59, 0.92);
+
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-soft: rgba(255, 255, 255, 0.08);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --glass-inner: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --glass-specular: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 40%);
+
+  --glass-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --glass-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
+  --glass-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45), 0 24px 48px rgba(0, 0, 0, 0.45);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --glass-btn-primary-bg: #f8fafc;
+  --glass-btn-primary-hover: #e2e8f0;
+  --glass-btn-primary-ink: #0f172a;
+  --glass-btn-primary-border: rgba(255, 255, 255, 0.45);
+
+  --status-backlog: #cbd5e1;
+  --status-todo: #e2e8f0;
+  --status-blocked: #f87171;
+  --status-progress: #60a5fa;
+  --status-review: #fbbf24;
+  --status-done: #34d399;
+  --status-failed: #f87171;
+
+  --status-backlog-bg: rgba(148, 163, 184, 0.14);
+  --status-backlog-border: rgba(148, 163, 184, 0.25);
+  --status-todo-bg: rgba(226, 232, 240, 0.12);
+  --status-todo-border: rgba(226, 232, 240, 0.22);
+  --status-blocked-bg: rgba(220, 38, 38, 0.18);
+  --status-blocked-border: rgba(248, 113, 113, 0.35);
+  --status-progress-bg: rgba(37, 99, 235, 0.20);
+  --status-progress-border: rgba(96, 165, 250, 0.36);
+  --status-review-bg: rgba(180, 83, 9, 0.22);
+  --status-review-border: rgba(251, 191, 36, 0.36);
+  --status-done-bg: rgba(5, 150, 105, 0.20);
+  --status-done-border: rgba(52, 211, 153, 0.35);
+  --status-failed-bg: rgba(220, 38, 38, 0.18);
+  --status-failed-border: rgba(248, 113, 113, 0.35);
+
+  --retry-bg: rgba(245, 158, 11, 0.18);
+  --retry-border: rgba(251, 191, 36, 0.35);
+  --retry-text: #fcd34d;
+}
+
+/* Fine SVG noise grain overlay for authentic glass refraction */
+.app-noise-layer {
+  position: relative;
+}
+
+.app-noise-layer::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   3-Level Liquid Glass Surface Classes
+   ========================================================================== */
+
+/* Level 1: Sidebar & Topbar — most solid */
+.glass-sidebar {
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur-1);
+  -webkit-backdrop-filter: var(--glass-blur-1);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-sm);
+  border-radius: var(--radius-sidebar);
+}
+
+.glass-topbar {
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur-1);
+  -webkit-backdrop-filter: var(--glass-blur-1);
+  border-bottom: 1px solid var(--glass-border-soft);
+  box-shadow: var(--glass-highlight);
+}
+
+/* Level 2: Kanban column — most transparent, intentionally NO backdrop-blur for 60fps */
+.glass-column {
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border-soft);
+  box-shadow: var(--glass-inner);
+  border-radius: var(--radius-column);
+}
+
+/* Level 3: Card — solid frosted glass with strong shadow + top specular highlight */
+.glass-card {
+  background-color: var(--glass-3);
+  background-image: var(--glass-specular);
+  backdrop-filter: var(--glass-blur-3);
+  -webkit-backdrop-filter: var(--glass-blur-3);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-sm);
+  border-radius: var(--radius-card);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-md);
+  }
+}
+
+.glass-card.is-dragging {
+  opacity: 0.9;
+  transform: rotate(1deg) scale(1.02);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lg);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Disable card blur globally during drag so 60fps stays locked */
+.board[data-dragging="true"] .glass-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.glass-popover {
+  background: var(--glass-4);
+  backdrop-filter: var(--glass-blur-4);
+  -webkit-backdrop-filter: var(--glass-blur-4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-lg);
+  border-radius: var(--radius-card);
+}
+
+/* Horizontal board scroll with right-edge fade mask to hint off-screen columns (Failed) */
+.board-scroll {
+  mask-image: linear-gradient(to right, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 92%, transparent 100%);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.38) transparent;
+}
+
+.board-scroll.at-end {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.board-scroll::-webkit-scrollbar {
+  height: 7px;
+}
+
+.board-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.board-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+
+.board-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+/* Status pills — tinted bg + tinted border + icon + label (never color-only) */
+.status-pill-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.status-pill-base svg.kubai-icon,
+.badge-retry svg.kubai-icon {
+  color: currentColor !important;
+}
+
+.status-backlog {
+  color: var(--status-backlog);
+  background: var(--status-backlog-bg);
+  border-color: var(--status-backlog-border);
+}
+
+.status-todo {
+  color: var(--status-todo);
+  background: var(--status-todo-bg);
+  border-color: var(--status-todo-border);
+}
+
+.status-blocked {
+  color: var(--status-blocked);
+  background: var(--status-blocked-bg);
+  border-color: var(--status-blocked-border);
+}
+
+.status-progress {
+  color: var(--status-progress);
+  background: var(--status-progress-bg);
+  border-color: var(--status-progress-border);
+}
+
+.status-review {
+  color: var(--status-review);
+  background: var(--status-review-bg);
+  border-color: var(--status-review-border);
+}
+
+.status-done {
+  color: var(--status-done);
+  background: var(--status-done-bg);
+  border-color: var(--status-done-border);
+}
+
+.status-failed {
+  color: var(--status-failed);
+  background: var(--status-failed-bg);
+  border-color: var(--status-failed-border);
+}
+
+/* Distinct retry badge (amber bg + border + icon, separate from normal tags) */
+.badge-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--retry-bg);
+  border: 1px solid var(--retry-border);
+  color: var(--retry-text);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .glass-card:hover,
+  .glass-card.is-dragging {
+    transform: none !important;
+    transition: none !important;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Cpu, GitBranch, Link2 } from "@/components/ui/icons";
+import { Cpu, GitBranch, Link2, RotateCcw } from "@/components/ui/icons";
 import { api, apiOr, del, LIVE_FALLBACK_MS, post, type Status, type Task, type Workspace, type WorktreeInfo } from "@/api";
 import { TaskDetailPanels } from "@/components/board/TaskDetailContent";
 import {
@@ -107,7 +107,7 @@ export function TaskDetailPage({
         )}
 
         {t && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-line bg-well/75 px-3 py-1.5 shadow-[var(--well-inset)]">
+          <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-[16px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-3.5 py-2 shadow-[var(--glass-highlight),var(--glass-inner),var(--glass-shadow-sm)] backdrop-blur-md">
             <TaskActions
               task={t}
               onDispatch={() => dispatch.mutate()}
@@ -134,19 +134,28 @@ export function TaskDetailPage({
             />
           </div>
 
-          <aside className="hidden flex-col gap-3 lg:sticky lg:top-[104px] lg:flex" aria-label="Task properties">
+          <aside className="hidden flex-col gap-3 lg:sticky lg:top-[106px] lg:flex" aria-label="Task properties">
             {t && (
               <>
                 <Section title="Lifecycle">
                   <div className="mb-2 flex items-center gap-2">
                     <StatusBadge status={t.status} />
-                    <span className="text-[10px] text-ink-4">updated {relativeTime(t.updated_at)}</span>
+                    <span className="font-mono text-[10.5px] text-[var(--text-muted)]">
+                      updated {relativeTime(t.updated_at)}
+                    </span>
                   </div>
                   <FieldList>
                     <Field label="Created">{fmtDateTime(t.created_at)}</Field>
                     <Field label="Updated">{fmtDateTime(t.updated_at)}</Field>
                     <Field label="Retries">
-                      <span className={t.retry_count > 0 ? "text-warning-text" : undefined}>{t.retry_count}</span>
+                      {t.retry_count > 0 ? (
+                        <span className="badge-retry">
+                          <RotateCcw color="currentColor" className="size-2.5 shrink-0" aria-hidden />
+                          retry {t.retry_count}/3
+                        </span>
+                      ) : (
+                        <span className="text-[var(--text-secondary)]">0</span>
+                      )}
                     </Field>
                     {t.run_id && (
                       <Field label="Pipeline">
@@ -165,12 +174,30 @@ export function TaskDetailPage({
                     <Field label="Model">
                       <span className="font-mono text-[11px]">{t.model || "executor default"}</span>
                     </Field>
-                    <Field label="Effort">{t.effort || "default"}</Field>
+                    <Field label="Effort">
+                      {t.effort ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span
+                            aria-hidden
+                            className={
+                              t.effort === "high"
+                                ? "size-2 rounded-full bg-red-500"
+                                : t.effort === "medium"
+                                  ? "size-2 rounded-full bg-blue-500"
+                                  : "size-2 rounded-full bg-slate-500"
+                            }
+                          />
+                          {t.effort}
+                        </span>
+                      ) : (
+                        "default"
+                      )}
+                    </Field>
                   </FieldList>
                 </Section>
 
                 <Section title={<><GitBranch className="size-3" /> Workspace</>}>
-                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-ink-2">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[var(--text-primary)]">
                     <OsIcon ws={matchedWs} path={t.workspace} className="size-3.5" />
                     <span className="truncate">
                       {t.workspace
@@ -179,14 +206,14 @@ export function TaskDetailPage({
                     </span>
                   </div>
                   {t.workspace ? (
-                    <div className="flex items-start gap-1 rounded border border-line bg-well/50 px-1.5 py-1">
-                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-ink-3" title={t.workspace}>
+                    <div className="flex items-start gap-1 rounded-[10px] border border-[var(--glass-border-soft)] bg-[var(--glass-2)] px-2 py-1.5">
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-[var(--text-secondary)]" title={t.workspace}>
                         {t.workspace}
                       </span>
                       <CopyButton value={t.workspace} label="Copy workspace path" />
                     </div>
                   ) : (
-                    <p className="m-0 text-[11px] text-ink-4">No repository attached.</p>
+                    <p className="m-0 text-[11px] text-[var(--text-muted)]">No repository attached.</p>
                   )}
                   {worktree.data?.exists && (
                     <FieldList>
@@ -202,15 +229,15 @@ export function TaskDetailPage({
 
                 <Section title={<><Link2 className="size-3" /> Dependencies ({deps.length})</>}>
                   {deps.length === 0 ? (
-                    <p className="m-0 text-[11px] text-ink-4">Not blocked by any prerequisite.</p>
+                    <p className="m-0 text-[11px] text-[var(--text-muted)]">Not blocked by any prerequisite.</p>
                   ) : (
                     <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                       {deps.map((d) => (
                         <li
                           key={d.id}
-                          className="flex h-8 items-center gap-2 rounded-[8px] border border-line bg-well/40 px-2.5"
+                          className="flex h-8 items-center gap-2 rounded-[10px] border border-[var(--glass-border-soft)] bg-[var(--glass-2)] px-2.5"
                         >
-                          <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-ink-2">
+                          <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text-primary)]">
                             {d.task ? d.task.title : d.id}
                           </span>
                           {d.task && <StatusBadge status={d.task.status} />}

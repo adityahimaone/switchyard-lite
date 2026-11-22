@@ -1,5 +1,15 @@
 import { useState, type ReactNode } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Cpu,
+  GitPullRequest,
+  Inbox,
+  ListTodo,
+  ShieldAlert,
+} from "@/components/ui/icons";
 import { ApiError, STATUSES } from "./api";
+import { cn } from "@/lib/utils";
 
 export const LABEL: Record<string, string> = {
   backlog: "Backlog",
@@ -28,6 +38,64 @@ export function statusColor(status: string): string {
   if (status === "succeeded" || status === "completed") return "var(--c-st-done)";
   if (status === "needs_human" || status === "evolved") return "var(--c-st-review)";
   return "var(--c-ink-4)";
+}
+
+const STATUS_PILL_CLASS: Record<string, string> = {
+  backlog: "status-backlog",
+  todo: "status-todo",
+  queued: "status-todo",
+  pending: "status-backlog",
+  blocked: "status-blocked",
+  in_progress: "status-progress",
+  running: "status-progress",
+  review: "status-review",
+  needs_human: "status-review",
+  evolved: "status-review",
+  done: "status-done",
+  succeeded: "status-done",
+  completed: "status-done",
+  failed: "status-failed",
+};
+
+const STATUS_PILL_ICON: Record<string, React.ComponentType<{ className?: string; color?: string }>> = {
+  backlog: Inbox,
+  todo: ListTodo,
+  queued: ListTodo,
+  pending: Inbox,
+  blocked: ShieldAlert,
+  in_progress: Cpu,
+  running: Cpu,
+  review: GitPullRequest,
+  needs_human: GitPullRequest,
+  evolved: GitPullRequest,
+  done: CheckCircle2,
+  succeeded: CheckCircle2,
+  completed: CheckCircle2,
+  failed: AlertCircle,
+};
+
+/** Status pill with semantic icon + label + tinted bg & border (never color-only). */
+export function StatusHeaderPill({
+  status,
+  className,
+}: {
+  status: string;
+  className?: string;
+}) {
+  const label = LABEL[status] ?? status.replace("_", " ");
+  const pillClass = STATUS_PILL_CLASS[status] ?? "status-todo";
+  const Icon = STATUS_PILL_ICON[status] ?? ListTodo;
+  const isPulse = PULSE_STATUS.has(status);
+  return (
+    <span className={cn("status-pill-base", pillClass, className)} data-status-pill={status}>
+      <Icon
+        color="currentColor"
+        className={cn("size-3 shrink-0", isPulse && "animate-pulse")}
+        aria-hidden
+      />
+      <span>{label}</span>
+    </span>
+  );
 }
 
 /** Lamp + label: colour and shape (hollow vs filled + pulse) carry status so colour is never the only signal. */

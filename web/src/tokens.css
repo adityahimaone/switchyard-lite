@@ -13,18 +13,18 @@
   --sy-ground: #f1f4fb;
   --sy-plate: #ffffff;
   --sy-well: #e4eaf7;
-  --sy-ink: #0d1526;
-  --sy-slate: #4a5878;
-  --sy-muted: #8c9ab8;
+  --sy-ink: #0f172a;
+  --sy-slate: #475569;
+  --sy-muted: #64748b;
   --sy-line: #dce3f4;
   --sy-line-strong: #c2cde8;
   --sy-accent: #2f5bff;
   --sy-coral: #ff8b6a;
   --sy-orchid: #d966ff;
-  --sy-success: #13794b;
+  --sy-success: #059669;
   --sy-mint: #bcefd4;
-  --sy-warning: #965600;
-  --sy-danger: #c8322b;
+  --sy-warning: #b45309;
+  --sy-danger: #dc2626;
   --sy-night: #080d1a;
 
   /* ---- Layer 2 · Semantic Scope (Daylight Cloud Sky) ------------------------- */
@@ -36,7 +36,7 @@
   --c-line-strong: var(--sy-line-strong);
 
   --c-ink: var(--sy-ink);
-  --c-ink-2: #24324f;
+  --c-ink-2: #334155;
   --c-ink-3: var(--sy-slate);
   --c-ink-4: var(--sy-muted);
 
@@ -144,12 +144,12 @@
   /* Closed-Form Radius Scale */
   --radius-xs: 6px;
   --radius-sm: 8px;
-  --radius: 10px;
-  --radius-control: 10px;
-  --radius-card: 12px;
-  --radius-panel: 18px;
+  --radius: 12px;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
   --radius-pill: 999px;
-  --radius-concentric: calc(var(--radius-card) - 4px); /* 12px - 4px = 8px */
+  --radius-concentric: calc(var(--radius-card) - 4px); /* 16px - 4px = 12px */
 
   /* Typography Stack */
   --font-display: "Space Grotesk", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -185,10 +185,10 @@
   --c-line: #223052;
   --c-line-strong: #314470;
 
-  --c-ink: #f1f4fb;
-  --c-ink-2: #c8d2ea;
-  --c-ink-3: #8e9ec2;
-  --c-ink-4: #5f7096;
+  --c-ink: #f8fafc;
+  --c-ink-2: #e2e8f0;
+  --c-ink-3: #cbd5e1;
+  --c-ink-4: #94a3b8;
 
   --c-accent: #6688ff;
   --c-accent-text: #8ca6ff;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   CircleDot,
@@ -11,6 +12,7 @@ import {
   ExternalLink,
   FolderGit2,
   GitPullRequest,
+  GripVertical,
   HelpCircle,
   Inbox,
   LayoutGrid,
@@ -47,8 +49,8 @@ import { OsIcon, StatusBadge } from "@/components/board/taskDetailParts";
 import { RunningIndicator } from "@/components/board/AgentStatus";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
-import { ErrorBox, LABEL, Lamp, statusColor } from "./ui";
-import { relativeTime } from "@/lib/time";
+import { ErrorBox, LABEL, StatusHeaderPill, statusColor } from "./ui";
+import { fmtDateTime, initials, relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,6 +82,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EXECUTORS, TaskDialog, type StartMode } from "@/components/board/TaskDialog";
+import { EXECUTOR_LABELS, useExecutorConfig } from "@/lib/executors";
 
 export { EXECUTORS, TaskDialog, TaskDialog as CreateTask };
 
@@ -102,6 +105,28 @@ const EMPTY_ICONS: Record<Status, React.ComponentType<{ className?: string }>> =
   done: CheckCircle2,
   failed: AlertCircle,
 };
+
+const REVIEW_WIP_LIMIT = 5;
+const MAX_RETRY_DISPLAY = 3;
+
+const EFFORT_META: Record<string, { dot: string; label: string }> = {
+  high: { dot: "bg-red-500", label: "Priority: High effort" },
+  medium: { dot: "bg-blue-500", label: "Priority: Medium effort" },
+  low: { dot: "bg-slate-500", label: "Priority: Low effort" },
+};
+
+function formatAgentTag(executor?: string, model?: string): string {
+  const exec = executor || "default";
+  if (!model) return exec;
+  const shortModel = model.includes("/") ? model.split("/").pop() || model : model;
+  return `${exec} · ${shortModel}`;
+}
+
+function formatWorkspaceTag(workspace: string): string {
+  const leaf = workspace.split(/[\\/]/).filter(Boolean).pop() || workspace;
+  if (leaf.length <= 16) return leaf;
+  return `${leaf.slice(0, 14)}…`;
+}
 
 /** Columns that can receive a brand-new task directly. */
 const QUICK_ADD: Partial<Record<Status, StartMode>> = {
@@ -302,6 +327,9 @@ export function BoardScreen({
   });
 
   const [over, setOver] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [boardAtEnd, setBoardAtEnd] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"board" | "table" | "lanes">("board");
   const [creating, setCreating] = useState<{ startMode: StartMode } | null>(null);
   const [boardModal, setBoardModal] = useState<"new" | "edit" | null>(null);
@@ -320,6 +348,28 @@ export function BoardScreen({
   });
 
   const allTasks = tasks.data ?? [];
+
+  const nextTodoTask = useMemo(
+    () => allTasks.find((t) => t.status === "todo" && t.execution_mode !== "tracker"),
+    [allTasks]
+  );
+
+  const updateBoardScrollEnd = () => {
+    const el = boardRef.current;
+    if (!el) return;
+    if (el.scrollWidth <= el.clientWidth + 2) {
+      setBoardAtEnd(true);
+      return;
+    }
+    const remaining = el.scrollWidth - el.clientWidth - el.scrollLeft;
+    setBoardAtEnd(remaining <= 12);
+  };
+
+  useEffect(() => {
+    updateBoardScrollEnd();
+    window.addEventListener("resize", updateBoardScrollEnd);
+    return () => window.removeEventListener("resize", updateBoardScrollEnd);
+  }, [viewMode, allTasks.length]);
 
   const eligibleMeta7Tasks = useMemo(
     () =>
@@ -518,123 +568,131 @@ export function BoardScreen({
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0 }}>
       <div className="page-header page-header-stack">
-        <div className="bar">
-          <h2>
-            <span>{activeBoard ? activeBoard.name : "Board"}</span>
-            {activeBoard?.default_executor && (
-              <span className="badge accent" title="Board default executor">
-                {activeBoard.default_executor}
-                {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
-              </span>
+        {/* Topbar row: Left = board switcher + auto badge + settings, Center = Board/Table/Lanes, Right = Run board + single primary New task */}
+        <div className="grid w-full grid-cols-1 items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {(boards.data?.length ?? 0) > 0 ? (
+              <BoardSwitcher
+                boards={boards.data}
+                value={boardId}
+                onChange={setBoardId}
+                className="w-[180px]"
+              />
+            ) : (
+              <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">
+                {activeBoard ? activeBoard.name : "Board"}
+              </h2>
             )}
-          </h2>
 
-          {(boards.data?.length ?? 0) > 0 && (
-            <BoardSwitcher
-              boards={boards.data}
-              value={boardId}
-              onChange={setBoardId}
-              className="w-[172px]"
-            />
-          )}
+            {activeBoard?.default_executor && (
+              <Tip label="Board default executor & model">
+                <span className="badge accent">
+                  {activeBoard.default_executor}
+                  {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
+                </span>
+              </Tip>
+            )}
 
-          {activeBoard && (
-            <Tip label="Board settings">
+            {activeBoard && (
+              <Tip label="Board settings">
+                <button
+                  type="button"
+                  className="btn ghost icon"
+                  onClick={() => (onEditBoard ? onEditBoard(activeBoard) : setBoardModal("edit"))}
+                  aria-label="Board settings"
+                >
+                  <Settings2 className="size-3.5" />
+                </button>
+              </Tip>
+            )}
+
+            <Tip label="Create a new board">
               <button
                 type="button"
-                className="btn ghost icon"
-                onClick={() => (onEditBoard ? onEditBoard(activeBoard) : setBoardModal("edit"))}
-                aria-label="Board settings"
+                className="btn"
+                onClick={() => (onNewBoard ? onNewBoard() : setBoardModal("new"))}
               >
-                <Settings2 className="size-3.5" />
+                <Plus className="size-3.5" />
+                <span>New board</span>
               </button>
             </Tip>
-          )}
+          </div>
 
-          <Tip label="Create a new board">
+          <div className="justify-self-start lg:justify-self-center">
+            <Segmented
+              label="Board view mode"
+              value={viewMode}
+              onChange={setViewMode}
+              options={[
+                {
+                  value: "board",
+                  label: (
+                    <>
+                      <Columns3 className="size-3" />
+                      Board
+                    </>
+                  ),
+                },
+                {
+                  value: "table",
+                  label: (
+                    <>
+                      <Table2 className="size-3" />
+                      Table
+                    </>
+                  ),
+                },
+                {
+                  value: "lanes",
+                  label: (
+                    <>
+                      <LayoutGrid className="size-3" />
+                      Lanes
+                    </>
+                  ),
+                },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 justify-self-start lg:justify-self-end">
+            {eligibleMeta7Tasks.length > 0 && (
+              <Tip label="Coordinate all eligible todo/backlog tasks on this board into a meta7 pipeline">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => runBoardMeta7.mutate()}
+                  disabled={!boardId || runBoardMeta7.isPending}
+                >
+                  <Workflow className="size-3.5 text-[var(--status-progress)]" />
+                  <span>Run board ({eligibleMeta7Tasks.length})</span>
+                </button>
+              </Tip>
+            )}
+
             <button
-              type="button"
-              className="btn"
-              onClick={() => (onNewBoard ? onNewBoard() : setBoardModal("new"))}
+              className="btn primary"
+              onClick={() => setCreating({ startMode: "queue" })}
+              disabled={!boardId}
             >
               <Plus className="size-3.5" />
-              <span>New board</span>
+              <span>New task</span>
             </button>
-          </Tip>
-
-          <div className="bar-spacer" />
-
-          <Segmented
-            label="Board view mode"
-            value={viewMode}
-            onChange={setViewMode}
-            options={[
-              {
-                value: "board",
-                label: (
-                  <>
-                    <Columns3 className="size-3" />
-                    Board
-                  </>
-                ),
-              },
-              {
-                value: "table",
-                label: (
-                  <>
-                    <Table2 className="size-3" />
-                    Table
-                  </>
-                ),
-              },
-              {
-                value: "lanes",
-                label: (
-                  <>
-                    <LayoutGrid className="size-3" />
-                    Lanes
-                  </>
-                ),
-              },
-            ]}
-          />
-
-          {eligibleMeta7Tasks.length > 0 && (
-            <button
-              type="button"
-              className="btn border-[var(--c-accent-line)] bg-[var(--c-accent-bg)] text-[var(--c-accent-text)] hover:bg-[var(--c-accent-bg)]/80"
-              onClick={() => runBoardMeta7.mutate()}
-              disabled={!boardId || runBoardMeta7.isPending}
-              title="Absorb all eligible todo/backlog tasks on this board into a single autonomous meta7 pipeline"
-            >
-              <Workflow className="size-3.5" />
-              <span>Run board with meta7</span>
-              <span className="pill-count tabular-nums">{eligibleMeta7Tasks.length}</span>
-            </button>
-          )}
-
-          <button
-            className="btn primary"
-            onClick={() => setCreating({ startMode: "queue" })}
-            disabled={!boardId}
-          >
-            <Plus className="size-3.5" />
-            <span>New task</span>
-          </button>
+          </div>
         </div>
 
-        {/* Compact filter & search bar: uniform 32px height across every control. */}
+        {/* Single board-level search + filters row */}
         <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter tasks">
           <div
             className={cn(
-              "group relative flex h-8 w-[240px] items-center rounded-[10px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
+              "group relative flex h-8 w-[260px] items-center rounded-[12px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
               q
-                ? "border-accent/45 bg-surface shadow-[var(--lift-1)]"
-                : "border-line bg-well/55 hover:border-line-strong hover:bg-surface"
+                ? "border-accent/45 bg-[var(--glass-3)] shadow-[var(--glass-shadow-sm)]"
+                : "border-[var(--glass-border)] bg-[var(--glass-2)] hover:border-line-strong hover:bg-[var(--glass-3)]"
             )}
           >
             <Search
-              className={cn("size-3.5 shrink-0 transition-colors", q ? "text-accent-text" : "text-ink-3")}
+              className={cn("size-3.5 shrink-0 transition-colors", q ? "text-accent-text" : "text-[var(--text-secondary)]")}
               aria-hidden
             />
             <input
@@ -649,21 +707,26 @@ export function BoardScreen({
               }}
               placeholder="Search tasks, prompts, IDs…"
               aria-label="Search tasks"
-              className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
+              className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-[var(--text-primary)] outline-none placeholder:font-normal placeholder:text-[var(--text-muted)]"
             />
             {q ? (
               <button
                 type="button"
                 onClick={() => setQ("")}
                 aria-label="Clear search"
-                className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-3 transition-colors hover:bg-well hover:text-ink"
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-well hover:text-[var(--text-primary)]"
               >
                 <span aria-hidden className="text-[13px] leading-none">×</span>
               </button>
             ) : (
-              <kbd className="hidden shrink-0 rounded-[5px] border border-line bg-surface px-1.5 py-0.5 font-mono text-[9px] text-ink-4 sm:inline">
-                /
-              </kbd>
+              <span className="hidden shrink-0 items-center gap-1 sm:inline-flex">
+                <kbd className="rounded-[5px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)]">
+                  /
+                </kbd>
+                <kbd className="rounded-[5px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)]">
+                  ⌘K
+                </kbd>
+              </span>
             )}
           </div>
 
@@ -676,7 +739,7 @@ export function BoardScreen({
             aria-label="Task filters"
           />
 
-          <span className="ml-0.5 font-mono text-[11px] tabular-nums text-ink-4">
+          <span className="ml-0.5 font-mono text-[11px] tabular-nums text-[var(--text-secondary)]">
             {filtered.length === allTasks.length
               ? `${allTasks.length} ${allTasks.length === 1 ? "task" : "tasks"}`
               : `${filtered.length} of ${allTasks.length}`}
@@ -686,7 +749,10 @@ export function BoardScreen({
 
           <button
             type="button"
-            className={"btn" + (bulkMode ? " primary" : "")}
+            className={cn(
+              "btn",
+              bulkMode && "border-accent bg-accent-tint text-accent-text"
+            )}
             aria-pressed={bulkMode}
             onClick={() => {
               setBulkMode((v) => !v);
@@ -766,15 +832,23 @@ export function BoardScreen({
 
       {viewMode === "board" && (
         <div className="board-scroller">
-          <div className="board">
+          <div
+            ref={boardRef}
+            className={cn("board board-scroll", boardAtEnd && "at-end")}
+            data-dragging={draggingId ? "true" : undefined}
+            onScroll={updateBoardScrollEnd}
+          >
             {STATUSES.map((s) => {
               const colTasks = filtered.filter((t) => t.status === s);
               const copy = EMPTY_COPY[s];
               const quickAdd = QUICK_ADD[s];
+              const isReviewBottleneck = s === "review" && colTasks.length >= REVIEW_WIP_LIMIT;
               return (
                 <div
                   key={s}
-                  className={"col" + (over === s ? " over" : "")}
+                  className={cn("col glass-column", over === s && "over")}
+                  data-status={s}
+                  data-wip-exceeded={isReviewBottleneck || undefined}
                   style={{ ["--lamp" as string]: statusColor(s) }}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -784,21 +858,46 @@ export function BoardScreen({
                   onDrop={(e) => {
                     e.preventDefault();
                     setOver("");
+                    setDraggingId(null);
                     const id = e.dataTransfer.getData("text/plain");
                     if (id) move.mutate({ id, to: s });
                   }}
                 >
                   <div className="col-header">
                     <h3>
-                      <Lamp status={s} />
+                      <StatusHeaderPill status={s} />
                       <span className="col-count">{colTasks.length}</span>
+                      {s === "review" && (
+                        <Tip
+                          label={
+                            isReviewBottleneck
+                              ? `Bottleneck: ${colTasks.length} tasks in review (WIP limit ${REVIEW_WIP_LIMIT})`
+                              : `Review WIP limit: ${REVIEW_WIP_LIMIT} tasks`
+                          }
+                        >
+                          <span
+                            data-testid="review-wip-badge"
+                            className={cn(
+                              "ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums",
+                              isReviewBottleneck
+                                ? "border-[var(--status-review-border)] bg-[var(--status-review-bg)] text-[var(--status-review)]"
+                                : "border-[var(--glass-border-soft)] bg-[var(--glass-2)] text-[var(--text-muted)]"
+                            )}
+                          >
+                            {isReviewBottleneck && (
+                              <AlertTriangle color="currentColor" className="size-2.5 shrink-0" aria-hidden />
+                            )}
+                            {colTasks.length}/{REVIEW_WIP_LIMIT} WIP
+                          </span>
+                        </Tip>
+                      )}
                       {quickAdd && (
                         <Tip label={`Add task to ${LABEL[s]}`}>
                           <button
                             type="button"
                             onClick={() => setCreating({ startMode: quickAdd })}
                             aria-label={`Add task to ${LABEL[s]}`}
-                            className="col-quick-btn inline-flex items-center justify-center text-ink-4 transition-colors hover:bg-raised hover:text-ink"
+                            className="col-quick-btn inline-flex items-center justify-center text-[var(--text-muted)] transition-colors hover:bg-[var(--glass-3)] hover:text-[var(--text-primary)]"
                           >
                             <Plus className="size-3.5" />
                           </button>
@@ -810,44 +909,85 @@ export function BoardScreen({
 
                   <div className="col-well">
                     {colTasks.length === 0 ? (
-                      <div className="col-empty">
-                        {(() => {
-                          const Icon = EMPTY_ICONS[s];
-                          return <Icon className="size-5 mb-1 opacity-40 text-[var(--lamp)]" />;
-                        })()}
-                        <strong>{copy.title}</strong>
-                        <span>{copy.hint}</span>
-                        {quickAdd && (
-                          <button
-                            type="button"
-                            onClick={() => setCreating({ startMode: quickAdd })}
-                            className="mt-1.5 inline-flex h-7 items-center gap-1 rounded-[8px] border border-line bg-surface px-2.5 text-[11px] font-semibold text-ink-2 shadow-[var(--lift-1)] transition-colors hover:border-line-strong hover:text-ink"
-                          >
-                            <Plus className="size-3" />
-                            Add task
-                          </button>
-                        )}
-                      </div>
+                      s === "in_progress" ? (
+                        <div className="col-empty justify-start pt-4">
+                          <div className="flex w-full flex-col items-center rounded-[14px] border border-dashed border-[var(--glass-border)] bg-[var(--glass-2)] px-3 py-5 text-center">
+                            <Cpu color="currentColor" className="mb-1.5 size-5 text-[var(--status-progress)] opacity-75" />
+                            <strong className="text-[12px] text-[var(--text-primary)]">{copy.title}</strong>
+                            <span className="mt-0.5 text-[11px] leading-snug text-[var(--text-secondary)]">
+                              {copy.hint}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (nextTodoTask) dispatch.mutate(nextTodoTask.id);
+                                else setCreating({ startMode: "queue" });
+                              }}
+                              disabled={dispatch.isPending}
+                              className="mt-3 inline-flex h-7 items-center gap-1.5 rounded-[12px] border border-[var(--glass-btn-primary-border)] bg-[var(--glass-btn-primary-bg)] px-3 text-[11px] font-semibold text-[var(--glass-btn-primary-ink)] shadow-[var(--glass-shadow-sm)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                            >
+                              <Play color="currentColor" className="size-2.5 fill-current" />
+                              <span>Run next task</span>
+                            </button>
+                            <span className="mt-1.5 text-[10.5px] text-[var(--text-muted)]">
+                              or drag a task card here
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="col-empty">
+                          {(() => {
+                            const Icon = EMPTY_ICONS[s];
+                            return <Icon className="mb-1 size-5 text-[var(--lamp)] opacity-50" />;
+                          })()}
+                          <strong className="text-[var(--text-primary)]">{copy.title}</strong>
+                          <span>{copy.hint}</span>
+                          {quickAdd && (
+                            <button
+                              type="button"
+                              onClick={() => setCreating({ startMode: quickAdd })}
+                              className="mt-1.5 inline-flex h-7 items-center gap-1 rounded-[12px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] shadow-[var(--glass-shadow-sm)] transition-colors hover:bg-surface"
+                            >
+                              <Plus className="size-3" />
+                              Add task
+                            </button>
+                          )}
+                        </div>
+                      )
                     ) : (
                       colTasks.map((t) => {
                         const isSel = selected.has(t.id);
                         const firstLine = (t.prompt || "").split("\n").find((l) => l.trim())?.trim() ?? "";
+                        const fullAgentLabel = `${t.executor || "default"}${t.model ? ` · ${t.model}` : ""}`;
+                        const shortAgentLabel = formatAgentTag(t.executor, t.model);
+                        const shortWsLabel = t.workspace ? formatWorkspaceTag(t.workspace) : "";
+                        const effortMeta = t.effort ? EFFORT_META[t.effort] : undefined;
+                        const assignee = (t as Task & { assignee?: string }).assignee;
+
                         return (
                           <div
                             key={t.id}
-                            className="card group"
+                            className={cn("card glass-card group", draggingId === t.id && "is-dragging")}
                             data-status={t.status}
                             data-selected={isSel || undefined}
                             style={{ ["--lamp" as string]: statusColor(t.status) }}
                             draggable
-                            onDragStart={(e) => e.dataTransfer.setData("text/plain", t.id)}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", t.id);
+                              setDraggingId(t.id);
+                            }}
+                            onDragEnd={() => setDraggingId(null)}
                             onClick={() => (bulkMode ? toggleSelect(t.id) : open(t.id))}
                           >
                             <span aria-hidden className="card-coupler" />
 
                             {/* Card top telemetry bar */}
-                            <div className="mb-1 flex min-h-[20px] items-center justify-between gap-2">
+                            <div className="mb-1.5 flex min-h-[20px] items-center justify-between gap-2">
                               <div className="flex min-w-0 items-center gap-1.5">
+                                <GripVertical
+                                  className="size-3.5 shrink-0 cursor-grab text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-75 active:cursor-grabbing"
+                                  aria-hidden
+                                />
                                 {bulkMode && (
                                   <input
                                     type="checkbox"
@@ -858,19 +998,32 @@ export function BoardScreen({
                                     aria-label={`Select ${t.title}`}
                                   />
                                 )}
-                                <span className="truncate font-mono text-[10px] font-medium text-ink-4">
-                                  {t.id}
-                                </span>
+                                <Tip label={`Click to copy ${t.id}`}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void navigator.clipboard?.writeText(t.id);
+                                      toast("Task id copied", { tone: "info", description: t.id });
+                                    }}
+                                    aria-label={`Copy task id ${t.id}`}
+                                    className="truncate font-mono text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                                  >
+                                    {t.id}
+                                  </button>
+                                </Tip>
                                 {t.execution_mode === "tracker" && (
-                                  <span className="badge" title="Passive MCP monitor card (skipped by dispatcher)">
-                                    monitor
-                                  </span>
+                                  <Tip label="Passive MCP monitor card (skipped by dispatcher)">
+                                    <span className="badge">monitor</span>
+                                  </Tip>
                                 )}
                                 {t.question?.status === "pending" && (
-                                  <span className="badge review inline-flex items-center gap-0.5" title={t.question.question}>
-                                    <HelpCircle className="size-2.5" />
-                                    question
-                                  </span>
+                                  <Tip label={t.question.question}>
+                                    <span className="badge review inline-flex items-center gap-0.5">
+                                      <HelpCircle className="size-2.5" />
+                                      question
+                                    </span>
+                                  </Tip>
                                 )}
                                 {t.run_id && <span className="badge review">pipeline</span>}
                               </div>
@@ -882,7 +1035,7 @@ export function BoardScreen({
                                     <button
                                       type="button"
                                       aria-label={`Actions for ${t.title}`}
-                                      className="-mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-ink-4 opacity-0 transition-[opacity,background-color,transform] duration-100 ease-[var(--ease-out-expo)] hover:bg-well hover:text-ink active:scale-95 group-hover:opacity-100 focus-visible:opacity-100"
+                                      className="-mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-muted)] opacity-0 transition-[opacity,background-color,transform] duration-100 ease-[var(--ease-out-expo)] hover:bg-well hover:text-[var(--text-primary)] active:scale-95 group-hover:opacity-100 focus-visible:opacity-100"
                                     >
                                       <MoreHorizontal className="size-3.5" />
                                     </button>
@@ -938,53 +1091,86 @@ export function BoardScreen({
                               )}
                             </div>
 
-                            <div className="card-title">{t.title}</div>
+                            <Tip label={t.title} side="top" delayDuration={300}>
+                              <div className="card-title line-clamp-2">{t.title}</div>
+                            </Tip>
 
-                            {firstLine && <div className="card-snippet">{firstLine}</div>}
+                            {firstLine && (
+                              <Tip label={t.prompt} side="bottom" delayDuration={350}>
+                                <div className="card-snippet line-clamp-2">{firstLine}</div>
+                              </Tip>
+                            )}
 
                             <div className="meta">
-                              <span className="badge accent max-w-[128px] truncate" title={`${t.executor || "default"}${t.model ? ` · ${t.model}` : ""}`}>
-                                <span className="truncate">
-                                  {t.executor || "default"}
-                                  {t.model ? ` · ${t.model}` : ""}
+                              <Tip label={fullAgentLabel}>
+                                <span className="badge accent max-w-[140px] truncate">
+                                  <span className="truncate">{shortAgentLabel}</span>
                                 </span>
-                              </span>
+                              </Tip>
                               {t.workspace && (
-                                <span className="badge inline-flex max-w-[100px] items-center gap-1 truncate" title={t.workspace}>
-                                  <OsIcon
-                                    ws={(workspaces.data ?? []).find((w) => w.path === t.workspace)}
-                                    path={t.workspace}
-                                    className="size-3 shrink-0"
-                                  />
-                                  <span className="truncate">
-                                    {t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace}
+                                <Tip label={t.workspace}>
+                                  <span className="badge inline-flex max-w-[116px] items-center gap-1 truncate">
+                                    <OsIcon
+                                      ws={(workspaces.data ?? []).find((w) => w.path === t.workspace)}
+                                      path={t.workspace}
+                                      className="size-3 shrink-0"
+                                    />
+                                    <span className="truncate">{shortWsLabel}</span>
                                   </span>
-                                </span>
+                                </Tip>
                               )}
                               {t.blocked_by?.length > 0 && (
-                                <span className="badge warn shrink-0" title={`Blocked by: ${t.blocked_by.join(", ")}`}>
-                                  {t.blocked_by.length} dep{t.blocked_by.length === 1 ? "" : "s"}
-                                </span>
+                                <Tip label={`Blocked by: ${t.blocked_by.join(", ")}`}>
+                                  <span className="badge warn shrink-0">
+                                    {t.blocked_by.length} dep{t.blocked_by.length === 1 ? "" : "s"}
+                                  </span>
+                                </Tip>
                               )}
-                              {!t.blocked_by?.length && t.retry_count > 0 && (
-                                <span className="badge warn shrink-0">retry {t.retry_count}</span>
+                              {t.retry_count > 0 && (
+                                <Tip label={`Attempted ${t.retry_count} of ${MAX_RETRY_DISPLAY} retries`}>
+                                  <span className="badge-retry shrink-0">
+                                    <RotateCcw color="currentColor" className="size-2.5 shrink-0" aria-hidden />
+                                    retry {t.retry_count}/{MAX_RETRY_DISPLAY}
+                                  </span>
+                                </Tip>
                               )}
                               {t.error_sig && (
-                                <span
-                                  className="badge border-danger/35 bg-danger-tint text-danger-text max-w-[165px] truncate"
-                                  title={t.error_sig}
-                                >
-                                  {t.error_sig}
-                                </span>
+                                <Tip label={t.error_sig}>
+                                  <span className="badge border-danger/35 bg-danger-tint text-danger-text max-w-[165px] truncate">
+                                    {t.error_sig}
+                                  </span>
+                                </Tip>
                               )}
                             </div>
 
                             {t.question?.status === "pending" && <TaskQuestionCard task={t} variant="card" />}
 
                             <div className="card-footer">
-                              <span className="font-mono text-[10px] tabular text-ink-4" title="Last updated">
-                                {relativeTime(t.updated_at)}
-                              </span>
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                {effortMeta && (
+                                  <Tip label={effortMeta.label}>
+                                    <span
+                                      aria-label={effortMeta.label}
+                                      className={cn(
+                                        "size-2 shrink-0 rounded-full ring-2 ring-white/50 dark:ring-slate-900/50",
+                                        effortMeta.dot
+                                      )}
+                                    />
+                                  </Tip>
+                                )}
+                                {assignee && (
+                                  <Tip label={`Assignee: ${assignee}`}>
+                                    <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-2)] font-mono text-[8.5px] font-bold text-[var(--text-primary)]">
+                                      {initials(assignee)}
+                                    </span>
+                                  </Tip>
+                                )}
+                                <Tip label={`Updated ${fmtDateTime(t.updated_at)}`}>
+                                  <span className="font-mono text-[11px] tabular text-[var(--text-muted)]">
+                                    {relativeTime(t.updated_at)}
+                                  </span>
+                                </Tip>
+                              </div>
                               {t.status === "todo" && t.execution_mode !== "tracker" ? (
                                 <button
                                   className="btn primary xs"
@@ -1032,12 +1218,14 @@ export function BoardScreen({
 
       {viewMode === "table" && (
         <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-          <div className="overflow-hidden rounded-[12px] border border-line bg-surface shadow-[var(--glass-lift-card)]">
+          <div className="glass-card overflow-hidden">
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12 text-center">
-                <ListTodo className="size-6 text-ink-3" />
-                <strong className="text-sm text-ink">No matching tasks</strong>
-                <p className="m-0 text-xs text-ink-3">Clear active filters or create a new task to populate the ledger.</p>
+                <ListTodo className="size-6 text-[var(--text-secondary)]" />
+                <strong className="text-sm text-[var(--text-primary)]">No matching tasks</strong>
+                <p className="m-0 text-xs text-[var(--text-secondary)]">
+                  Clear active filters or create a new task to populate the ledger.
+                </p>
               </div>
             ) : (
               <table>
@@ -1058,11 +1246,11 @@ export function BoardScreen({
                     const matchedWs = (workspaces.data ?? []).find((w) => w.path === t.workspace);
                     return (
                       <tr key={t.id} onClick={() => open(t.id)} className="cursor-pointer">
-                        <td className="font-mono text-[11px] text-ink-3">{t.id}</td>
+                        <td className="font-mono text-[11px] text-[var(--text-muted)]">{t.id}</td>
                         <td>
-                          <div className="font-semibold text-ink">{t.title}</div>
+                          <div className="font-semibold text-[var(--text-primary)]">{t.title}</div>
                           {t.prompt && (
-                            <div className="max-w-[38ch] truncate font-mono text-[11px] text-ink-3">
+                            <div className="max-w-[38ch] truncate font-mono text-[11px] text-[var(--text-secondary)]">
                               {t.prompt}
                             </div>
                           )}
@@ -1072,12 +1260,12 @@ export function BoardScreen({
                         </td>
                         <td>
                           {t.workspace ? (
-                            <span className="inline-flex items-center gap-1.5 text-xs text-ink-2">
+                            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                               <OsIcon ws={matchedWs} path={t.workspace} className="size-3.5" />
                               {matchedWs?.name ?? (t.workspace.split(/[\\/]/).filter(Boolean).pop() || t.workspace)}
                             </span>
                           ) : (
-                            <span className="text-xs text-ink-4">scratch</span>
+                            <span className="text-xs text-[var(--text-muted)]">scratch</span>
                           )}
                         </td>
                         <td>
@@ -1086,10 +1274,12 @@ export function BoardScreen({
                             {t.model ? ` · ${t.model}` : ""}
                           </span>
                         </td>
-                        <td className="font-mono text-xs tabular text-ink-3">
+                        <td className="font-mono text-xs tabular text-[var(--text-secondary)]">
                           {t.blocked_by?.length ? `${t.blocked_by.length} blocked` : "—"}
                         </td>
-                        <td className="font-mono text-[11px] tabular text-ink-3">{relativeTime(t.updated_at)}</td>
+                        <td className="font-mono text-[11px] tabular text-[var(--text-muted)]">
+                          {relativeTime(t.updated_at)}
+                        </td>
                         <td className="text-right" onClick={(e) => e.stopPropagation()}>
                           {t.status === "todo" ? (
                             <button
@@ -1125,17 +1315,19 @@ export function BoardScreen({
               return (
                 <section
                   key={exec}
-                  className="flex flex-col gap-2 rounded-[12px] border border-line bg-well/65 p-3 shadow-[var(--well-inset)]"
+                  className="glass-column flex flex-col gap-2 p-3"
                 >
                   <div className="flex items-center justify-between gap-2 px-1">
                     <div className="flex items-center gap-2">
                       <Cpu className="size-3.5 text-accent-text" />
-                      <h3 className="m-0 font-[var(--font-display)] text-sm font-bold text-ink">{exec}</h3>
+                      <h3 className="m-0 font-[var(--font-display)] text-sm font-bold text-[var(--text-primary)]">
+                        {exec}
+                      </h3>
                     </div>
                     <span className="badge tabular">{laneTasks.length} tasks</span>
                   </div>
                   {laneTasks.length === 0 ? (
-                    <div className="rounded-[14px] border border-dashed border-line-strong/70 bg-surface/50 py-6 text-center text-xs text-ink-4">
+                    <div className="rounded-[14px] border border-dashed border-[var(--glass-border)] bg-[var(--glass-2)] py-6 text-center text-xs text-[var(--text-muted)]">
                       No matching tasks
                     </div>
                   ) : (
@@ -1143,19 +1335,19 @@ export function BoardScreen({
                       <div
                         key={t.id}
                         onClick={() => open(t.id)}
-                        className="card group"
+                        className="card glass-card group"
                         data-status={t.status}
                         style={{ ["--lamp" as string]: statusColor(t.status) }}
                       >
                         <span aria-hidden className="card-coupler" />
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-[10px] text-ink-4">{t.id}</span>
+                          <span className="font-mono text-[11px] text-[var(--text-muted)]">{t.id}</span>
                           <StatusBadge status={t.status} />
                         </div>
                         <div className="card-title mt-1.5">{t.title}</div>
-                        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink-3">
+                        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[var(--text-secondary)]">
                           <span className="truncate font-mono">{t.model || "default model"}</span>
-                          <span className="tabular">{relativeTime(t.updated_at)}</span>
+                          <span className="tabular text-[var(--text-muted)]">{relativeTime(t.updated_at)}</span>
                         </div>
                       </div>
                     ))
@@ -1184,9 +1376,14 @@ export function BoardDialog({
   onDeleted?: () => void;
 }) {
   const qc = useQueryClient();
+  const { visibleExecutors } = useExecutorConfig();
   const [name, setName] = useState(board?.name ?? "");
   const [defaultExecutor, setDefaultExecutor] = useState(board?.default_executor ?? "");
   const [defaultModel, setDefaultModel] = useState(board?.default_model ?? "");
+  const selectableExecutors =
+    defaultExecutor && !visibleExecutors.includes(defaultExecutor)
+      ? [defaultExecutor, ...visibleExecutors]
+      : visibleExecutors;
 
   const models = useQuery({
     queryKey: ["models", defaultExecutor],
@@ -1281,9 +1478,9 @@ export function BoardDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={DEFAULT_SENTINEL}>(system default)</SelectItem>
-                    {EXECUTORS.map((x) => (
+                    {selectableExecutors.map((x) => (
                       <SelectItem key={x} value={x}>
-                        {x}
+                        {EXECUTOR_LABELS[x] ?? x}
                       </SelectItem>
                     ))}
                   </SelectContent>

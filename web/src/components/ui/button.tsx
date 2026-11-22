@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
  */
 export const buttonVariants = cva(
   [
-    "relative inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-[10px] font-semibold leading-none tracking-[-0.01em] outline-none",
+    "relative inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-[12px] font-semibold leading-none tracking-[-0.01em] outline-none",
     "transition-[background-color,border-color,box-shadow,transform,color,filter] duration-150 ease-[var(--ease-out-expo)]",
     "active:scale-[0.972] active:duration-[80ms]",
     "focus-visible:ring-[3px] focus-visible:ring-focus/35",

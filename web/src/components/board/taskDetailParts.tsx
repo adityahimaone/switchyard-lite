@@ -26,7 +26,7 @@ import {
   type WorktreeInfo,
 } from "@/api";
 import { cn } from "@/lib/utils";
-import { LABEL } from "@/ui";
+import { LABEL, StatusHeaderPill } from "@/ui";
 import { relativeTime } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,22 +56,7 @@ const STATUS_DOT: Record<Status, string> = {
 };
 
 export function StatusBadge({ status }: { status: Status | string }) {
-  const s = status as Status;
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "h-5 gap-1.5 rounded-md px-2 py-0 text-[10.5px] font-semibold capitalize leading-none",
-        STATUS_CHIP[s] ?? STATUS_CHIP.todo
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn("size-1.5 shrink-0 rounded-full", STATUS_DOT[s] ?? "bg-ink-4")}
-      />
-      {LABEL[status] ?? status.replace("_", " ")}
-    </Badge>
-  );
+  return <StatusHeaderPill status={status} className="capitalize" />;
 }
 
 export function OsIcon({
@@ -94,7 +79,7 @@ export function SectionTitle({ children, className }: { children: ReactNode; cla
   return (
     <h2
       className={cn(
-        "m-0 flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-ink-3 uppercase",
+        "m-0 flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-[var(--text-secondary)] uppercase",
         className
       )}
     >
@@ -119,12 +104,12 @@ export function Section({
   return (
     <section
       className={cn(
-        "min-w-0 rounded-[12px] border border-line bg-surface p-3 shadow-[var(--lift-1),var(--lift-inset)]",
+        "min-w-0 rounded-[16px] border border-[var(--glass-border)] bg-[var(--glass-3)] p-3.5 shadow-[var(--glass-highlight),var(--glass-inner),var(--glass-shadow-sm)] backdrop-blur-md",
         className
       )}
     >
       {(title || action) && (
-        <div className="flex items-center justify-between gap-2 border-b border-line/60 pb-2">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border-soft)] pb-2">
           {title && <SectionTitle>{title}</SectionTitle>}
           {action}
         </div>
@@ -137,8 +122,8 @@ export function Section({
 export function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
-      <dt className="shrink-0 text-ink-3">{label}</dt>
-      <dd className="m-0 min-w-0 truncate text-right font-medium text-ink-2">{children}</dd>
+      <dt className="shrink-0 text-[var(--text-muted)]">{label}</dt>
+      <dd className="m-0 min-w-0 truncate text-right font-medium text-[var(--text-primary)]">{children}</dd>
     </div>
   );
 }
@@ -186,8 +171,8 @@ export function MetaChip({
     <span
       title={title}
       className={cn(
-        "inline-flex h-5 max-w-[220px] items-center gap-1 rounded-md border px-1.5 py-0 text-[10.5px] font-medium leading-none",
-        tone === "default" && "border-line bg-well text-ink-2",
+        "inline-flex h-5 max-w-[220px] items-center gap-1 rounded-full border px-2 py-0 text-[10.5px] font-medium leading-none",
+        tone === "default" && "border-[var(--glass-border)] bg-[var(--glass-3)] text-[var(--text-secondary)]",
         tone === "accent" && "border-accent/30 bg-accent-tint text-accent-text",
         tone === "warn" && "border-warning/30 bg-warning-tint text-warning-text",
         tone === "review" && "border-review/30 bg-review-tint text-review-text",
@@ -215,15 +200,15 @@ export function FactTile({
   tone?: "default" | "accent" | "success" | "danger" | "review";
 }) {
   return (
-    <div className="flex min-h-[68px] min-w-0 flex-col justify-center rounded-[10px] border border-line bg-surface px-3 py-2.5 shadow-[var(--lift-1),var(--lift-inset)]">
-      <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-ink-4 uppercase">
+    <div className="flex min-h-[70px] min-w-0 flex-col justify-center rounded-[16px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-3.5 py-2.5 shadow-[var(--glass-highlight),var(--glass-inner),var(--glass-shadow-sm)]">
+      <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-[var(--text-muted)] uppercase">
         {icon}
         <span className="truncate">{label}</span>
       </div>
       <div
         className={cn(
           "mt-1 truncate text-xs font-semibold tabular-nums leading-tight",
-          tone === "default" && "text-ink",
+          tone === "default" && "text-[var(--text-primary)]",
           tone === "accent" && "text-accent-text",
           tone === "success" && "text-success-text",
           tone === "danger" && "text-danger-text",
@@ -233,7 +218,7 @@ export function FactTile({
       >
         {value}
       </div>
-      {hint && <div className="mt-1 truncate text-[10px] leading-tight text-ink-4">{hint}</div>}
+      {hint && <div className="mt-1 truncate text-[10.5px] leading-tight text-[var(--text-secondary)]">{hint}</div>}
     </div>
   );
 }
@@ -277,13 +262,16 @@ export function CollapsibleText({
 
 const LIFECYCLE_STAGES: Status[] = ["backlog", "todo", "in_progress", "review", "done"];
 
-function LifecycleStepper({ status }: { status: Status }) {
+function LifecycleStepper({ status, compact = false }: { status: Status; compact?: boolean }) {
   const activeIdx = LIFECYCLE_STAGES.indexOf(status);
   const offTrack = status === "blocked" || status === "failed";
 
   return (
     <div
-      className="mt-2 flex flex-wrap items-center gap-1 rounded-[10px] border border-line bg-well/75 p-0.5 shadow-[var(--well-inset)]"
+      className={cn(
+        "mt-2 flex flex-wrap items-center gap-1 rounded-[12px] border border-[var(--glass-border-soft)] bg-[var(--glass-2)] p-1",
+        compact && "gap-0.5 py-0.5"
+      )}
       aria-label="Task lifecycle progression"
     >
       {LIFECYCLE_STAGES.map((stage, idx) => {
@@ -293,12 +281,12 @@ function LifecycleStepper({ status }: { status: Status }) {
           <div key={stage} className="flex items-center gap-1">
             <span
               className={cn(
-                "inline-flex h-[22px] items-center gap-1.5 rounded-[7px] px-2 text-[10.5px] font-medium leading-none",
+                "inline-flex h-[22px] items-center gap-1.5 rounded-[8px] px-2 text-[10.5px] font-medium leading-none transition-colors",
                 isCurrent
-                  ? "border border-line-strong bg-surface font-semibold text-ink shadow-[var(--lift-1)]"
+                  ? "border border-[var(--glass-border)] bg-[var(--glass-3)] font-semibold text-[var(--text-primary)] shadow-[var(--glass-highlight),var(--glass-shadow-sm)]"
                   : isPast
-                    ? "text-ink-2"
-                    : "text-ink-4"
+                    ? "text-[var(--text-secondary)]"
+                    : "text-[var(--text-muted)]"
               )}
             >
               <span
@@ -308,20 +296,20 @@ function LifecycleStepper({ status }: { status: Status }) {
                     ? STATUS_DOT[stage]
                     : isPast
                       ? "bg-success"
-                      : "bg-ink-4/40"
+                      : "bg-slate-400/50"
                 )}
                 aria-hidden
               />
               {LABEL[stage] ?? stage}
             </span>
             {idx < LIFECYCLE_STAGES.length - 1 && (
-              <ChevronRight className="size-3 shrink-0 text-ink-4/70" aria-hidden />
+              <ChevronRight className="size-3 shrink-0 text-[var(--text-muted)]" aria-hidden />
             )}
           </div>
         );
       })}
       {offTrack && (
-        <span className="ml-auto inline-flex h-[22px] items-center gap-1.5 rounded-[7px] border border-danger/35 bg-danger-tint px-2 text-[10.5px] font-semibold leading-none text-danger-text">
+        <span className="ml-auto inline-flex h-[22px] items-center gap-1.5 rounded-full border border-[var(--status-failed-border)] bg-[var(--status-failed-bg)] px-2.5 text-[10.5px] font-semibold leading-none text-[var(--status-failed)]">
           <span className={cn("inline-block size-1.5 rounded-full", STATUS_DOT[status])} aria-hidden />
           {LABEL[status] ?? status}
         </span>
@@ -360,9 +348,9 @@ export function TaskHeader({
   return (
     <header
       className={cn(
-        "shrink-0 border-b border-line bg-surface/90 backdrop-blur-xl",
+        "shrink-0 border-b border-[var(--glass-border-soft)] bg-[var(--glass-1)] shadow-[var(--glass-highlight)] backdrop-blur-xl",
         sticky && "sticky top-0 z-20",
-        variant === "page" ? "px-4 pt-3 pb-2.5 sm:px-5" : "px-4 py-2.5"
+        variant === "page" ? "px-4 pt-3 pb-2.5 sm:px-5" : "px-4 py-3"
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -383,8 +371,8 @@ export function TaskHeader({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <TitleTag
               className={cn(
-                "m-0 min-w-0 max-w-full truncate font-[var(--font-display)] font-bold tracking-[-0.025em] text-ink",
-                variant === "page" ? "text-[17px]" : "text-[15px]"
+                "m-0 min-w-0 max-w-full truncate font-[var(--font-display)] font-bold tracking-[-0.025em] text-[var(--text-primary)]",
+                variant === "page" ? "text-[18px]" : "text-[15.5px]"
               )}
               title={task?.title ?? id}
             >
@@ -403,8 +391,8 @@ export function TaskHeader({
             )}
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-3">
-            <span className="inline-flex h-5 items-center gap-1 rounded-md border border-line bg-well pr-1 pl-1.5 font-mono text-[10.5px] leading-none text-ink-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+            <span className="inline-flex h-5 items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-3)] pr-1 pl-2 font-mono text-[11px] leading-none text-[var(--text-muted)]">
               {id}
               <CopyButton value={id} label="Copy task id" />
             </span>
@@ -427,15 +415,22 @@ export function TaskHeader({
 
             {task?.effort && <MetaChip>{task.effort} effort</MetaChip>}
 
+            {task && task.retry_count > 0 && (
+              <span className="badge-retry">
+                <RotateCcw color="currentColor" className="size-2.5 shrink-0" aria-hidden />
+                retry {task.retry_count}/3
+              </span>
+            )}
+
             {task?.updated_at && (
-              <span className="inline-flex items-center gap-1 text-ink-4" title="Last updated">
-                <span className="size-1 rounded-full bg-ink-4/60" aria-hidden />
+              <span className="inline-flex items-center gap-1 font-mono text-[10.5px] text-[var(--text-muted)]" title="Last updated">
+                <span className="size-1 rounded-full bg-slate-400/70" aria-hidden />
                 {relativeTime(task.updated_at)}
               </span>
             )}
           </div>
 
-          {variant === "page" && task && <LifecycleStepper status={task.status} />}
+          {task && <LifecycleStepper status={task.status} compact={variant === "drawer"} />}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -514,24 +509,34 @@ export function TaskActions({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {task.status === "todo" && task.execution_mode !== "tracker" && (
-        <Button type="button" variant="prism" size="xs" loading={dispatchPending} onClick={onDispatch}>
+        <button
+          type="button"
+          className="btn primary sm"
+          disabled={dispatchPending}
+          onClick={onDispatch}
+        >
           <Play className="size-3 fill-current" />
-          Dispatch now
-        </Button>
+          <span>{dispatchPending ? "Dispatching…" : "Dispatch now"}</span>
+        </button>
       )}
       {(task.status === "failed" || task.status === "blocked") &&
         task.execution_mode !== "tracker" &&
         onRetry && (
-          <Button type="button" variant="signal" size="xs" loading={retryPending} onClick={onRetry}>
+          <button
+            type="button"
+            className="btn primary sm"
+            disabled={retryPending}
+            onClick={onRetry}
+          >
             <RotateCcw className="size-3" />
-            Retry now
-          </Button>
+            <span>{retryPending ? "Retrying…" : "Retry now"}</span>
+          </button>
         )}
       {task.status === "review" && onOpenReview && (
-        <Button type="button" variant="signal" size="xs" onClick={onOpenReview}>
+        <button type="button" className="btn primary sm" onClick={onOpenReview}>
           <CheckCircle2 className="size-3" />
-          Review diff
-        </Button>
+          <span>Review diff</span>
+        </button>
       )}
 
       {next.length > 0 && (

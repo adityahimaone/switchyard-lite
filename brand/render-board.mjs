@@ -10,8 +10,8 @@ import { createRequire } from 'node:module'
 
 const root = process.cwd()
 const slug = 'switchyard-lite'
-const tokensPath = path.join(root, 'web/features', slug, 'tokens.json')
 const brandDir = path.join(root, 'web/public/brand', slug)
+const tokensPath = path.join(brandDir, 'tokens.json')
 const htmlOut = path.join(brandDir, 'brandkit.html')
 const outPath = path.join(brandDir, `${slug}-brandkit.png`)
 
@@ -22,11 +22,11 @@ const contrast = tokens.contrast || []
 const fails = contrast.filter((c) => !c.pass)
 const passes = contrast.filter((c) => c.pass)
 
-const ground = primitives.find((p) => p.name === 'ground')?.value || '#F1F4FB'
+const ground = primitives.find((p) => p.name === 'ground')?.value || '#EEF2FF'
 const plate = primitives.find((p) => p.name === 'plate')?.value || '#FFFFFF'
-const well = primitives.find((p) => p.name === 'well')?.value || '#E4EAF7'
-const ink = primitives.find((p) => p.name === 'ink')?.value || '#0D1526'
-const accent = primitives.find((p) => p.name === 'accent')?.value || '#2F5BFF'
+const well = primitives.find((p) => p.name === 'well')?.value || '#E0E7FF'
+const ink = primitives.find((p) => p.name === 'ink')?.value || '#0F172A'
+const accent = primitives.find((p) => p.name === 'accent')?.value || '#2563EB'
 
 const readSvg = (file) => fs.existsSync(path.join(brandDir, file)) ? fs.readFileSync(path.join(brandDir, file), 'utf8') : ''
 const markRevSvg = readSvg('mark-reverse.svg')
@@ -119,19 +119,29 @@ const html = `<!doctype html>
     font-size: 12.5px;
     font-weight: 600;
   }
-  .pill-prism {
-    background: linear-gradient(128deg, #FF9A62 0%, #F264A8 36%, #6B5BFF 72%, #2F5BFF 100%);
-    color: #fff;
-    box-shadow: 0 8px 20px -6px rgba(107,91,255,0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+  .pill-primary-dark {
+    background: #0F172A;
+    color: #F8FAFC;
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+    border-radius: 12px;
   }
-  .pill-plate {
-    background: #FFFFFF;
-    color: #0D1526;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+  .pill-glass {
+    background: rgba(255,255,255,0.85);
+    color: #0F172A;
+    border: 1px solid rgba(255,255,255,0.65);
+    box-shadow: 0 4px 14px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+    border-radius: 12px;
+  }
+  .pill-retry {
+    background: rgba(245,158,11,0.18);
+    color: #FCD34D;
+    border: 1px solid rgba(251,191,36,0.35);
   }
   .pill-mint {
-    background: #BCEFD4;
-    color: #13794B;
+    background: rgba(5,150,105,0.20);
+    color: #34D399;
+    border: 1px solid rgba(52,211,153,0.35);
   }
   .p-mark {
     background: ${ink};
@@ -169,12 +179,12 @@ const html = `<!doctype html>
           <div style="height:34px;display:flex;align-items:center;">${lockupRevSvg}</div>
         </div>
         <div class="pill-strip">
-          <span class="pill-demo pill-prism">✦ Ask AI</span>
-          <span class="pill-demo pill-plate">Filter · <b style="color:#2F5BFF">2</b> ×</span>
-          <span class="pill-demo pill-mint">● Online</span>
-          <span class="pill-demo pill-plate" style="color:#2F5BFF">◌ In progress</span>
+          <span class="pill-demo pill-primary-dark">+ New task</span>
+          <span class="pill-demo pill-glass">Run board (2)</span>
+          <span class="pill-demo pill-retry">↻ retry 2/3</span>
+          <span class="pill-demo pill-mint">● Done 5</span>
         </div>
-        <h1 class="p-hero__title">Atmospheric Cloud Sky &amp; Tactile Pill Telemetry.</h1>
+        <h1 class="p-hero__title">Refractive Liquid Glass Control Plane.</h1>
         <p class="p-hero__sub">${meta.oneSentence}</p>
       </div>
     </div>
@@ -235,10 +245,10 @@ const html = `<!doctype html>
         <span>GATE V6.0</span>
       </div>
       <ul>
-        <li><b>Capsule Control Law.</b> Buttons, selects, filters, and status badges share a 999px capsule radius.</li>
-        <li><b>Separate 16px Compact.</b> Below 24px the turnout switch drops its signal dot and thickens to 15u.</li>
-        <li><b>Honest Contrast Ledger.</b> 3 failing pairs (muted, coral, mint) are published and graphic-only.</li>
-        <li><b>Double-Framed Stage.</b> App shell sits inside an outer frosted bezel on the 32px blueprint sky.</li>
+        <li><b>3-Level Glass Hierarchy.</b> Sidebar/Topbar (0.80 blur-20) &gt; Card (0.85 blur-16) &gt; Column (0.38 unblurred).</li>
+        <li><b>WCAG AA Slate Ink.</b> Primary #0F172A, secondary #475569, muted #64748B (4.76:1 AA on plate).</li>
+        <li><b>Solid Dark Primary CTA.</b> #0F172A solid action anchors New task; gradient clashes removed.</li>
+        <li><b>Radius &amp; Specular Law.</b> Card 16px, Column/Sidebar 20px, Button 12px, Badge 999px + 1px top sheen.</li>
       </ul>
       <div style="display:flex;justify-content:space-between;opacity:0.45;" class="mono">
         <span>SWITCHYARD LITE</span>
@@ -267,7 +277,16 @@ for (const cand of PW_CANDIDATES) {
 }
 if (!chromium) throw new Error('playwright not found')
 
-const browser = await chromium.launch()
+const BROWSER_CANDIDATES = [
+  process.env.CHROME_PATH,
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+].filter((p) => p && fs.existsSync(p))
+
+const browser = await chromium.launch(
+  BROWSER_CANDIDATES[0] ? { executablePath: BROWSER_CANDIDATES[0] } : undefined
+)
 const page = await browser.newPage({
   viewport: { width: 1500, height: 1125 },
   deviceScaleFactor: 2,

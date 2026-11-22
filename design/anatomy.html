@@ -3,22 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Switchyard Lite — Dimensional Anatomy Sheet (S# / H# / R# Redlines)</title>
+  <title>Switchyard Lite — Liquid Glass Dimensional Anatomy Sheet (S# / H# / R# Redlines)</title>
+  <link rel="icon" type="image/svg+xml" href="../web/public/brand/switchyard-lite/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #F1F4FB;
+      --bg: #EEF2FF;
       --plate: #FFFFFF;
-      --well: #E4EAF7;
-      --ink: #0D1526;
-      --slate: #4A5878;
-      --muted: #637294;
+      --well: #E0E7FF;
+      --ink: #0F172A;
+      --slate: #475569;
+      --muted: #64748B;
       --line: #DCE3F4;
-      --cobalt: #2F5BFF;
-      --coral: #D94E28;
-      --emerald: #13794B;
+      --cobalt: #2563EB;
+      --coral: #B45309;
+      --emerald: #059669;
+      --crimson: #DC2626;
       --font-display: "Space Grotesk", sans-serif;
       --font-sans: "Plus Jakarta Sans", sans-serif;
       --font-mono: "JetBrains Mono", monospace;
@@ -31,8 +33,8 @@
       color: var(--ink);
       background-color: var(--bg);
       background-image:
-        linear-gradient(to right, rgba(47, 91, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(47, 91, 255, 0.06) 1px, transparent 1px);
+        linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
       background-size: 24px 24px;
     }
     .sheet {
@@ -42,7 +44,7 @@
       border: 1.5px solid var(--ink);
       border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 20px 50px -12px rgba(13, 21, 38, 0.12);
+      box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.14);
     }
     .title-block {
       display: grid;
@@ -68,7 +70,7 @@
     }
     .tb-val {
       font-family: var(--font-display);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
     }
     .drawing-grid {
@@ -97,7 +99,7 @@
     }
     .panel h2 {
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 19px;
       margin: 0 0 16px;
     }
     .spec-table {
@@ -120,156 +122,161 @@
 </head>
 <body>
   <div class="sheet">
-    <!-- Title Block -->
     <header class="title-block">
       <div class="tb-cell">
-        <span class="tb-label">DWG NO. SY-LITE-001 · REV 2.0</span>
-        <span class="tb-val">Switchyard Lite — Dimensional Anatomy &amp; Closed-Form Spacing Chains</span>
+        <span class="tb-label">DWG NO. SY-LITE-002 · REV 2.1</span>
+        <span class="tb-val">Switchyard Lite — Liquid Glass Dimensional Anatomy &amp; Spacing Chains</span>
       </div>
       <div class="tb-cell">
-        <span class="tb-label">CAPSULE LAW</span>
-        <span class="tb-val" style="font-family:var(--font-mono);font-size:13px;color:var(--coral);">R_pill = 999px</span>
+        <span class="tb-label">RADIUS SCALE</span>
+        <span class="tb-val" style="font-family:var(--font-mono);font-size:12.5px;color:var(--coral);">Card 16 · Col/Side 20 · Btn 12 · Badge Full</span>
       </div>
       <div class="tb-cell">
         <span class="tb-label">CONCENTRIC LAW</span>
-        <span class="tb-val" style="font-family:var(--font-mono);font-size:13px;color:var(--cobalt);">R_card(20) − S_pad(8) = R_item(12)</span>
+        <span class="tb-val" style="font-family:var(--font-mono);font-size:12.5px;color:var(--cobalt);">R_col(20) − S_gap(4) = R_card(16)</span>
       </div>
       <div class="tb-cell">
         <span class="tb-label">NAVIGATION</span>
-        <a href="./brand.html" style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cobalt);text-decoration:none;">← Back to Brand Showcase</a>
+        <a href="./brand.html" style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cobalt);text-decoration:none;">← Back to Brand System</a>
       </div>
     </header>
 
     <div class="drawing-grid">
-      <!-- Panel A: Tactile Capsule Button & FilterPill Anatomy -->
+      <!-- FIG 01: 3-Level Liquid Glass Kanban Card & Column -->
       <div class="panel">
-        <div class="panel-tag">FIG 01 · BUTTON &amp; COMPOUND PILL ANATOMY</div>
-        <h2>Tactile Capsule Button (<code style="font-family:var(--font-mono);font-size:14px;">button.tsx</code> &amp; <code style="font-family:var(--font-mono);font-size:14px;">pill.tsx</code>)</h2>
+        <div class="panel-tag">FIG 01 · LEVEL 2 COLUMN &amp; LEVEL 3 LIQUID GLASS CARD</div>
+        <h2>Kanban Column + Card Anatomy (<code style="font-family:var(--font-mono);font-size:13.5px;">Board.tsx</code> &amp; <code style="font-family:var(--font-mono);font-size:13.5px;">glass.css</code>)</h2>
 
-        <svg viewBox="0 0 540 210" width="100%" height="auto" role="img" aria-label="Button and compound pill dimensional drawing">
-          <rect width="540" height="210" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
-          <!-- Outer Capsule Button -->
-          <rect x="60" y="65" width="380" height="64" rx="32" fill="#FFFFFF" stroke="#0D1526" stroke-width="1.5"/>
-          <!-- Inner Prism CTA Pill -->
-          <defs>
-            <linearGradient id="prismG" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#FF9E68"/><stop offset="45%" stop-color="#FF6B9E"/><stop offset="100%" stop-color="#2F5BFF"/>
-            </linearGradient>
-          </defs>
-          <rect x="266" y="73" width="166" height="48" rx="24" fill="url(#prismG)" stroke="#0D1526" stroke-width="1"/>
-          <text x="108" y="102" font-family="JetBrains Mono" font-size="14" font-weight="700" fill="#0D1526">30 mins ⌄</text>
-          <text x="304" y="101" font-family="Plus Jakarta Sans" font-size="13" font-weight="700" fill="#FFFFFF">✦ Ask AI / Dispatch</text>
+        <svg viewBox="0 0 540 250" width="100%" height="auto" role="img" aria-label="Liquid glass kanban column and card dimensional drawing">
+          <rect width="540" height="250" rx="14" fill="#EEF2FF" stroke="#DCE3F4"/>
+          <!-- Outer Column (Level 2: R=20px, W=274px) -->
+          <rect x="34" y="18" width="274" height="214" rx="20" fill="rgba(255,255,255,0.45)" stroke="#94A3B8" stroke-dasharray="4 2"/>
+          <text x="50" y="42" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#B45309">⎇ Review · 6 · 6/5 WIP</text>
+          <line x1="48" y1="50" x2="294" y2="50" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"/>
 
-          <!-- Dimension Lines: H_lg = 44px -->
-          <line x1="36" y1="65" x2="36" y2="129" stroke="#13794B" stroke-width="1.2"/>
-          <line x1="30" y1="65" x2="42" y2="65" stroke="#13794B" stroke-width="1.2"/>
-          <line x1="30" y1="129" x2="42" y2="129" stroke="#13794B" stroke-width="1.2"/>
-          <text x="10" y="101" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#13794B">H1=44</text>
+          <!-- Inner Card (Level 3: R=16px, blur 16px, top specular) -->
+          <rect x="44" y="64" width="254" height="148" rx="16" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.4"/>
+          <line x1="60" y1="66" x2="282" y2="66" stroke="#2563EB" stroke-width="1.5"/>
+          <rect x="44" y="76" width="3" height="18" rx="1.5" fill="#B45309"/>
+          <text x="58" y="88" font-family="JetBrains Mono" font-size="10" fill="#64748B">⋮⋮ t_9f4a (click to copy)</text>
+          <text x="58" y="110" font-family="Plus Jakarta Sans" font-size="13" font-weight="700" fill="#0F172A">Enforce 3-level liquid glass</text>
+          <text x="58" y="128" font-family="Plus Jakarta Sans" font-size="11" fill="#475569">WCAG AA slate ink · line-clamp-2</text>
+          <rect x="58" y="142" width="76" height="20" rx="10" fill="rgba(245,158,11,0.16)" stroke="#B45309"/>
+          <text x="66" y="156" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#92400E">↻ retry 2/3</text>
+          <line x1="58" y1="176" x2="284" y2="176" stroke="#DCE3F4"/>
+          <text x="58" y="196" font-family="JetBrains Mono" font-size="10" fill="#64748B">● 2mo ago</text>
+          <text x="242" y="196" font-family="Plus Jakarta Sans" font-size="10.5" font-weight="700" fill="#2563EB">Open →</text>
 
-          <!-- Horizontal Chain: S_pl(16) + W_label + S_gap(10) + W_cta + S_pr(6) -->
-          <line x1="60" y1="42" x2="440" y2="42" stroke="#2F5BFF" stroke-width="1.2"/>
-          <line x1="60" y1="36" x2="60" y2="60" stroke="#2F5BFF" stroke-dasharray="2 2"/>
-          <line x1="266" y1="36" x2="266" y2="73" stroke="#2F5BFF" stroke-dasharray="2 2"/>
-          <line x1="432" y1="36" x2="432" y2="73" stroke="#2F5BFF" stroke-dasharray="2 2"/>
-          <line x1="440" y1="36" x2="440" y2="60" stroke="#2F5BFF" stroke-dasharray="2 2"/>
-          <text x="70" y="34" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2F5BFF">S1=16px (pl)</text>
-          <text x="275" y="34" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2F5BFF">Inner Pill (H2=34px)</text>
-          <text x="415" y="34" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2F5BFF">S2=4px</text>
+          <!-- Dimension Callouts -->
+          <line x1="330" y1="18" x2="365" y2="18" stroke="#B45309" stroke-dasharray="2 2"/>
+          <text x="330" y="34" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#B45309">R_col = 20px</text>
+          <text x="330" y="50" font-family="JetBrains Mono" font-size="10" fill="#475569">W_col = 274px · No Blur</text>
 
-          <!-- Radius Callout -->
-          <path d="M440 97 L478 158 H525" fill="none" stroke="#D94E28" stroke-width="1.2"/>
-          <text x="450" y="174" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#D94E28">R1 = 999px (full)</text>
+          <line x1="298" y1="80" x2="330" y2="80" stroke="#2563EB" stroke-width="1.2"/>
+          <text x="334" y="84" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#2563EB">R_card = 16px</text>
+          <text x="334" y="100" font-family="JetBrains Mono" font-size="10" fill="#0F172A">glass-3 · 0.85 · blur(16px)</text>
+          <text x="334" y="116" font-family="JetBrains Mono" font-size="10" fill="#059669">S_pad = 11px / 12px</text>
+          <text x="334" y="138" font-family="JetBrains Mono" font-size="10" fill="#DC2626">is-dragging: blur(0) rot(1deg)</text>
         </svg>
 
         <table class="spec-table">
-          <thead><tr><th>Token</th><th>Value</th><th>Closed-Form Invariant</th></tr></thead>
+          <thead><tr><th>Token</th><th>Value</th><th>Invariant</th></tr></thead>
           <tbody>
-            <tr><td class="var-h">H_sm / H_md / H_lg</td><td>32px / 36px / 44px</td><td><code class="var-h">H_md = 2·S_py(9) + 18px line</code></td></tr>
-            <tr><td class="var-s">S_px / S_gap</td><td>16px / 8px</td><td><code class="var-s">W = 2·S_px(16) + W_icon(16) + S_gap(8) + W_text</code></td></tr>
-            <tr><td class="var-r">R_pill</td><td>999px</td><td>Full circular end-cap (<code class="var-r">R ≥ H/2</code>) + <code class="var-s">scale(0.972)</code> press</td></tr>
+            <tr><td class="var-r">R_col / R_card</td><td>20px / 16px</td><td><code class="var-r">R_card(16) = R_col(20) − S_gap(4)</code></td></tr>
+            <tr><td class="var-s">W_col / S_gap</td><td>274px / 12px</td><td>Columns unblurred; right fade mask at 92%</td></tr>
+            <tr><td class="var-h">Drag Physics</td><td>opacity 0.9 · 1deg</td><td><code class="var-h">backdrop-filter: none</code> while dragging</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Panel B: Capsule Select & Concentric Popover Anatomy -->
+      <!-- FIG 02: Fluid Spring Sidebar Rail -->
       <div class="panel">
-        <div class="panel-tag">FIG 02 · SELECT &amp; SEARCH-SELECT CONCENTRIC GEOMETRY</div>
-        <h2>Capsule Trigger + Concentric Popover (<code style="font-family:var(--font-mono);font-size:14px;">select.tsx</code>)</h2>
+        <div class="panel-tag">FIG 02 · LEVEL 1 FLUID SPRING SIDEBAR DOCK</div>
+        <h2>Collapsible Rail (<code style="font-family:var(--font-mono);font-size:13.5px;">app-shell.tsx</code> · 220px ↔ 64px)</h2>
 
-        <svg viewBox="0 0 540 210" width="100%" height="auto" role="img" aria-label="Select trigger and concentric popover dimensional drawing">
-          <rect width="540" height="210" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
-          <!-- Trigger Pill -->
-          <rect x="70" y="18" width="320" height="36" rx="18" fill="#FFFFFF" stroke="#0D1526" stroke-width="1.5"/>
-          <text x="90" y="40" font-family="Plus Jakarta Sans" font-size="12" font-weight="700" fill="#0D1526">Board: Switchyard Core</text>
-          <text x="364" y="40" font-family="JetBrains Mono" font-size="12" fill="#4A5878">⌄</text>
+        <svg viewBox="0 0 540 250" width="100%" height="auto" role="img" aria-label="Sidebar collapse and expand dimensional drawing">
+          <rect width="540" height="250" rx="14" fill="#EEF2FF" stroke="#DCE3F4"/>
+          <!-- Expanded Sidebar -->
+          <rect x="24" y="18" width="220" height="214" rx="20" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.4"/>
+          <rect x="34" y="28" width="200" height="40" rx="14" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <text x="48" y="52" font-family="Space Grotesk" font-size="12" font-weight="700" fill="#0F172A">Switchyard LITE</text>
+          <rect x="202" y="36" width="24" height="24" rx="8" fill="#EEF2FF" stroke="#2563EB"/>
+          <text x="209" y="52" font-family="JetBrains Mono" font-size="11" fill="#2563EB">◧</text>
 
-          <!-- Popover Shell (R_outer = 20px, S_pad = 8px) -->
-          <rect x="70" y="64" width="320" height="130" rx="20" fill="#FFFFFF" stroke="#0D1526" stroke-width="1.5"/>
-          <!-- Search Trough inside Popover -->
-          <rect x="80" y="74" width="300" height="30" rx="15" fill="#E4EAF7" stroke="#2F5BFF" stroke-dasharray="3 2"/>
-          <text x="94" y="93" font-family="JetBrains Mono" font-size="10.5" fill="#4A5878">🔍 Search boards… (R_well = 999px)</text>
+          <rect x="34" y="80" width="200" height="34" rx="10" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.2"/>
+          <rect x="34" y="89" width="3" height="16" rx="1.5" fill="#2563EB"/>
+          <text x="52" y="101" font-family="Plus Jakarta Sans" font-size="11.5" font-weight="700" fill="#0F172A">◫  Board</text>
 
-          <!-- Concentric Option Item (R_inner = 12px) -->
-          <rect x="80" y="112" width="300" height="34" rx="12" fill="rgba(47,91,255,0.12)" stroke="#2F5BFF" stroke-width="1.2"/>
-          <text x="94" y="133" font-family="Plus Jakarta Sans" font-size="11.5" font-weight="700" fill="#1E44D9">Switchyard Core</text>
-          <circle cx="364" cy="129" r="8" fill="#2F5BFF"/>
-          <text x="360" y="133" font-family="JetBrains Mono" font-size="10" fill="#FFFFFF">✓</text>
+          <rect x="34" y="120" width="200" height="34" rx="10" fill="transparent"/>
+          <text x="52" y="141" font-family="Plus Jakarta Sans" font-size="11.5" fill="#475569">⎇  Review</text>
+          <rect x="198" y="128" width="26" height="18" rx="9" fill="rgba(37,99,235,0.12)" stroke="#2563EB"/>
+          <text x="208" y="141" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2563EB">6</text>
 
-          <!-- Concentric Callouts -->
-          <path d="M390 80 L425 80" stroke="#D94E28" stroke-width="1.2"/>
-          <text x="430" y="84" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#D94E28">R_outer = 20px</text>
-          <path d="M380 129 L425 129" stroke="#2F5BFF" stroke-width="1.2"/>
-          <text x="430" y="133" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#2F5BFF">R_item = 12px</text>
-          <text x="430" y="152" font-family="JetBrains Mono" font-size="10" fill="#13794B">S_pad = 8px (20−8=12)</text>
+          <!-- Transition Arrow -->
+          <path d="M262 124 H316" stroke="#2563EB" stroke-width="1.8" stroke-dasharray="4 3"/>
+          <text x="262" y="114" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="#2563EB">⌘B · 260ms</text>
+
+          <!-- Collapsed Sidebar -->
+          <rect x="334" y="18" width="64" height="214" rx="20" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.4"/>
+          <rect x="342" y="28" width="48" height="40" rx="14" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <text x="360" y="52" font-family="JetBrains Mono" font-size="11" fill="#2563EB">◧</text>
+          <rect x="344" y="80" width="44" height="34" rx="10" fill="#FFFFFF" stroke="#2563EB"/>
+          <text x="360" y="101" font-family="JetBrains Mono" font-size="12" fill="#0F172A">◫</text>
+          <rect x="344" y="120" width="44" height="34" rx="10" fill="transparent"/>
+          <text x="360" y="141" font-family="JetBrains Mono" font-size="12" fill="#475569">⎇</text>
+          <circle cx="378" cy="129" r="4" fill="#2563EB"/>
+
+          <text x="414" y="42" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#0F172A">W_exp = 220px</text>
+          <text x="414" y="60" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#2563EB">W_col = 64px</text>
+          <text x="414" y="88" font-family="JetBrains Mono" font-size="10" fill="#059669">R_sidebar = 20px</text>
+          <text x="414" y="108" font-family="JetBrains Mono" font-size="10" fill="#475569">Fixed icon axis</text>
+          <text x="414" y="132" font-family="JetBrains Mono" font-size="10" fill="#B45309">Badge → 7px dot</text>
         </svg>
 
         <table class="spec-table">
-          <thead><tr><th>Token</th><th>Value</th><th>Closed-Form Invariant</th></tr></thead>
+          <thead><tr><th>Token</th><th>Value</th><th>Invariant</th></tr></thead>
           <tbody>
-            <tr><td class="var-r">R_popover / R_item</td><td>20px / 12px</td><td><code class="var-r">R_item(12) = R_popover(20) − S_viewport_pad(8)</code></td></tr>
-            <tr><td class="var-s">S_offset / S_pad</td><td>6px / 8px</td><td><code class="var-s">sideOffset = 6px</code>; internal viewport <code class="var-s">p-2 (8px)</code></td></tr>
-            <tr><td class="var-h">H_trigger / H_opt</td><td>36px / 34px</td><td>Trigger matches <code class="var-h">Button(default)</code> height exactly (36px)</td></tr>
+            <tr><td class="var-s">W_exp ↔ W_col</td><td>220px ↔ 64px</td><td><code class="var-s">cubic-bezier(0.22, 1, 0.36, 1)</code> 260ms</td></tr>
+            <tr><td class="var-r">R_sidebar / R_pod</td><td>20px / 14px</td><td>In-rail toggle + <code class="var-r">⌘B</code> shortcut</td></tr>
+            <tr><td class="var-h">Badge Morph</td><td>Count → 7px dot</td><td>Zero text clipping during width glide</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Panel C: App / Dashboard Shell Architecture -->
+      <!-- FIG 03: Level 4 Task Detail Popup (Drawer) & Page -->
       <div class="panel" style="grid-column: 1 / -1;">
-        <div class="panel-tag">FIG 03 · APP / DASHBOARD SHELL ARCHITECTURE (web/src/components/ui/app-shell.tsx)</div>
-        <h2>2-Column Capsule Rail + Sticky Glass Header + Kanban Track Stage</h2>
+        <div class="panel-tag">FIG 03 · LEVEL 4 TASK DETAIL SHEET &amp; FULL DETAIL PAGE (Drawer.tsx · TaskDetailPage.tsx)</div>
+        <h2>Spring Slide-Over Glass Sheet (<code style="font-family:var(--font-mono);font-size:13.5px;">--glass-4</code> · <code style="font-family:var(--font-mono);font-size:13.5px;">max-width: 600px</code>) + Concentric Section Stack</h2>
 
-        <svg viewBox="0 0 1120 260" width="100%" height="auto" role="img" aria-label="AppShell dimensional drawing">
-          <rect width="1120" height="260" rx="16" fill="#F8FAFF" stroke="#0D1526" stroke-width="1.5"/>
-          <!-- Left Sidebar (W_side = 236px expanded / 64px collapsed) -->
-          <rect x="16" y="16" width="220" height="228" rx="12" fill="#FFFFFF" stroke="#2F5BFF" stroke-width="1.5"/>
-          <text x="32" y="42" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#2F5BFF">AppSidebar · W1 = 236px</text>
-          <rect x="28" y="56" width="196" height="32" rx="16" fill="#FFFFFF" stroke="#0D1526"/>
-          <text x="44" y="76" font-family="Plus Jakarta Sans" font-size="11.5" font-weight="700" fill="#0D1526">☷ Board (active plate)</text>
-          <rect x="28" y="96" width="196" height="32" rx="16" fill="#E4EAF7"/>
-          <text x="44" y="116" font-family="Plus Jakarta Sans" font-size="11.5" fill="#4A5878">⑂ Review Diffs</text>
-          <text x="32" y="226" font-family="JetBrains Mono" font-size="10.5" fill="#4A5878">Collapsed: W1_min = 64px</text>
+        <svg viewBox="0 0 1120 260" width="100%" height="auto" role="img" aria-label="Task Detail Drawer and Page dimensional drawing">
+          <rect width="1120" height="260" rx="16" fill="#EEF2FF" stroke="#0F172A" stroke-width="1.4"/>
+          <!-- Full Detail Page (Left) -->
+          <rect x="20" y="18" width="600" height="224" rx="18" fill="rgba(255,255,255,0.65)" stroke="#94A3B8"/>
+          <rect x="32" y="28" width="576" height="58" rx="14" fill="#FFFFFF" stroke="#0F172A"/>
+          <text x="48" y="50" font-family="Space Grotesk" font-size="13" font-weight="700" fill="#0F172A">TaskHeader (Level 1 Glass · Sticky) · LifecycleStepper</text>
+          <text x="48" y="70" font-family="JetBrains Mono" font-size="10" fill="#2563EB">Backlog → Todo → [In progress] → Review → Done</text>
 
-          <!-- Top Header (H_header = 52px) -->
-          <rect x="248" y="16" width="856" height="48" rx="12" fill="#FFFFFF" stroke="#13794B" stroke-width="1.5"/>
-          <text x="268" y="44" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#13794B">AppHeader · H_hdr = 52px · Glass Blur 18px · Cmd+K Capsule Well</text>
+          <rect x="32" y="96" width="380" height="134" rx="16" fill="#FFFFFF" stroke="#DCE3F4"/>
+          <text x="48" y="120" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#0F172A">Tabs + Level 3 FactTiles &amp; Sections (R=16px)</text>
+          <rect x="48" y="132" width="165" height="44" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <text x="60" y="158" font-family="JetBrains Mono" font-size="10" fill="#475569">FactTile (glass-3)</text>
+          <rect x="225" y="132" width="165" height="44" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <text x="237" y="158" font-family="JetBrains Mono" font-size="10" fill="#475569">FactTile (glass-3)</text>
 
-          <!-- Main Kanban Stage -->
-          <rect x="248" y="76" width="856" height="168" rx="14" fill="#E4EAF7" stroke="#0D1526" stroke-dasharray="4 3"/>
-          <!-- 3 Kanban Columns inside AppMain -->
-          <rect x="264" y="92" width="260" height="136" rx="14" fill="#FFFFFF" stroke="#DCE3F4"/>
-          <text x="280" y="116" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#0D1526">Col 01 · W_col = 272px</text>
-          <rect x="276" y="126" width="236" height="86" rx="10" fill="#F1F4FB" stroke="#2F5BFF"/>
-          <text x="290" y="152" font-family="JetBrains Mono" font-size="10.5" fill="#2F5BFF">Task Card (R_card = 16px)</text>
-          <text x="290" y="170" font-family="JetBrains Mono" font-size="10" fill="#4A5878">3px left status coupler bar</text>
+          <rect x="424" y="96" width="184" height="134" rx="16" fill="#FFFFFF" stroke="#DCE3F4"/>
+          <text x="438" y="120" font-family="JetBrains Mono" font-size="10.5" font-weight="700" fill="#B45309">Properties Rail (280px)</text>
+          <text x="438" y="142" font-family="JetBrains Mono" font-size="10" fill="#475569">Lifecycle · Effort dot</text>
+          <text x="438" y="160" font-family="JetBrains Mono" font-size="10" fill="#475569">Execution · Worktree</text>
 
-          <rect x="538" y="92" width="260" height="136" rx="14" fill="#FFFFFF" stroke="#DCE3F4"/>
-          <text x="554" y="116" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#0D1526">Col 02 · S_gap = 12px</text>
-
-          <rect x="812" y="92" width="276" height="136" rx="14" fill="#FFFFFF" stroke="#DCE3F4"/>
-          <text x="828" y="116" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#D94E28">Horizontal Chain:</text>
-          <text x="828" y="140" font-family="JetBrains Mono" font-size="10.5" fill="#0D1526">W_vp = W_side(236) + W_inset(1fr)</text>
-          <text x="828" y="160" font-family="JetBrains Mono" font-size="10.5" fill="#0D1526">H_vp = H_hdr(52) + H_main(1fr)</text>
-          <text x="828" y="180" font-family="JetBrains Mono" font-size="10.5" fill="#13794B">Nav Item: R_pill = 999px</text>
+          <!-- Level 4 Floating Drawer (Right) -->
+          <rect x="656" y="18" width="444" height="224" rx="20" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+          <text x="676" y="42" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#2563EB">Level 4 Drawer Sheet · W = min(600px, 100%) · blur(24px)</text>
+          <rect x="676" y="54" width="404" height="42" rx="12" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <text x="690" y="79" font-family="JetBrains Mono" font-size="10" fill="#0F172A">Sticky Header + Compact Stepper + retry X/3</text>
+          <rect x="676" y="104" width="404" height="86" rx="16" fill="rgba(255,255,255,0.85)" stroke="#94A3B8"/>
+          <text x="690" y="128" font-family="JetBrains Mono" font-size="10.5" fill="#475569">Solid Dark Primary CTA ("Dispatch now") + 5 Tabs</text>
+          <rect x="676" y="198" width="404" height="32" rx="10" fill="#F8FAFF" stroke="#DCE3F4"/>
+          <text x="690" y="218" font-family="JetBrains Mono" font-size="10" fill="#64748B">Footer: esc close · ⌘↵ comment · [Open full page]</text>
         </svg>
       </div>
     </div>

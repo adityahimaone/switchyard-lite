@@ -37,6 +37,7 @@ import {
   AppSidebarFooter,
   AppSidebarGroup,
   AppSidebarItem,
+  AppSidebarToggle,
   AppSidebarTrack,
   useAppShell,
 } from "@/components/ui/app-shell";
@@ -158,7 +159,10 @@ export function App() {
     <AppShell>
       <AppSidebar>
         <div className="side-top-pod">
-          <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
+          <div className="side-top-row">
+            <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
+            <AppSidebarToggle />
+          </div>
         </div>
 
         <AppSidebarTrack>
@@ -249,39 +253,41 @@ export function App() {
 
           <div className="header-right">
             {activeBoard && (
-              <div className="hidden h-7 items-center gap-1.5 rounded-[8px] border border-line bg-well/75 px-2.5 text-[11px] text-ink-3 lg:flex">
+              <div className="hidden h-7 items-center gap-1.5 rounded-full border border-[var(--glass-border-soft)] bg-[var(--glass-2)] px-2.5 text-[11px] text-[var(--text-secondary)] lg:flex">
                 <span className="inline-flex items-center gap-1 font-mono tabular">
                   <span className="size-1.5 rounded-full bg-[var(--c-st-todo)]" aria-hidden />
-                  <strong className="text-ink-2">{queuedCount}</strong> queued
+                  <strong className="text-[var(--text-primary)]">{queuedCount}</strong> queued
                 </span>
-                <span className="text-line-strong">·</span>
+                <span className="text-[var(--text-muted)]">·</span>
                 <span className="inline-flex items-center gap-1 font-mono tabular">
                   <span className="size-1.5 rounded-full bg-[var(--c-st-in_progress)]" aria-hidden />
-                  <strong className="text-accent-text">{runningCount}</strong> running
+                  <strong className="text-[var(--status-progress)]">{runningCount}</strong> running
                 </span>
-                <span className="text-line-strong">·</span>
+                <span className="text-[var(--text-muted)]">·</span>
                 <span className="inline-flex items-center gap-1 font-mono tabular">
                   <span className="size-1.5 rounded-full bg-[var(--c-st-review)]" aria-hidden />
-                  <strong className="text-review-text">{reviewCount}</strong> review
+                  <strong className="text-[var(--status-review)]">{reviewCount}</strong> review
                 </span>
-                <span className="text-line-strong">·</span>
+                <span className="text-[var(--text-muted)]">·</span>
                 <span className="inline-flex items-center gap-1 font-mono tabular">
                   <span className="size-1.5 rounded-full bg-[var(--c-st-done)]" aria-hidden />
-                  <strong className="text-success-text">{doneCount}</strong> done
+                  <strong className="text-[var(--status-done)]">{doneCount}</strong> done
                 </span>
               </div>
             )}
 
-            <button
-              type="button"
-              className="cmd-trigger"
-              onClick={() => setPaletteOpen(true)}
-              aria-label="Open command palette"
-            >
-              <Search className="size-3.5 text-[var(--c-ink-3)]" />
-              <span className="hidden sm:inline">Search boards, tasks…</span>
-              <kbd>⌘K</kbd>
-            </button>
+            {page !== "board" && (
+              <button
+                type="button"
+                className="cmd-trigger"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Open command palette"
+              >
+                <Search className="size-3.5 text-[var(--text-secondary)]" />
+                <span className="hidden sm:inline">Search boards, tasks…</span>
+                <kbd>⌘K</kbd>
+              </button>
+            )}
 
           </div>
         </AppHeader>

@@ -62,20 +62,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { MetaChip } from "@/components/board/taskDetailParts";
 import {
   BranchField,
+  Chip,
   PromptOmnibox,
   SaasRulesBanner,
   TaskContextPicker,
 } from "@/components/board/TaskContextFields";
 
-export const EXECUTORS = ["claude", "codex", "commandcode", "omp", "dsh"] as const;
-export const EFFORTS = ["low", "medium", "high"] as const;
+import {
+  AGY_EFFORTS,
+  ALL_EXECUTORS,
+  AgyAccountPicker,
+  EFFORT_LABELS,
+  EFFORTS,
+  EXECUTOR_LABELS,
+  effortsForExecutor,
+  isAgyExecutor,
+  useExecutorConfig,
+  useWorkspaceExecutors,
+} from "@/lib/executors";
 
-export const EXECUTOR_LABELS: Record<string, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-  commandcode: "Command Code",
-  omp: "omp (oh-my-pi)",
-  dsh: "DeepSeek Harness",
+export {
+  AGY_EFFORTS,
+  ALL_EXECUTORS as EXECUTORS,
+  EFFORT_LABELS,
+  EFFORTS,
+  EXECUTOR_LABELS,
+  effortsForExecutor,
+  isAgyExecutor,
 };
 
 export const PLATFORM_LABELS: Record<PlatformKey, string> = {
@@ -205,15 +218,49 @@ export function TaskDialog({
     }
   }, [candidates, savedWorkspaces.data, workspace, wsUserEdited]);
 
+  const { visibleExecutors } = useExecutorConfig();
+  const {
+    probe: wsExecutorProbe,
+    isExecutorInstalled,
+    installedCount: wsInstalledCount,
+    totalCount: wsExecutorTotal,
+  } = useWorkspaceExecutors(workspace);
   const effectiveExecutor = executor || board?.default_executor || "";
+  const selectableExecutors = useMemo(() => {
+    if (!executor || visibleExecutors.includes(executor)) return visibleExecutors;
+    return [executor, ...visibleExecutors];
+  }, [executor, visibleExecutors]);
+  const effortChoices = useMemo(
+    () => effortsForExecutor(effectiveExecutor),
+    [effectiveExecutor]
+  );
+
+  // Auto-select the first available executor if switching workspaces makes the
+  // current executor (or board default) unavailable on the target machine.
+  useEffect(() => {
+    if (!wsExecutorProbe.probed) return;
+    const current = executor || board?.default_executor || "";
+    if (!current || isExecutorInstalled(current)) return;
+    const firstAvail = visibleExecutors.find((ex) => isExecutorInstalled(ex));
+    if (firstAvail && firstAvail !== executor) {
+      setExecutor(firstAvail);
+      setModel("");
+      const nextEfforts = effortsForExecutor(firstAvail);
+      if (effort && !nextEfforts.includes(effort)) {
+        setEffort("");
+      }
+    }
+  }, [wsExecutorProbe, executor, board?.default_executor, visibleExecutors, effort, isExecutorInstalled]);
 
   const models = useQuery({
-    queryKey: ["models", effectiveExecutor],
+    queryKey: ["models", effectiveExecutor, workspace.trim()],
     enabled: !!effectiveExecutor,
-    queryFn: async () =>
-      parseModelCatalog(
-        await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(effectiveExecutor)}`, {})
-      ),
+    queryFn: async () => {
+      const wsParam = workspace.trim() ? `&workspace=${encodeURIComponent(workspace.trim())}` : "";
+      return parseModelCatalog(
+        await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(effectiveExecutor)}${wsParam}`, {})
+      );
+    },
   });
   const modelList = models.data?.models ?? [];
   const modelHint = models.data?.detail ?? "";
@@ -497,7 +544,7 @@ export function TaskDialog({
         if (!nextOpen) onClose();
       }}
     >
-      <DialogContent className="max-w-3xl p-0" showClose>
+      <DialogContent className="max-w-4xl p-0" showClose>
         <form
           onSubmit={submit}
           onKeyDown={(e) => {
@@ -508,14 +555,19 @@ export function TaskDialog({
           }}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <DialogHeader className="border-b border-line bg-well/45 px-5 py-3">
+          <DialogHeader className="border-b border-line bg-surface/80 px-5 py-3.5">
             <div className="flex flex-wrap items-center gap-2 pr-8">
-              <DialogTitle id="task-dialog-title" className="text-[15px] tracking-tight">
+              <DialogTitle id="task-dialog-title" className="text-[16px] font-bold tracking-[-0.02em]">
                 New task
               </DialogTitle>
               {board && (
                 <Badge variant="default" className="font-mono text-[10.5px]">
                   {board.name}
+                </Badge>
+              )}
+              {wsExecutorProbe.machineLabel && (
+                <Badge variant="outline" className="font-mono text-[10.5px] text-ink-3">
+                  {wsExecutorProbe.machineLabel}
                 </Badge>
               )}
               <Badge
@@ -526,17 +578,18 @@ export function TaskDialog({
               </Badge>
             </div>
             <DialogDescription className="text-xs text-ink-3">
-              Specify the task brief, bind a workspace and executor, and press ⌘↵ to create.
+              Draft the task brief, mention <span className="font-mono text-blue-700 dark:text-blue-200">@files</span> or{" "}
+              <span className="font-mono text-violet-700 dark:text-violet-200">$skills</span> inline, bind target &amp; agent, and press ⌘↵.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogBody className="flex flex-col gap-3 bg-canvas/35 p-4">
+          <DialogBody className="flex flex-col gap-3 bg-canvas/35 p-4 sm:p-5">
             <ErrorBox error={create.error} />
             <SaasRulesBanner active={saasActive} />
 
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_272px]">
-              {/* -------------------------------------------------- content */}
-              <div className="min-w-0 space-y-3 rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_304px]">
+              {/* ------------------------------------------ left composer brief */}
+              <div className="min-w-0 space-y-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="task-title" className="text-xs font-semibold text-ink-2">
@@ -557,6 +610,7 @@ export function TaskDialog({
                       }
                     }}
                     placeholder="Short, imperative summary — e.g. Add CSV export to reports"
+                    className="h-10 rounded-[12px] bg-surface text-[14px] font-semibold tracking-[-0.01em] placeholder:font-normal"
                     aria-invalid={title.trim().length === 0 && title.length > 0}
                   />
                   {title.length > 0 && title.trim().length === 0 && (
@@ -564,7 +618,7 @@ export function TaskDialog({
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="task-prompt" className="text-xs font-semibold text-ink-2">
                       Prompt
@@ -577,7 +631,7 @@ export function TaskDialog({
                         size="xs"
                         onClick={applyFastTemplate}
                         title="Insert a structured prompt template"
-                        className="border border-accent/35 bg-accent-tint text-accent-text hover:border-accent hover:bg-accent hover:text-accent-ink"
+                        className="border border-accent/30 bg-accent-tint text-accent-text hover:border-accent hover:bg-accent hover:text-accent-ink"
                       >
                         <Sparkles className="size-3" />
                         Template
@@ -587,7 +641,7 @@ export function TaskDialog({
                   <PromptOmnibox
                     id="task-prompt"
                     inputRef={promptRef}
-                    rows={5}
+                    rows={6}
                     value={prompt}
                     onChange={setPrompt}
                     workspace={workspace.trim()}
@@ -596,11 +650,11 @@ export function TaskDialog({
                     skills={skills}
                     onSkillsChange={setSkills}
                     boardTasks={candidates}
-                    placeholder="Detailed instructions for the agent — context, constraints, files to touch…"
-                    className="min-h-[124px]"
+                    placeholder="Describe goals, constraints, @files to inspect, or $skills to apply…"
+                    className="min-h-[148px]"
                   />
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/70 pt-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <input
                         ref={fileRef}
@@ -672,7 +726,7 @@ export function TaskDialog({
                       {pendingFiles.map((pf) => (
                         <span
                           key={pf.id}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-[8px] border border-line bg-well px-2.5 text-[11px] font-medium text-ink-2"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-[8px] border border-line bg-surface px-2.5 text-[11px] font-medium text-ink-2 shadow-[var(--lift-1)]"
                         >
                           <Paperclip className="size-3 text-ink-3" />
                           <span className="max-w-[160px] truncate">{pf.name}</span>
@@ -680,7 +734,7 @@ export function TaskDialog({
                           <button
                             type="button"
                             onClick={() => setPendingFiles((p) => p.filter((x) => x.id !== pf.id))}
-                            className="ml-0.5 rounded-[4px] p-0.5 hover:bg-surface"
+                            className="ml-0.5 rounded-[4px] p-0.5 hover:bg-well"
                             aria-label={`Remove ${pf.name}`}
                           >
                             <X className="size-2.5" />
@@ -703,7 +757,7 @@ export function TaskDialog({
                   )}
 
                   {depsOpen && activeCandidates.length > 0 && (
-                    <div className="space-y-2 rounded-[10px] border border-line bg-well/40 p-2.5">
+                    <div className="space-y-2 rounded-[10px] border border-line bg-surface/80 p-2.5">
                       <SearchSelect
                         value={depId}
                         onValueChange={(v) => {
@@ -731,21 +785,14 @@ export function TaskDialog({
                           {blockedBy.map((id) => {
                             const c = candidates.find((x) => x.id === id);
                             return (
-                              <span
+                              <Chip
                                 key={id}
-                                className="inline-flex h-6 items-center gap-1 rounded-[7px] border border-accent/40 bg-accent-tint px-2 text-[10.5px] font-medium text-accent-text"
-                              >
-                                <Check className="size-3" />
-                                <span className="max-w-[200px] truncate">{c?.title ?? id}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))}
-                                  className="ml-0.5 rounded-[4px] p-0.5 hover:bg-surface"
-                                  aria-label={`Remove blocker ${c?.title ?? id}`}
-                                >
-                                  <X className="size-2.5" />
-                                </button>
-                              </span>
+                                tone="card"
+                                prefix="#"
+                                label={c?.title ?? id}
+                                icon={<Check className="size-2.5" />}
+                                onRemove={() => setBlockedBy((prev) => prev.filter((x) => x !== id))}
+                              />
                             );
                           })}
                         </div>
@@ -754,7 +801,7 @@ export function TaskDialog({
                   )}
                 </div>
 
-                <div className="space-y-1.5 border-t border-line/70 pt-2.5">
+                <div className="space-y-1.5 border-t border-line/70 pt-3">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="task-acceptance" className="text-xs font-semibold text-ink-2">
                       Acceptance criteria
@@ -783,14 +830,14 @@ export function TaskDialog({
                     value={acceptance}
                     onChange={(e) => setAcceptance(e.target.value)}
                     placeholder="How should we verify this is done? Tests, checks, expected output…"
-                    className="min-h-[54px]"
+                    className="min-h-[58px] rounded-[12px]"
                   />
                 </div>
               </div>
 
-              {/* --------------------------------------------------- routing */}
+              {/* ------------------------------------------ right routing rail */}
               <aside
-                className="space-y-3 rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] self-start"
+                className="space-y-3.5 rounded-[14px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] self-start"
                 aria-label="Task routing"
               >
                 <RailGroup label="Target Workspace">
@@ -850,11 +897,26 @@ export function TaskDialog({
                 <div className="border-t border-line/70 pt-3">
                   <RailGroup label="Agent Execution">
                     <RailField label="Executor" htmlFor="task-executor">
+                      {wsExecutorProbe.machineLabel && (
+                        <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]" data-testid="task-executor-machine-badge">
+                          <span>Target: {wsExecutorProbe.machineLabel}</span>
+                          <span className="font-mono tabular-nums">
+                            {wsExecutorProbe.probed
+                              ? `${wsInstalledCount}/${wsExecutorTotal} installed`
+                              : "offline / unprobed"}
+                          </span>
+                        </div>
+                      )}
                       <Select
                         value={executor || DEFAULT_SENTINEL}
                         onValueChange={(v) => {
-                          setExecutor(v === DEFAULT_SENTINEL ? "" : v);
+                          const nextExec = v === DEFAULT_SENTINEL ? "" : v;
+                          setExecutor(nextExec);
                           setModel("");
+                          const nextChoices = effortsForExecutor(nextExec || board?.default_executor);
+                          if (effort && !nextChoices.includes(effort)) {
+                            setEffort("");
+                          }
                         }}
                       >
                         <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
@@ -864,14 +926,24 @@ export function TaskDialog({
                           <SelectItem value={DEFAULT_SENTINEL}>
                             {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
                           </SelectItem>
-                          {EXECUTORS.map((ex) => (
-                            <SelectItem key={ex} value={ex}>
-                              {EXECUTOR_LABELS[ex] ?? ex}
-                            </SelectItem>
-                          ))}
+                          {selectableExecutors.map((ex) => {
+                            const installed = isExecutorInstalled(ex);
+                            return (
+                              <SelectItem key={ex} value={ex} disabled={!installed}>
+                                {EXECUTOR_LABELS[ex] ?? ex}
+                                {!installed
+                                  ? ` (not installed on ${wsExecutorProbe.machineLabel || "machine"})`
+                                  : ""}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </RailField>
+
+                    {isAgyExecutor(effectiveExecutor) && (
+                      <AgyAccountPicker id="task-agy-account" workspace={workspace} compact />
+                    )}
 
                     <RailField label="Model" htmlFor="task-model">
                       {modelList.length > 0 ? (
@@ -921,7 +993,10 @@ export function TaskDialog({
                       </p>
                     )}
 
-                    <RailField label="Reasoning Effort" htmlFor="task-effort">
+                    <RailField
+                      label={isAgyExecutor(effectiveExecutor) ? "Thinking Effort" : "Reasoning Effort"}
+                      htmlFor="task-effort"
+                    >
                       <Select
                         value={effort || DEFAULT_SENTINEL}
                         onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
@@ -931,9 +1006,9 @@ export function TaskDialog({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
-                          {EFFORTS.map((ef) => (
+                          {effortChoices.map((ef) => (
                             <SelectItem key={ef} value={ef}>
-                              {ef.charAt(0).toUpperCase() + ef.slice(1)}
+                              {EFFORT_LABELS[ef] ?? (ef.charAt(0).toUpperCase() + ef.slice(1))}
                             </SelectItem>
                           ))}
                         </SelectContent>

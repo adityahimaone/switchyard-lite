@@ -57,13 +57,15 @@ func (c *Config) defaults() {
 }
 
 type Dispatcher struct {
-	S      *store.Store
-	Tasks  *tasks.Service
-	Cfg    Config
-	Client *Client
-	Remote *worker.Client
-	Now    func() time.Time
-	LogDir string
+	S             *store.Store
+	Tasks         *tasks.Service
+	Cfg           Config
+	Client        *Client
+	Remote        *worker.Client
+	Now           func() time.Time
+	LogDir        string
+	AgyRunner     AgyExecFunc
+	AgyAuthRunner AgyAuthFunc
 
 	wake    chan struct{}
 	mu      sync.Mutex
@@ -285,13 +287,29 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 	var boardName string
 	_ = d.S.DB.QueryRow(`SELECT name FROM boards WHERE id=?`, t.BoardID).Scan(&boardName)
 	message := AugmentPrompt(t.Prompt, t.Workspace, d.workspaceLabels(t.Workspace), t.Paths, t.Skills)
+	if isAgyExecutor(t.Executor) && d.shouldRunAgyLocally(t) {
+		d.executeLocalAgy(ctx, t, boardName, message, workspace, runID)
+		return
+	}
+	effort := t.Effort
+	if isAgyExecutor(t.Executor) {
+		if norm := NormalizeAgyEffort(t.Effort); norm != "" {
+			effort = norm
+		}
+		d.switchRemoteAgyAccountIfNeeded(ctx, t, d.taskTargetMachine(t.Workspace), runID)
+	}
 	req := Request{TaskID: t.ID, Title: t.Title, Board: boardName, Message: message, Workspace: workspace,
-		Model: t.Model, Effort: t.Effort, Executor: t.Executor, ExecutionMode: t.ExecutionMode, Acceptance: t.Acceptance,
-		Paths: t.Paths, Skills: t.Skills, Branch: t.Branch,
+		Model: t.Model, Effort: effort, Executor: t.Executor, ExecutionMode: t.ExecutionMode, Acceptance: t.Acceptance,
+		AutoApprove: isAgyExecutor(t.Executor),
+		Paths:       t.Paths, Skills: t.Skills, Branch: t.Branch,
 		RunID: runID, TimeoutS: d.Cfg.TimeoutS}
 	applyTaskSession(&req, t)
 	ack, err := d.Client.DispatchWithAck(ctx, req)
 	if err != nil {
+		if isAgyExecutor(t.Executor) && isUnsupportedExecutorErr(err) && d.Remote != nil && d.Remote.Enabled() {
+			d.executeRemoteShellAgy(ctx, t, boardName, message, workspace, runID)
+			return
+		}
 		d.failRun(t, runID, err.Error(), nil, false)
 		return
 	}
@@ -498,7 +516,7 @@ func (d *Dispatcher) failRun(t tasks.Task, runID, rawErr string, res *Result, st
 
 func isContinuityHarness(executor string) bool {
 	switch strings.ToLower(strings.TrimSpace(executor)) {
-	case "dsh", "commandcode", "claude", "omp":
+	case "dsh", "commandcode", "claude", "omp", "agy", "antigravity":
 		return true
 	default:
 		return false
@@ -510,6 +528,9 @@ func applyTaskSession(req *Request, t tasks.Task) {
 		return
 	}
 	kind := strings.ToLower(strings.TrimSpace(t.Executor))
+	if kind == "antigravity" {
+		kind = "agy"
+	}
 	req.HarnessKind = kind
 	req.SessionContinuation = true
 	switch kind {
@@ -523,6 +544,8 @@ func applyTaskSession(req *Request, t tasks.Task) {
 		req.ClaudeSessionID = t.SessionID
 	case "omp":
 		req.OMPSessionID = t.SessionID
+	case "agy":
+		req.AgySessionID = t.SessionID
 	}
 }
 
@@ -537,13 +560,15 @@ func extractResultSession(executor string, res *Result) (sessionID, dshWorkspace
 		sessionID = firstNonEmpty(res.ClaudeSessionID, res.SessionID)
 	case "omp":
 		sessionID = firstNonEmpty(res.OMPSessionID, res.SessionID)
+	case "agy", "antigravity":
+		sessionID = firstNonEmpty(res.AgySessionID, res.SessionID)
 	default:
 		sessionID = firstNonEmpty(res.DshSessionID, res.SessionID)
 		if sessionID == "" {
 			sessionID = firstNonEmpty(res.CommandCodeSessionID, res.ClaudeSessionID)
 		}
 		if sessionID == "" {
-			sessionID = res.OMPSessionID
+			sessionID = firstNonEmpty(res.OMPSessionID, res.AgySessionID)
 		}
 	}
 	dshWorkspaceID = firstNonEmpty(res.DSHWorkspaceID, res.WorkspaceID)
@@ -616,7 +641,8 @@ func (d *Dispatcher) ResumeWithAnswer(ctx context.Context, taskID string, q task
 	d.mu.Lock()
 	inFlight := len(d.running)
 	d.mu.Unlock()
-	if inFlight >= d.Cfg.MaxParallel || d.Client == nil || d.Client.BaseURL == "" {
+	canRunLocally := isAgyExecutor(t.Executor)
+	if inFlight >= d.Cfg.MaxParallel || (!canRunLocally && (d.Client == nil || d.Client.BaseURL == "")) {
 		d.Wake()
 		return "", true, nil
 	}

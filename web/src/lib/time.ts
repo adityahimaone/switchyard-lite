@@ -16,7 +16,7 @@ export function fmtTime(ts?: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-/** "just now", "4m ago", "3h ago", "2d ago", then a short date. */
+/** "just now", "4m ago", "3h ago", "2d ago", "3w ago", "2mo ago", "1y ago". */
 export function relativeTime(ts?: number): string {
   const ms = toMillis(ts);
   if (!ms) return "—";
@@ -30,7 +30,12 @@ export function relativeTime(ts?: number): string {
   if (h < 24) return `${h}h ago`;
   const d = Math.round(h / 24);
   if (d < 7) return `${d}d ago`;
-  return new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const w = Math.floor(d / 7);
+  if (d < 30) return `${w}w ago`;
+  const mo = Math.round(d / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  const y = Math.round(d / 365);
+  return `${y}y ago`;
 }
 
 export function fmtBytes(bytes?: number): string {

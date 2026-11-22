@@ -5,11 +5,16 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Cpu,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileCode2,
   FolderGit2,
   GitBranch,
+  GripVertical,
   KeyRound,
   Layers,
   Lock,
@@ -70,7 +75,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast, toastError } from "@/components/ui/toast";
 import { WorkerLogPanel } from "@/components/board/OutputPanels";
 import { BranchField, PromptOmnibox, SaasRulesBanner } from "@/components/board/TaskContextFields";
-import { EFFORTS, EXECUTOR_LABELS, EXECUTORS, PLATFORM_LABELS, PlatformIcon } from "@/components/board/TaskDialog";
+import { PLATFORM_LABELS, PlatformIcon } from "@/components/board/TaskDialog";
+import {
+  AgyAccountPicker,
+  ALL_EXECUTORS,
+  EFFORT_LABELS,
+  EXECUTOR_DESCRIPTIONS,
+  EXECUTOR_LABELS,
+  effortsForExecutor,
+  isAgyExecutor,
+  normalizeExecutorConfig,
+  useExecutorConfig,
+  useWorkspaceExecutors,
+} from "@/lib/executors";
 import { GlobalFlowMap } from "@/components/flow/GlobalFlowMap";
 
 interface Overview {
@@ -1220,15 +1237,41 @@ export function PipelineScreen({ open }: { open?: (id: string) => void }) {
       ),
   });
 
+  const { visibleExecutors } = useExecutorConfig();
+  const {
+    probe: wsExecutorProbe,
+    isExecutorInstalled,
+    installedCount: wsInstalledCount,
+    totalCount: wsExecutorTotal,
+  } = useWorkspaceExecutors(workspace);
   const currentBoard: Board | undefined = activeBoard;
   const effectiveExecutor = executor || currentBoard?.default_executor || "";
+  const pipelineEffortChoices = effortsForExecutor(effectiveExecutor);
+
+  useEffect(() => {
+    if (!wsExecutorProbe.probed) return;
+    const current = executor || currentBoard?.default_executor || "";
+    if (!current || isExecutorInstalled(current)) return;
+    const firstAvail = visibleExecutors.find((ex) => isExecutorInstalled(ex));
+    if (firstAvail && firstAvail !== executor) {
+      setExecutor(firstAvail);
+      setModel("");
+      const nextEfforts = effortsForExecutor(firstAvail);
+      if (effort && !nextEfforts.includes(effort)) {
+        setEffort("");
+      }
+    }
+  }, [wsExecutorProbe, executor, currentBoard?.default_executor, visibleExecutors, effort, isExecutorInstalled]);
+
   const modelsQuery = useQuery({
-    queryKey: ["models", effectiveExecutor],
+    queryKey: ["models", effectiveExecutor, workspace.trim()],
     enabled: !!effectiveExecutor,
-    queryFn: async () =>
-      parseModelCatalog(
-        await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(effectiveExecutor)}`, {})
-      ),
+    queryFn: async () => {
+      const wsParam = workspace.trim() ? `&workspace=${encodeURIComponent(workspace.trim())}` : "";
+      return parseModelCatalog(
+        await apiOr<unknown>(`/api/v1/models?executor=${encodeURIComponent(effectiveExecutor)}${wsParam}`, {})
+      );
+    },
   });
   const modelList = modelsQuery.data?.models ?? [];
 
@@ -1583,13 +1626,28 @@ export function PipelineScreen({ open }: { open?: (id: string) => void }) {
                           ? `Default (${currentBoard.default_executor})`
                           : "Default"}
                       </SelectItem>
-                      {EXECUTORS.map((ex) => (
-                        <SelectItem key={ex} value={ex}>
-                          {EXECUTOR_LABELS[ex] ?? ex}
-                        </SelectItem>
-                      ))}
+                      {(executor && !visibleExecutors.includes(executor)
+                        ? [executor, ...visibleExecutors]
+                        : visibleExecutors
+                      ).map((ex) => {
+                        const installed = isExecutorInstalled(ex);
+                        return (
+                          <SelectItem key={ex} value={ex} disabled={!installed}>
+                            {EXECUTOR_LABELS[ex] ?? ex}
+                            {!installed
+                              ? ` (not installed on ${wsExecutorProbe.machineLabel || "machine"})`
+                              : ""}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
+                  {wsExecutorProbe.machineLabel && (
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      {wsExecutorProbe.machineLabel}
+                      {wsExecutorProbe.probed ? ` · ${wsInstalledCount}/${wsExecutorTotal} installed` : " · offline / unprobed"}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -1603,15 +1661,19 @@ export function PipelineScreen({ open }: { open?: (id: string) => void }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={PIPELINE_DEFAULT_SENTINEL}>Default</SelectItem>
-                      {EFFORTS.map((ef) => (
+                      {pipelineEffortChoices.map((ef) => (
                         <SelectItem key={ef} value={ef}>
-                          {ef}
+                          {EFFORT_LABELS[ef] ?? ef}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {isAgyExecutor(effectiveExecutor) && (
+                <AgyAccountPicker id="pipeline-agy-account" workspace={workspace} compact />
+              )}
 
               <div className="space-y-1">
                 <Label htmlFor="pipeline-model" className="text-[11px] font-medium text-ink-3">
@@ -2020,6 +2082,8 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
         )}
       </Panel>
 
+      <ExecutorsSettingsPanel />
+
       <Panel title="Session">
         <button
           className="btn"
@@ -2032,5 +2096,204 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
         </button>
       </Panel>
     </div>
+  );
+}
+
+function ExecutorsSettingsPanel() {
+  const { config, visibleExecutors, saveConfig, isSaving } = useExecutorConfig();
+  const { probe: hostProbe, isExecutorInstalled } = useWorkspaceExecutors("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const hiddenSet = new Set(config.hidden);
+
+  const commitOrder = (nextOrder: string[]) => {
+    saveConfig(normalizeExecutorConfig({ order: nextOrder, hidden: config.hidden }));
+  };
+
+  const swapAt = (idx: number, delta: number) => {
+    const target = idx + delta;
+    if (target < 0 || target >= config.order.length) return;
+    const next = [...config.order];
+    const [moved] = next.splice(idx, 1);
+    next.splice(target, 0, moved);
+    commitOrder(next);
+  };
+
+  const toggleVisibility = (id: string) => {
+    const currentlyHidden = hiddenSet.has(id);
+    if (!currentlyHidden && visibleExecutors.length <= 1) {
+      toast("At least one executor must remain visible", { tone: "error" });
+      return;
+    }
+    const nextHidden = currentlyHidden
+      ? config.hidden.filter((x) => x !== id)
+      : [...config.hidden, id];
+    saveConfig(normalizeExecutorConfig({ order: config.order, hidden: nextHidden }));
+  };
+
+  const resetDefaults = () => {
+    saveConfig({ order: [...ALL_EXECUTORS], hidden: [] });
+    toast("Executor order and visibility reset to defaults", { tone: "success" });
+  };
+
+  return (
+    <Panel
+      title="Executors & Antigravity CLI (agy)"
+      actions={
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={resetDefaults}
+          disabled={isSaving}
+          aria-label="Reset executor order"
+        >
+          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+          Reset order
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-xs text-[var(--text-secondary)]">
+            Reorder or drag executors to control dropdown positions across new tasks, edits, boards, and pipelines. Hidden executors stay intact on existing tasks.
+          </p>
+
+          <ul className="space-y-1.5" data-testid="executors-order-list">
+            {config.order.map((id, idx) => {
+              const isHidden = hiddenSet.has(id);
+              const disableHide = !isHidden && visibleExecutors.length <= 1;
+              return (
+                <li
+                  key={id}
+                  draggable
+                  onDragStart={() => setDraggingId(id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (!draggingId || draggingId === id) {
+                      setDraggingId(null);
+                      return;
+                    }
+                    const fromIdx = config.order.indexOf(draggingId);
+                    const toIdx = config.order.indexOf(id);
+                    setDraggingId(null);
+                    if (fromIdx < 0 || toIdx < 0) return;
+                    const next = [...config.order];
+                    const [moved] = next.splice(fromIdx, 1);
+                    next.splice(toIdx, 0, moved);
+                    commitOrder(next);
+                  }}
+                  onDragEnd={() => setDraggingId(null)}
+                  data-executor-row={id}
+                  className={cn(
+                    "flex items-center justify-between gap-2 rounded-[var(--radius-input)] border px-2.5 py-2 transition-colors",
+                    isHidden
+                      ? "border-[var(--border)] bg-[var(--well)]/60 opacity-65"
+                      : "border-[var(--border)] bg-[var(--glass-3)]",
+                    draggingId === id && "ring-2 ring-[var(--accent)]"
+                  )}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-[var(--text-muted)]" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-xs font-medium text-[var(--text-primary)]">
+                          {EXECUTOR_LABELS[id] ?? id}
+                        </span>
+                        <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">
+                          {id}
+                        </Badge>
+                        {hostProbe.probed && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] px-1.5 py-0",
+                              isExecutorInstalled(id)
+                                ? "text-[var(--status-done)] border-[color-mix(in_srgb,var(--status-done)_35%,transparent)]"
+                                : "text-[var(--text-muted)]"
+                            )}
+                          >
+                            {isExecutorInstalled(id)
+                              ? `installed (${hostProbe.machineLabel || "host"})`
+                              : "not installed"}
+                          </Badge>
+                        )}
+                        {isHidden && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-[var(--text-muted)]">
+                            hidden
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="truncate text-[11px] text-[var(--text-muted)]">
+                        {EXECUTOR_DESCRIPTIONS[id] ?? ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => swapAt(idx, -1)}
+                      disabled={idx === 0 || isSaving}
+                      aria-label={`Move ${id} up`}
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => swapAt(idx, 1)}
+                      disabled={idx === config.order.length - 1 || isSaving}
+                      aria-label={`Move ${id} down`}
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={isHidden ? "outline" : "ghost"}
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => toggleVisibility(id)}
+                      disabled={disableHide || isSaving}
+                      aria-label={isHidden ? `Show ${id}` : `Hide ${id}`}
+                    >
+                      {isHidden ? (
+                        <>
+                          <Eye className="mr-1 h-3.5 w-3.5" />
+                          Show
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="mr-1 h-3.5 w-3.5" />
+                          Hide
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="border-t border-[var(--border)] pt-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 className="text-xs font-semibold text-[var(--text-primary)]">
+                Antigravity CLI (agy) Runtime & Accounts
+              </h4>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                Launches non-interactively with <code className="font-mono">-p --dangerously-skip-permissions --mode auto</code>, extended thinking (<code className="font-mono">minimal</code>–<code className="font-mono">max</code>), and automatic conversation resumption for Grill-Me Q&amp;A.
+              </p>
+            </div>
+          </div>
+          <AgyAccountPicker id="settings-agy-account" />
+        </div>
+      </div>
+    </Panel>
   );
 }

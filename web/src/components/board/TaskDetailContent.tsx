@@ -40,7 +40,16 @@ import { TaskOutput, WorkerLogPanel } from "@/components/board/OutputPanels";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { parseEventCards, traceSpansFromHistory, type EventTone } from "@/components/board/taskTrace";
 import { AgentTrace } from "@/components/ui/agent-trace";
-import { EFFORTS, EXECUTORS, useBoardId } from "@/Board";
+import { useBoardId } from "@/Board";
+import {
+  AgyAccountPicker,
+  EFFORT_LABELS,
+  EXECUTOR_LABELS,
+  effortsForExecutor,
+  isAgyExecutor,
+  useExecutorConfig,
+  useWorkspaceExecutors,
+} from "@/lib/executors";
 import { cn } from "@/lib/utils";
 import { ErrorBox } from "@/ui";
 import { fmtBytes, fmtDateTime, fmtTime, initials, relativeTime } from "@/lib/time";
@@ -213,6 +222,12 @@ export function TaskDetailPanels({
     effort: "",
     execution_mode: "managed" as "managed" | "tracker",
   });
+  const { visibleExecutors } = useExecutorConfig();
+  const selectableExecutors =
+    editDraft.executor && !visibleExecutors.includes(editDraft.executor)
+      ? [editDraft.executor, ...visibleExecutors]
+      : visibleExecutors;
+  const effortChoices = effortsForExecutor(editDraft.executor);
 
   const [commentBody, setCommentBody] = useState("");
   const [depId, setDepId] = useState("");
@@ -222,6 +237,13 @@ export function TaskDetailPanels({
   const [downloadErr, setDownloadErr] = useState<string | null>(null);
 
   const t = task.data;
+  const activeWorkspace = editing ? editDraft.workspace : (t?.workspace || "");
+  const {
+    probe: wsExecutorProbe,
+    isExecutorInstalled,
+    installedCount: wsInstalledCount,
+    totalCount: wsExecutorTotal,
+  } = useWorkspaceExecutors(activeWorkspace);
 
   useEffect(() => {
     if (!editing || !t) return;
@@ -237,16 +259,35 @@ export function TaskDetailPanels({
     });
   }, [editing, t, workspaces.data]);
 
+  useEffect(() => {
+    if (!editing || !wsExecutorProbe.probed || !editDraft.executor) return;
+    if (isExecutorInstalled(editDraft.executor)) return;
+    const firstAvail = visibleExecutors.find((ex) => isExecutorInstalled(ex));
+    if (firstAvail) {
+      setEditDraft((p) => {
+        const nextEfforts = effortsForExecutor(firstAvail);
+        return {
+          ...p,
+          executor: firstAvail,
+          model: "",
+          effort: p.effort && !nextEfforts.includes(p.effort) ? "" : p.effort,
+        };
+      });
+    }
+  }, [editing, wsExecutorProbe, editDraft.executor, visibleExecutors, isExecutorInstalled]);
+
   const models = useQuery({
-    queryKey: ["models", editing ? editDraft.executor : t?.executor],
+    queryKey: ["models", editing ? editDraft.executor : t?.executor, activeWorkspace],
     enabled: !!(editing ? editDraft.executor : t?.executor),
-    queryFn: async () =>
-      parseModelCatalog(
+    queryFn: async () => {
+      const wsParam = activeWorkspace.trim() ? `&workspace=${encodeURIComponent(activeWorkspace.trim())}` : "";
+      return parseModelCatalog(
         await apiOr<unknown>(
-          `/api/v1/models?executor=${encodeURIComponent((editing ? editDraft.executor : t?.executor) || "")}`,
+          `/api/v1/models?executor=${encodeURIComponent((editing ? editDraft.executor : t?.executor) || "")}${wsParam}`,
           {}
         )
-      ),
+      );
+    },
   });
   const modelList = models.data?.models ?? [];
 
@@ -493,10 +534,10 @@ export function TaskDetailPanels({
       <TabsList
         variant="default"
         className={cn(
-          "h-8 w-full justify-start overflow-x-auto rounded-[10px] border border-line bg-well/80 p-0.5 shadow-[var(--well-inset)]",
-          "[&_[data-slot=tabs-trigger]]:h-[26px] [&_[data-slot=tabs-trigger]]:rounded-[8px] [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:py-0 [&_[data-slot=tabs-trigger]]:after:hidden",
-          "[&_[data-slot=tabs-trigger][data-state=active]]:bg-surface [&_[data-slot=tabs-trigger][data-state=active]]:text-ink [&_[data-slot=tabs-trigger][data-state=active]]:shadow-[var(--lift-1)]",
-          variant === "page" && "sticky top-[104px] z-10 backdrop-blur-md"
+          "h-9 w-full justify-start overflow-x-auto rounded-[14px] border border-[var(--glass-border-soft)] bg-[var(--glass-2)] p-1",
+          "[&_[data-slot=tabs-trigger]]:h-[26px] [&_[data-slot=tabs-trigger]]:rounded-[10px] [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:py-0 [&_[data-slot=tabs-trigger]]:text-[var(--text-secondary)] [&_[data-slot=tabs-trigger]]:after:hidden",
+          "[&_[data-slot=tabs-trigger][data-state=active]]:border [&_[data-slot=tabs-trigger][data-state=active]]:border-[var(--glass-border)] [&_[data-slot=tabs-trigger][data-state=active]]:bg-[var(--glass-3)] [&_[data-slot=tabs-trigger][data-state=active]]:text-[var(--text-primary)] [&_[data-slot=tabs-trigger][data-state=active]]:shadow-[var(--glass-highlight),var(--glass-shadow-sm)]",
+          variant === "page" && "sticky top-[106px] z-10 backdrop-blur-xl"
         )}
       >
         <TabsTrigger value="overview">
@@ -509,7 +550,7 @@ export function TaskDetailPanels({
           {t?.status === "in_progress" ? (
             <span className="size-1.5 rounded-full bg-accent animate-pulse" aria-hidden />
           ) : runCount > 0 ? (
-            <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-2">
+            <span className="rounded-full bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[10px] leading-none text-[var(--text-secondary)]">
               {runCount}
             </span>
           ) : null}
@@ -523,7 +564,7 @@ export function TaskDetailPanels({
           <MessageSquare className="size-3.5" />
           Discussion
           {commentCount > 0 && (
-            <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-2">
+            <span className="rounded-full bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[10px] leading-none text-[var(--text-secondary)]">
               {commentCount}
             </span>
           )}
@@ -532,7 +573,7 @@ export function TaskDetailPanels({
           <History className="size-3.5" />
           History
           {eventCount > 0 && (
-            <span className="rounded bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-3">
+            <span className="rounded-full bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[10px] leading-none text-[var(--text-secondary)]">
               {eventCount}
             </span>
           )}
@@ -641,27 +682,46 @@ export function TaskDetailPanels({
 
                   <div className="grid gap-2.5 sm:grid-cols-3">
                     <div className="space-y-1">
-                      <Label htmlFor="edit-task-exec">Executor</Label>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="edit-task-exec">Executor</Label>
+                        {wsExecutorProbe.machineLabel && (
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {wsExecutorProbe.machineLabel}
+                            {wsExecutorProbe.probed ? ` · ${wsInstalledCount}/${wsExecutorTotal}` : ""}
+                          </span>
+                        )}
+                      </div>
                       <Select
                         value={editDraft.executor || DEFAULT_SENTINEL}
-                        onValueChange={(v) =>
-                          setEditDraft((p) => ({
-                            ...p,
-                            executor: v === DEFAULT_SENTINEL ? "" : v,
-                            model: "",
-                          }))
-                        }
+                        onValueChange={(v) => {
+                          const nextExec = v === DEFAULT_SENTINEL ? "" : v;
+                          setEditDraft((p) => {
+                            const allowed = effortsForExecutor(nextExec);
+                            return {
+                              ...p,
+                              executor: nextExec,
+                              model: "",
+                              effort: p.effort && !allowed.includes(p.effort) ? "" : p.effort,
+                            };
+                          });
+                        }}
                       >
                         <SelectTrigger id="edit-task-exec" size="sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={DEFAULT_SENTINEL}>(board default)</SelectItem>
-                          {EXECUTORS.map((x) => (
-                            <SelectItem key={x} value={x}>
-                              {x}
-                            </SelectItem>
-                          ))}
+                          {selectableExecutors.map((x) => {
+                            const installed = isExecutorInstalled(x);
+                            return (
+                              <SelectItem key={x} value={x} disabled={!installed}>
+                                {EXECUTOR_LABELS[x] ?? x}
+                                {!installed
+                                  ? ` (not installed on ${wsExecutorProbe.machineLabel || "machine"})`
+                                  : ""}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
@@ -701,7 +761,9 @@ export function TaskDetailPanels({
                       )}
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="edit-task-effort">Effort</Label>
+                      <Label htmlFor="edit-task-effort">
+                        {isAgyExecutor(editDraft.executor) ? "Thinking Effort" : "Effort"}
+                      </Label>
                       <Select
                         value={editDraft.effort || DEFAULT_SENTINEL}
                         onValueChange={(v) =>
@@ -713,15 +775,23 @@ export function TaskDetailPanels({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={DEFAULT_SENTINEL}>(default)</SelectItem>
-                          {EFFORTS.filter(Boolean).map((x) => (
+                          {effortChoices.filter(Boolean).map((x) => (
                             <SelectItem key={x} value={x}>
-                              {x}
+                              {EFFORT_LABELS[x] ?? x}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
+
+                  {isAgyExecutor(editDraft.executor) && (
+                    <AgyAccountPicker
+                      id="edit-task-agy-account"
+                      workspace={editDraft.workspace}
+                      compact
+                    />
+                  )}
 
                   <div className="space-y-1">
                     <Label htmlFor="edit-task-mode">Execution mode</Label>

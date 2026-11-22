@@ -4,7 +4,7 @@
 .fieldStage {
   position: relative;
   overflow: hidden;
-  background-color: var(--sy-surface-page, #F1F4FB);
+  background-color: var(--sy-surface-page, #EEF2FF);
   background-image: url('/brand/switchyard-lite/field-mesh.svg');
   background-size: cover;
   background-position: center;
@@ -14,9 +14,9 @@
 .fieldScrim {
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, var(--sy-surface-page, #F1F4FB) 32%, transparent) 0%,
-    color-mix(in oklab, var(--sy-surface-page, #F1F4FB) 86%, transparent) 72%,
-    var(--sy-surface-page, #F1F4FB) 100%
+    color-mix(in oklab, var(--sy-surface-page, #EEF2FF) 32%, transparent) 0%,
+    color-mix(in oklab, var(--sy-surface-page, #EEF2FF) 86%, transparent) 72%,
+    var(--sy-surface-page, #EEF2FF) 100%
   );
 }
 
@@ -24,8 +24,8 @@
 .heroScrimDirectional {
   background: linear-gradient(
     96deg,
-    var(--sy-surface-page, #F1F4FB) 96%,
-    color-mix(in oklab, var(--sy-surface-page, #F1F4FB) 90%, transparent) 45%,
+    var(--sy-surface-page, #EEF2FF) 96%,
+    color-mix(in oklab, var(--sy-surface-page, #EEF2FF) 90%, transparent) 45%,
     transparent 72%
   );
 }
@@ -33,8 +33,8 @@
 /* Solid reading plate — paragraphs >= 3 lines must sit on an opaque plate */
 .readingPlate {
   background: var(--sy-surface-plate, #FFFFFF);
-  color: var(--sy-text-primary, #0D1526);
-  border: 1px solid color-mix(in oklab, var(--sy-text-primary, #0D1526) 12%, transparent);
+  color: var(--sy-text-primary, #0F172A);
+  border: 1px solid color-mix(in oklab, var(--sy-text-primary, #0F172A) 12%, transparent);
 }
 
 /* Token-locked duotone photo treatment */
@@ -42,7 +42,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background-color: var(--sy-ink, #0D1526);
+  background-color: var(--sy-ink, #0F172A);
 }
 
 .photoDuotone img {
@@ -61,8 +61,8 @@
   inset: 0;
   background: linear-gradient(
     135deg,
-    color-mix(in oklab, var(--sy-surface-page, #F1F4FB) 72%, transparent),
-    color-mix(in oklab, var(--sy-accent, #2F5BFF) 24%, transparent)
+    color-mix(in oklab, var(--sy-surface-page, #EEF2FF) 72%, transparent),
+    color-mix(in oklab, var(--sy-accent, #2563EB) 24%, transparent)
   );
   mix-blend-mode: multiply;
   pointer-events: none;

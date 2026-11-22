@@ -10,8 +10,8 @@
   body {
     width: 1500px;
     height: 1125px;
-    background: #E4EAF7;
-    color: #0D1526;
+    background: #E0E7FF;
+    color: #0F172A;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     padding: 28px;
     -webkit-font-smoothing: antialiased;
@@ -29,7 +29,7 @@
     overflow: hidden;
     position: relative;
     border: 1px solid #DCE3F4;
-    background: #F1F4FB;
+    background: #EEF2FF;
     box-shadow: 0 2px 6px rgba(13,21,38,0.04);
   }
   .mono {
@@ -44,7 +44,7 @@
       radial-gradient(ellipse 55% 50% at 15% 85%, rgba(255,139,106,0.16) 0%, transparent 65%),
       linear-gradient(to right, rgba(220,227,244,0.12) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(220,227,244,0.12) 1px, transparent 1px),
-      #0D1526;
+      #0F172A;
     background-size: auto, auto, 32px 32px, 32px 32px;
     color: #FFFFFF;
     display: flex;
@@ -79,22 +79,32 @@
     font-size: 12.5px;
     font-weight: 600;
   }
-  .pill-prism {
-    background: linear-gradient(128deg, #FF9A62 0%, #F264A8 36%, #6B5BFF 72%, #2F5BFF 100%);
-    color: #fff;
-    box-shadow: 0 8px 20px -6px rgba(107,91,255,0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+  .pill-primary-dark {
+    background: #0F172A;
+    color: #F8FAFC;
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+    border-radius: 12px;
   }
-  .pill-plate {
-    background: #FFFFFF;
-    color: #0D1526;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+  .pill-glass {
+    background: rgba(255,255,255,0.85);
+    color: #0F172A;
+    border: 1px solid rgba(255,255,255,0.65);
+    box-shadow: 0 4px 14px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+    border-radius: 12px;
+  }
+  .pill-retry {
+    background: rgba(245,158,11,0.18);
+    color: #FCD34D;
+    border: 1px solid rgba(251,191,36,0.35);
   }
   .pill-mint {
-    background: #BCEFD4;
-    color: #13794B;
+    background: rgba(5,150,105,0.20);
+    color: #34D399;
+    border: 1px solid rgba(52,211,153,0.35);
   }
   .p-mark {
-    background: #0D1526;
+    background: #0F172A;
     color: #FFFFFF;
     padding: 28px 32px;
     display: flex;
@@ -106,15 +116,15 @@
   .swatch { border-radius: 12px; overflow: hidden; border: 1px solid #DCE3F4; background: #fff; }
   .swatch__color { height: 102px; }
   .swatch__meta { padding: 8px 9px; }
-  .swatch__name { font-size: 11px; font-weight: 700; display: block; color: #0D1526; }
+  .swatch__name { font-size: 11px; font-weight: 700; display: block; color: #0F172A; }
   .swatch__hex { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #4A5878; }
   .p-type { padding: 20px 26px; display: flex; flex-direction: column; justify-content: space-between; background: #FFFFFF; }
   .p-cast { padding: 20px 24px; display: flex; flex-direction: column; justify-content: space-between; background: #FFFFFF; }
   .p-cast__grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; align-items: center; }
-  .p-rules { background: #0D1526; color: #FFFFFF; padding: 18px 24px; display: flex; flex-direction: column; justify-content: space-between; }
+  .p-rules { background: #0F172A; color: #FFFFFF; padding: 18px 24px; display: flex; flex-direction: column; justify-content: space-between; }
   .p-rules ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
   .p-rules li { font-size: 11.25px; line-height: 1.38; opacity: 0.88; padding-left: 14px; position: relative; }
-  .p-rules li::before { content: ''; position: absolute; left: 0; top: 5px; width: 6px; height: 6px; border-radius: 99px; background: #2F5BFF; }
+  .p-rules li::before { content: ''; position: absolute; left: 0; top: 5px; width: 6px; height: 6px; border-radius: 99px; background: #2563EB; }
 </style>
 </head>
 <body>
@@ -141,13 +151,13 @@
 </div>
         </div>
         <div class="pill-strip">
-          <span class="pill-demo pill-prism">✦ Ask AI</span>
-          <span class="pill-demo pill-plate">Filter · <b style="color:#2F5BFF">2</b> ×</span>
-          <span class="pill-demo pill-mint">● Online</span>
-          <span class="pill-demo pill-plate" style="color:#2F5BFF">◌ In progress</span>
+          <span class="pill-demo pill-primary-dark">+ New task</span>
+          <span class="pill-demo pill-glass">Run board (2)</span>
+          <span class="pill-demo pill-retry">↻ retry 2/3</span>
+          <span class="pill-demo pill-mint">● Done 5</span>
         </div>
-        <h1 class="p-hero__title">Atmospheric Cloud Sky &amp; Tactile Pill Telemetry.</h1>
-        <p class="p-hero__sub">Switchyard Lite dispatches coding agents across isolated git worktrees using tactile porcelain capsule controls, a royal cobalt interlocking switch, and a double-framed Kanban control stage.</p>
+        <h1 class="p-hero__title">Refractive Liquid Glass Control Plane.</h1>
+        <p class="p-hero__sub">Switchyard Lite dispatches coding agents across isolated git worktrees inside a 3-tier refractive Liquid Glass control plane anchored by solid slate primary actions and semantic status pills.</p>
       </div>
     </div>
     <div class="panel p-mark">
@@ -178,10 +188,10 @@
     <div class="panel p-pal">
       <div style="display:flex;justify-content:space-between;opacity:0.65;" class="mono">
         <span>PALETTE / 15 PRIMITIVES</span>
-        <span>9 PASS · 3 PUBLISHED FAILS</span>
+        <span>10 PASS · 3 PUBLISHED FAILS</span>
       </div>
       <div class="p-pal__grid">
-        <div class="swatch"><div class="swatch__color" style="background:#F1F4FB;"></div><div class="swatch__meta"><span class="swatch__name">ground</span><span class="swatch__hex">#F1F4FB</span></div></div><div class="swatch"><div class="swatch__color" style="background:#FFFFFF;"></div><div class="swatch__meta"><span class="swatch__name">plate</span><span class="swatch__hex">#FFFFFF</span></div></div><div class="swatch"><div class="swatch__color" style="background:#E4EAF7;"></div><div class="swatch__meta"><span class="swatch__name">well</span><span class="swatch__hex">#E4EAF7</span></div></div><div class="swatch"><div class="swatch__color" style="background:#0D1526;"></div><div class="swatch__meta"><span class="swatch__name">ink</span><span class="swatch__hex">#0D1526</span></div></div><div class="swatch"><div class="swatch__color" style="background:#4A5878;"></div><div class="swatch__meta"><span class="swatch__name">slate</span><span class="swatch__hex">#4A5878</span></div></div><div class="swatch"><div class="swatch__color" style="background:#8C9AB8;"></div><div class="swatch__meta"><span class="swatch__name">muted</span><span class="swatch__hex">#8C9AB8</span></div></div><div class="swatch"><div class="swatch__color" style="background:#DCE3F4;"></div><div class="swatch__meta"><span class="swatch__name">line</span><span class="swatch__hex">#DCE3F4</span></div></div>
+        <div class="swatch"><div class="swatch__color" style="background:#EEF2FF;"></div><div class="swatch__meta"><span class="swatch__name">ground</span><span class="swatch__hex">#EEF2FF</span></div></div><div class="swatch"><div class="swatch__color" style="background:#FFFFFF;"></div><div class="swatch__meta"><span class="swatch__name">plate</span><span class="swatch__hex">#FFFFFF</span></div></div><div class="swatch"><div class="swatch__color" style="background:#E0E7FF;"></div><div class="swatch__meta"><span class="swatch__name">well</span><span class="swatch__hex">#E0E7FF</span></div></div><div class="swatch"><div class="swatch__color" style="background:#0F172A;"></div><div class="swatch__meta"><span class="swatch__name">ink</span><span class="swatch__hex">#0F172A</span></div></div><div class="swatch"><div class="swatch__color" style="background:#475569;"></div><div class="swatch__meta"><span class="swatch__name">slate</span><span class="swatch__hex">#475569</span></div></div><div class="swatch"><div class="swatch__color" style="background:#64748B;"></div><div class="swatch__meta"><span class="swatch__name">muted</span><span class="swatch__hex">#64748B</span></div></div><div class="swatch"><div class="swatch__color" style="background:#DCE3F4;"></div><div class="swatch__meta"><span class="swatch__name">line</span><span class="swatch__hex">#DCE3F4</span></div></div>
       </div>
     </div>
     <div class="panel p-type">
@@ -192,7 +202,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div><span class="mono" style="opacity:0.55;display:block;">DISPLAY · SPACE GROTESK 700</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:27px;letter-spacing:-0.03em;">Switchyard Lite · Aa 01</span></div>
         <div><span class="mono" style="opacity:0.55;display:block;">READING · PLUS JAKARTA SANS</span><span style="font-size:14.5px;color:#4A5878;">Porcelain capsule plates over an atmospheric periwinkle sky grid.</span></div>
-        <div><span class="mono" style="opacity:0.55;display:block;">MONO · JETBRAINS MONO</span><span class="mono" style="font-size:12.5px;color:#2F5BFF;">sy/T-104 · 30 mins · ΔE_OK 0.061</span></div>
+        <div><span class="mono" style="opacity:0.55;display:block;">MONO · JETBRAINS MONO</span><span class="mono" style="font-size:12.5px;color:#2563EB;">sy/T-104 · 30 mins · ΔE_OK 0.061</span></div>
       </div>
     </div>
     <div class="panel p-cast">
@@ -202,22 +212,22 @@
       </div>
       <div class="p-cast__grid">
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:36px;height:36px;display:grid;place-items:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="36" height="36" fill="none" role="img" aria-label="Capsule companion mark">
-  <path d="M10 20h44a12 12 0 0 1 0 24H10a12 12 0 0 1 0-24zm8 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" fill="#0D1526"/>
+  <path d="M10 20h44a12 12 0 0 1 0 24H10a12 12 0 0 1 0-24zm8 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" fill="#0F172A"/>
 </svg>
 </div><span class="mono">capsule</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:36px;height:36px;display:grid;place-items:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="36" height="36" fill="none" role="img" aria-label="DAG companion mark">
-  <path d="M8 24h12v16H8zM26 14h12v16H26zM26 34h12v16H26zM44 24h12v16H44z" fill="#0D1526"/>
+  <path d="M8 24h12v16H8zM26 14h12v16H26zM26 34h12v16H26zM44 24h12v16H44z" fill="#0F172A"/>
 </svg>
 </div><span class="mono">dag</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:36px;height:36px;display:grid;place-items:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="36" height="36" fill="none" role="img" aria-label="Diff companion mark">
-  <path d="M10 14h44v10H10zM10 29h24v10H10zM40 29h14v10H40zM10 44h32v6H10z" fill="#0D1526"/>
+  <path d="M10 14h44v10H10zM10 29h24v10H10zM40 29h14v10H40zM10 44h32v6H10z" fill="#0F172A"/>
 </svg>
 </div><span class="mono">diff</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:36px;height:36px;display:grid;place-items:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="36" height="36" fill="none" role="img" aria-label="Lease companion mark">
-  <path d="M14 14h14v10H24v16h4v10H14zM36 14h14v36H36V40h4V24h-4z" fill="#0D1526"/>
+  <path d="M14 14h14v10H24v16h4v10H14zM36 14h14v36H36V40h4V24h-4z" fill="#0F172A"/>
 </svg>
 </div><span class="mono">lease</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:36px;height:36px;display:grid;place-items:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="36" height="36" fill="none" role="img" aria-label="Turnout companion mark">
-  <path d="M8 40h48v10H8zM8 22h22l12-12h14v10H45L33 32H8z" fill="#0D1526"/>
+  <path d="M8 40h48v10H8zM8 22h22l12-12h14v10H45L33 32H8z" fill="#0F172A"/>
 </svg>
 </div><span class="mono">turnout</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:36px;height:36px;display:grid;place-items:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="36" height="36" fill="none" role="img" aria-label="Worktree companion mark">
-  <path d="M12 10h10v44H12zM22 18h28v10H22zM22 34h20v10H22z" fill="#0D1526"/>
+  <path d="M12 10h10v44H12zM22 18h28v10H22zM22 34h20v10H22z" fill="#0F172A"/>
 </svg>
 </div><span class="mono">worktree</span></div>
       </div>
@@ -228,10 +238,10 @@
         <span>GATE V6.0</span>
       </div>
       <ul>
-        <li><b>Capsule Control Law.</b> Buttons, selects, filters, and status badges share a 999px capsule radius.</li>
-        <li><b>Separate 16px Compact.</b> Below 24px the turnout switch drops its signal dot and thickens to 15u.</li>
-        <li><b>Honest Contrast Ledger.</b> 3 failing pairs (muted, coral, mint) are published and graphic-only.</li>
-        <li><b>Double-Framed Stage.</b> App shell sits inside an outer frosted bezel on the 32px blueprint sky.</li>
+        <li><b>3-Level Glass Hierarchy.</b> Sidebar/Topbar (0.80 blur-20) &gt; Card (0.85 blur-16) &gt; Column (0.38 unblurred).</li>
+        <li><b>WCAG AA Slate Ink.</b> Primary #0F172A, secondary #475569, muted #64748B (4.76:1 AA on plate).</li>
+        <li><b>Solid Dark Primary CTA.</b> #0F172A solid action anchors New task; gradient clashes removed.</li>
+        <li><b>Radius &amp; Specular Law.</b> Card 16px, Column/Sidebar 20px, Button 12px, Badge 999px + 1px top sheen.</li>
       </ul>
       <div style="display:flex;justify-content:space-between;opacity:0.45;" class="mono">
         <span>SWITCHYARD LITE</span>

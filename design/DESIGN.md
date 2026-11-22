@@ -74,3 +74,20 @@
    - `999px` capsule trigger (`plate`, `well`, `ghost` variants) + `20px` frosted porcelain popover shell + `8px` viewport pad + `12px` concentric option rows (`R_outer 20 − S_pad 8 = R_inner 12`).
 4. **`app-shell.tsx` (`AppShell`, `AppSidebar`, `AppSidebarBrand`, `AppSidebarGroup`, `AppSidebarItem`, `AppSidebarFooter`, `AppInset`, `AppHeader`, `AppMain`):**
    - 2-column collapsible control plane (`236px` / `64px`) over the atmospheric sky + `32px` blueprint grid, with capsule sidebar items and a `52px` glass top header.
+
+---
+
+## 6. v2.1 Addendum — Liquid Glass Kanban System (`web/src/glass.css`)
+
+Implemented in [ADR 0001](../docs/adr/0001-liquid-glass-kanban-system.md) to establish crisp contrast and 3-tier optical depth across Light and Dark scopes:
+
+- **Background:** `--app-bg` mesh gradient (`#eef2ff → #e0e7ff → #f0f9ff → #fdf4ff` light; `#0f172a → #1e1b4b → #0c1222` dark) + fine fractal noise layer (`.shell::after`).
+- **3-Level Glass Hierarchy:**
+  - `--glass-1` (`0.80` / `0.78` dark, `blur(20px) saturate(180%)`): Sidebar & Topbar.
+  - `--glass-2` (`0.38` / `0.42` dark, **no** `backdrop-filter`): Kanban columns for 60fps scroll & drag.
+  - `--glass-3` (`0.85` / `0.82` dark, `blur(16px) saturate(160%)`): Kanban cards with `1px` specular highlight (`--glass-highlight`).
+  - `--glass-4` (`0.92`, `blur(24px) saturate(180%)`): Popovers, menus, and dialogs.
+- **WCAG AA Ink Hierarchy:** `--text-primary` (`#0f172a` / `#f8fafc`), `--text-secondary` (`#475569` / `#cbd5e1`), `--text-muted` (`#64748b` / `#94a3b8`).
+- **Radius Scale:** Cards `16px`, Columns `20px`, Sidebar `20px`, Buttons `12px`, Badges `999px` (`full`).
+- **Primary Action:** Solid dark glass-consistent button (`--glass-btn-primary-bg`, `#0f172a` light / `#f8fafc` dark) replaces the prism gradient on `"New task"`.
+- **Status Semantics (`StatusHeaderPill`):** `Blocked` (`#DC2626`), `In progress` (`#2563EB`), `Review` (`#B45309`), `Done` (`#059669`), `Failed` (`#DC2626`) — each combining icon + label + `10%` tinted fill + tinted border.

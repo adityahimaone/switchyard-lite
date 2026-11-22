@@ -157,13 +157,7 @@ func init() {
 			ok(w, t)
 		}))
 		m.HandleFunc("GET /api/v1/models", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
-			raw, err := x.m.List(r.Context(), r.URL.Query().Get("executor"), r.URL.Query().Get("refresh") == "1")
-			if err != nil {
-				fail(w, 502, err.Error())
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(raw)
+			handleGetModels(w, r, a, x)
 		}))
 		m.HandleFunc("GET /api/v1/workers", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			listRows(w, a, `SELECT id,name,url,created_at FROM dispatch_workers ORDER BY created_at`, "id", "name", "url")
@@ -534,6 +528,21 @@ func init() {
 				return
 			}
 			ok(w, map[string]bool{"auto_merge": x.r.AutoMerge()})
+		}))
+		m.HandleFunc("GET /api/v1/settings/executors", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			handleGetExecutorsSetting(w, x.d.S)
+		}))
+		m.HandleFunc("POST /api/v1/settings/executors", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			handleSetExecutorsSetting(w, r, x.d.S)
+		}))
+		m.HandleFunc("GET /api/v1/executors/probe", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			handleProbeExecutors(w, r, a, x)
+		}))
+		m.HandleFunc("GET /api/v1/agy/accounts", h("read", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			handleGetAgyAccounts(w, r, a, x)
+		}))
+		m.HandleFunc("POST /api/v1/agy/accounts/switch", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
+			handleSwitchAgyAccount(w, r, a, x)
 		}))
 		m.HandleFunc("POST /api/v1/tasks/{id}/retry", h("write", func(w http.ResponseWriter, r *http.Request, x *dispatchDeps) {
 			id := r.PathValue("id")

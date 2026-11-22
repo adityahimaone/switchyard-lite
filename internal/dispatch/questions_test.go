@@ -48,6 +48,27 @@ func TestDetectOpenQuestionFormats(t *testing.T) {
 			output: "All tests pass cleanly.",
 			wantOK: false,
 		},
+		{
+			name:    "agy_ask_question_tool_call",
+			output:  `{"type":"tool_call","tool":"ask_question","args":{"questions":[{"question":"Which Neon effort should we run?","options":["minimal (Recommended)","xhigh","max"]}]}}`,
+			wantQ:   "Which Neon effort should we run?",
+			wantLen: 3,
+			wantOK:  true,
+		},
+		{
+			name:    "agy_questions_array_envelope",
+			output:  `{"questions":[{"question":"Deploy target?","options":["Local :8790","VPS"]}]}`,
+			wantQ:   "Deploy target?",
+			wantLen: 2,
+			wantOK:  true,
+		},
+		{
+			name:    "agy_tool_calls_string_arguments",
+			output:  `{"tool_calls":[{"name":"ask_question","arguments":"{\"questions\":[{\"question\":\"Switch account first?\",\"options\":[\"Yes\",\"No\"]}]}"}]}`,
+			wantQ:   "Switch account first?",
+			wantLen: 2,
+			wantOK:  true,
+		},
 	}
 
 	for _, tc := range cases {

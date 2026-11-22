@@ -1,4 +1,5 @@
 import * as React from "react";
+import { PanelLeft, PanelLeftClose } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "./brand";
 import { Tip } from "./tooltip";
@@ -60,7 +61,7 @@ export function AppShell({
     }
     setAnimating(true);
     window.clearTimeout(animTimer.current);
-    animTimer.current = window.setTimeout(() => setAnimating(false), 240);
+    animTimer.current = window.setTimeout(() => setAnimating(false), 270);
     return () => window.clearTimeout(animTimer.current);
   }, [collapsed]);
 
@@ -75,6 +76,22 @@ export function AppShell({
     },
     [collapsed, isControlled, onCollapsedChange]
   );
+
+  // Global ⌘B / Ctrl+B shortcut to toggle sidebar collapse/expand
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "b") {
+        const el = e.target as HTMLElement | null;
+        if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        setCollapsed((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setCollapsed]);
 
   return (
     <AppShellContext.Provider value={{ collapsed, setCollapsed }}>
@@ -158,6 +175,32 @@ export function AppSidebarBrand({
   );
 }
 
+export function AppSidebarToggle({ className }: { className?: string }) {
+  const { collapsed, setCollapsed } = useAppShell();
+  return (
+    <Tip side="right" delayDuration={120} label={collapsed ? "Expand sidebar (⌘B)" : "Collapse sidebar (⌘B)"}>
+      <button
+        type="button"
+        data-slot="app-sidebar-toggle"
+        onClick={() => setCollapsed((v) => !v)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-expanded={!collapsed}
+        className={cn(
+          "side-rail-toggle inline-flex size-7 shrink-0 items-center justify-center rounded-[9px] border border-transparent text-[var(--text-muted)]",
+          "transition-[background-color,border-color,color,transform] duration-150 hover:border-[var(--glass-border-soft)] hover:bg-[var(--glass-3)] hover:text-[var(--text-primary)] active:scale-95",
+          className
+        )}
+      >
+        {collapsed ? (
+          <PanelLeft className="size-3.5 transition-transform duration-200" />
+        ) : (
+          <PanelLeftClose className="size-3.5 transition-transform duration-200" />
+        )}
+      </button>
+    </Tip>
+  );
+}
+
 export interface AppSidebarGroupProps extends React.ComponentProps<"div"> {
   label?: string;
 }
@@ -223,6 +266,9 @@ export function AppSidebarItem({
       {icon && (
         <span className="nav-icon-wrap" aria-hidden>
           {icon}
+          {badge !== undefined && badge !== null && badge !== false && (
+            <span className="nav-badge-dot" />
+          )}
         </span>
       )}
       <span className="nav-label">{children}</span>

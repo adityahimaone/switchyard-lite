@@ -33,6 +33,8 @@ type Request struct {
 	CommandCodeSessionID string `json:"commandcode_session_id,omitempty"`
 	ClaudeSessionID      string `json:"claude_session_id,omitempty"`
 	OMPSessionID         string `json:"omp_session_id,omitempty"`
+	AgySessionID         string `json:"agy_session_id,omitempty"`
+	AutoApprove          bool   `json:"auto_approve,omitempty"`
 	LastTurnSeq          *int64 `json:"last_turn_seq,omitempty"`
 	SessionContinuation  bool   `json:"session_continuation,omitempty"`
 	// Composer context. node-agent ignores unknown keys, but keeping them in
@@ -56,6 +58,7 @@ type Result struct {
 	CommandCodeSessionID string         `json:"commandcode_session_id,omitempty"`
 	ClaudeSessionID      string         `json:"claude_session_id,omitempty"`
 	OMPSessionID         string         `json:"omp_session_id,omitempty"`
+	AgySessionID         string         `json:"agy_session_id,omitempty"`
 	LastTurnSeq          *int64         `json:"last_turn_seq,omitempty"`
 	Executor             string         `json:"executor,omitempty"`
 	Model                string         `json:"model,omitempty"`

@@ -2,10 +2,15 @@
 /* Critique: Floating double-framed porcelain left sidebar dock + double-framed porcelain stage over soft cloud sky. */
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./glass.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-glass-1: var(--glass-1);
+  --color-glass-2: var(--glass-2);
+  --color-glass-3: var(--glass-3);
+  --color-glass-4: var(--glass-4);
   --color-canvas: var(--c-canvas);
   --color-well: var(--c-well);
   --color-surface: var(--c-surface);
@@ -160,34 +165,40 @@ code, pre, .mono {
    App Shell (Floating Left Capsule Sidebar Dock + Double-Framed Stage)
    ========================================================================== */
 .shell {
+  position: relative;
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 10px;
   height: 100vh;
-  padding: 8px;
+  padding: 10px;
   overflow: hidden;
   background-color: var(--c-canvas);
-  /* Photographic cloud sky, with the existing radial wash on top. */
-  background-image: var(--bg-cloud-image), var(--bg-sky-radial);
+  background-image: var(--app-bg);
   background-repeat: no-repeat;
-  background-size: cover, 100% 100%;
-  background-position: center center, center top;
-  /* 唯一的布局动画：grid track。子元素一律不参与布局动画（见下方 clip 规则），
-     否则每次 tick 都会重排 12 个 nav 项 + 文本省略号计算。 */
-  transition: grid-template-columns 180ms var(--ease-out);
+  background-size: 100% 100%;
+  transition: grid-template-columns 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 过渡窗口内关掉逐帧重采样的 backdrop blur：这是收起/展开卡顿的主因。 */
+.shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Disable expensive per-frame backdrop resampling during sidebar spring glide */
 .shell[data-animating] nav.side {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background-color: color-mix(in srgb, var(--c-well) 88%, transparent);
+  background-color: var(--glass-1);
 }
 
 .shell[data-animating] .shell-inset {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background-color: color-mix(in srgb, var(--c-well) 84%, transparent);
 }
 
 .shell.collapsed {
@@ -205,18 +216,18 @@ code, pre, .mono {
   }
 }
 
-/* Floating Left Sidebar Dock */
+/* Floating Left Sidebar Dock — Level 1 Glass (most solid) */
 nav.side {
-  background: color-mix(in srgb, var(--c-well) 84%, transparent);
-  backdrop-filter: blur(12px) saturate(1.1);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  border: 1px solid var(--c-line-strong);
-  border-radius: 18px;
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur-1);
+  -webkit-backdrop-filter: var(--glass-blur-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sidebar);
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  box-shadow: var(--lift-2), var(--well-inset);
+  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-sm);
   min-height: 0;
   overflow: hidden;
   z-index: 20;
@@ -224,15 +235,23 @@ nav.side {
 }
 
 .side-top-pod {
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--c-surface) 62%, transparent);
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 14px;
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  box-shadow: var(--lift-1), var(--lift-inset);
+  box-shadow: var(--glass-highlight);
   flex-shrink: 0;
+}
+
+.side-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
 }
 
 .side-brand {
@@ -241,10 +260,10 @@ nav.side {
   gap: 8px;
   min-height: 32px;
   padding: 2px 4px;
-  flex-shrink: 0;
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   overflow: hidden;
-  transition: padding 180ms var(--ease-out);
+  transition: padding 220ms cubic-bezier(0.22, 1, 0.36, 1), gap 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .brand-mark-tile {
@@ -319,10 +338,10 @@ nav.side h1 {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: color-mix(in srgb, var(--c-surface) 55%, var(--c-well));
+  background: color-mix(in srgb, var(--c-surface) 45%, transparent);
   padding: 5px;
-  border-radius: 12px;
-  border: 1px solid var(--c-line);
+  border-radius: 14px;
+  border: 1px solid var(--glass-border-soft);
   flex-shrink: 0;
 }
 
@@ -332,7 +351,7 @@ nav.side h1 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--c-ink-4);
+  color: var(--text-muted);
   padding: 2px 8px 4px;
   white-space: nowrap;
   height: 18px;
@@ -352,7 +371,7 @@ nav.side .nav-label {
   white-space: nowrap;
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 150ms var(--ease-out) 35ms, transform 150ms var(--ease-out) 35ms;
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms;
 }
 
 nav.side .side-brand h1,
@@ -362,35 +381,57 @@ nav.side .side-footer-status {
   opacity: 1;
   transform: translateX(0);
   white-space: nowrap;
-  transition: opacity 150ms var(--ease-out) 35ms, transform 150ms var(--ease-out) 35ms;
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms;
 }
 
 .shell.collapsed nav.side .nav-label,
 .shell.collapsed nav.side .side-board-box,
-.shell.collapsed nav.side .nav-badge,
-.shell.collapsed nav.side .side-footer-status {
+.shell.collapsed nav.side .nav-badge {
   opacity: 0;
-  transform: translateX(-4px);
+  transform: translateX(-6px) scale(0.96);
   pointer-events: none;
-  transition: opacity 90ms var(--ease-out), transform 90ms var(--ease-out);
+  transition: opacity 110ms ease-out, transform 110ms ease-out;
+}
+
+/* The status pill was still taking flex space, so justify-between pushed the
+   theme button outside the 64px dock (measured center 83.6 vs dock 40).
+   flex 0 1 0 + overflow hidden takes it out of the flow without hardcoding
+   the pill width; the pill is already at opacity 0 by then. */
+.shell.collapsed nav.side .side-footer-status {
+  flex: 0 1 0;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .shell.collapsed nav.side .side-brand h1 {
   opacity: 0;
-  transform: translateX(-4px);
+  width: 0;
+  overflow: hidden;
+  transform: translateX(-6px);
   pointer-events: none;
-  transition: opacity 90ms var(--ease-out), transform 90ms var(--ease-out);
+  transition: opacity 110ms ease-out, transform 110ms ease-out;
 }
 
 .shell.collapsed nav.side .nav-group-label {
   opacity: 0;
   transform: translateY(-2px);
   pointer-events: none;
-  transition: opacity 80ms var(--ease-out), transform 80ms var(--ease-out);
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition: opacity 90ms ease-out, transform 90ms ease-out, height 220ms cubic-bezier(0.22, 1, 0.36, 1), padding 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shell.collapsed nav.side .side-top-pod {
   padding: 6px;
+}
+
+.shell.collapsed nav.side .side-top-row {
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
 }
 
 .shell.collapsed nav.side .nav-group,
@@ -401,23 +442,27 @@ nav.side .side-footer-status {
 .shell.collapsed nav.side .side-brand {
   display: flex;
   align-items: center;
-  width: 100%;
-  /* 内容盒 36px、品牌块 26px → 左内边距 5px 才是真正居中 */
-  padding: 2px 0 2px 5px;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  gap: 0;
+  padding: 2px 0;
 }
 
 .shell.collapsed nav.side .side-footer > div {
   justify-content: center;
   padding-top: 2px;
+  gap: 0;
 }
 
 .shell.collapsed nav.side a {
   min-width: 0;
-  /* 38px 宽 - 2px 边框 - 14px 图标 = 22，左右 11px 才是真正居中 */
   --nav-pad-x: 11px;
 }
 
-
+.shell.collapsed nav.side .side-footer a {
+  --nav-pad-x: 10px;
+}
 
 nav.side a {
   display: flex;
@@ -426,23 +471,23 @@ nav.side a {
   height: 34px;
   width: 100%;
   padding: 0 var(--nav-pad-x, 8px);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid transparent;
-  color: var(--c-ink-2);
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 100ms var(--ease-out), padding 180ms var(--ease-out);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1), padding 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (hover: hover) and (pointer: fine) {
   nav.side a:hover {
-    background: var(--c-surface);
-    border-color: var(--c-line);
-    color: var(--c-ink);
+    background: color-mix(in srgb, var(--glass-3) 75%, transparent);
+    border-color: var(--glass-border-soft);
+    color: var(--text-primary);
   }
 }
 
@@ -451,20 +496,53 @@ nav.side a:active {
 }
 
 nav.side a[aria-current="page"] {
-  background: var(--c-surface);
-  border-color: var(--c-line-strong);
-  color: var(--c-accent-text);
+  background: var(--glass-3);
+  border-color: var(--glass-border);
+  color: var(--text-primary);
   font-weight: 600;
-  box-shadow: var(--lift-1), var(--lift-inset);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-sm);
+}
+
+nav.side a[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 0 3px 3px 0;
+  background: var(--status-progress);
 }
 
 .nav-icon-wrap {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transform: translateX(0);
-  transition: transform 200ms var(--ease-out);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--status-progress);
+  box-shadow: 0 0 0 1.5px var(--glass-1);
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.shell.collapsed .nav-badge-dot {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .nav-icon {
@@ -492,51 +570,32 @@ nav.side a[aria-current="page"] {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--c-surface) 62%, transparent);
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 14px;
   padding: 6px;
-  box-shadow: var(--lift-1), var(--lift-inset);
+  box-shadow: var(--glass-highlight);
   flex-shrink: 0;
 }
 
-/* Double-Framed Porcelain Workspace Stage */
+/* Liquid Glass Workspace Stage (transparent bezel so mesh gradient shines behind columns) */
 .shell-inset {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  border-radius: 18px;
-  border: 1px solid var(--c-line-strong);
-  /* Slightly translucent porcelain: the cloud sky stays visible behind the
-     stage without touching the opacity of the cards themselves. */
-  background: color-mix(in srgb, var(--c-well) 78%, transparent);
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  padding: 6px;
-  box-shadow: var(--lift-2), var(--well-inset);
+  border-radius: var(--radius-column);
+  border: 1px solid var(--glass-border-soft);
+  background: transparent;
+  padding: 0;
+  box-shadow: var(--glass-inner);
   overflow: hidden;
   position: relative;
+  z-index: 1;
 }
 
-/* A lifted, masked copy of the cloud photograph. The raw image is nearly the
-   same value as the dark well, so brightness() is what makes the texture read
-   while the mask keeps the lower content area clean. */
-.shell-inset::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--bg-cloud-image) center top / cover no-repeat;
-  opacity: var(--cloud-layer-opacity);
-  filter: var(--cloud-layer-filter);
-  mix-blend-mode: var(--cloud-blend);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 94%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 94%);
-  pointer-events: none;
-}
-
-/* Keep the stage content above the decorative cloud layer. */
+/* Keep the stage content above any decorative layers. */
 .shell-inset > main {
   position: relative;
   z-index: 1;
@@ -545,30 +604,20 @@ nav.side a[aria-current="page"] {
 header.top-header {
   position: relative;
   overflow: hidden;
-  height: 42px;
+  height: 44px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 0 14px;
-  border-radius: 12px 12px 0 0;
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-bottom: 1px solid var(--c-line);
+  border-radius: var(--radius-column) var(--radius-column) 0 0;
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur-1);
+  -webkit-backdrop-filter: var(--glass-blur-1);
+  border-bottom: 1px solid var(--glass-border-soft);
+  box-shadow: var(--glass-highlight);
   z-index: 15;
-}
-
-/* A soft cloud band behind the stage ribbon, faded out toward the content. */
-header.top-header::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--bg-cloud-image) center 32% / cover no-repeat;
-  opacity: 0.2;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
-  pointer-events: none;
 }
 
 header.top-header > * {
@@ -642,29 +691,33 @@ main {
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  border-radius: 0 0 12px 12px;
-  /* Soft glass over the cloud sky. Cards remain opaque, so copy stays crisp
-     while the atmosphere reads through the page surface. */
-  background: color-mix(in srgb, var(--c-surface) 86%, transparent);
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
-  border: 1px solid var(--c-line);
-  border-top: 0;
-  box-shadow: var(--lift-inset);
+  border-radius: 0 0 var(--radius-column) var(--radius-column);
+  /* Non-board reading pages retain a high-clarity Level 1 glass surface. */
+  background: color-mix(in srgb, var(--glass-1) 92%, transparent);
+  backdrop-filter: var(--glass-blur-1);
+  -webkit-backdrop-filter: var(--glass-blur-1);
+  box-shadow: var(--glass-highlight);
 }
 
 main.bleed {
   padding: 0;
   overflow: hidden;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 /* ==========================================================================
-   Page Header & Toolbar (Switchyard Board Pattern)
+   Page Header & Toolbar (Level 1 Liquid Glass)
    ========================================================================== */
 .page-header {
   padding: 10px 16px;
-  border-bottom: 1px solid var(--c-line);
-  background: color-mix(in srgb, var(--c-surface) 94%, transparent);
+  border-bottom: 1px solid var(--glass-border-soft);
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur-1);
+  -webkit-backdrop-filter: var(--glass-blur-1);
+  box-shadow: var(--glass-highlight);
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -678,8 +731,6 @@ main.bleed {
    edges so it reads as part of the app shell instead of a floating block. */
 main:not(.bleed) .page-header {
   margin: -16px -20px 14px;
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
 
 .page-header-left {
@@ -835,33 +886,33 @@ main:not(.bleed) .page-header {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-radius: 10px;
-  padding: 0 11px;
+  background: color-mix(in srgb, var(--glass-3) 90%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-button);
+  padding: 0 12px;
   height: 32px;
   font-size: 12px;
   font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
-  box-shadow: var(--lift-1), var(--lift-inset);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-sm);
   transition: border-color 140ms, background-color 140ms, transform 140ms var(--ease-out-expo), box-shadow 140ms, filter 140ms;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .btn:hover:not(:disabled) {
-    background: var(--c-well);
+    background: var(--c-surface);
     border-color: var(--c-line-strong);
-    color: var(--c-ink);
+    color: var(--text-primary);
     transform: translateY(-1px);
-    box-shadow: var(--lift-2), var(--lift-inset);
+    box-shadow: var(--glass-highlight), var(--glass-shadow-md);
   }
 
   .btn.primary:hover:not(:disabled) {
-    background: var(--spec-sheen), var(--grad-prism);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.38);
-    box-shadow: var(--glow-brand), var(--lift-2), var(--lift-inset);
-    filter: brightness(1.06);
+    background: var(--glass-btn-primary-hover);
+    color: var(--glass-btn-primary-ink);
+    border-color: var(--glass-btn-primary-border);
+    box-shadow: var(--glass-highlight), var(--glass-shadow-md);
   }
 
   .btn.obsidian:hover:not(:disabled) {
@@ -886,9 +937,9 @@ main:not(.bleed) .page-header {
   }
 
   .btn.ghost:hover:not(:disabled) {
-    background: var(--c-well);
+    background: color-mix(in srgb, var(--c-well) 70%, transparent);
     border-color: transparent;
-    color: var(--c-ink);
+    color: var(--text-primary);
     box-shadow: none;
   }
 }
@@ -898,11 +949,11 @@ main:not(.bleed) .page-header {
 }
 
 .btn.primary {
-  background: var(--spec-sheen), var(--grad-prism);
-  color: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--glass-btn-primary-bg);
+  color: var(--glass-btn-primary-ink);
+  border-color: var(--glass-btn-primary-border);
   font-weight: 600;
-  box-shadow: var(--glow-brand), var(--lift-inset);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), var(--glass-shadow-sm);
 }
 
 .btn.obsidian {
@@ -1000,13 +1051,66 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* Borderless inline-search inputs (picker headers). This rule lives outside a
-   @layer so it beats the focus ring above without !important. */
+   @layer so it beats the focus ring above without !important. It also has to
+   reset geometry: the unlayered `input` rule above forces `height: 32px` and
+   `padding: 5px 10px`, which made these inputs taller than the 28px pill they
+   sit in and pushed their text off-center. */
 input.field-flat,
 input.field-flat:focus {
   border: 0;
   border-color: transparent;
   background: transparent;
   box-shadow: none;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+/* PromptOmnibox rich token backdrop overlay.
+   Lives outside @layer so it beats the unlayered `textarea` base styles above:
+   transparent background allows syntax pills underneath to show through while
+   locking exact padding, font family, size, and line-height for 0px caret drift. */
+.prompt-omnibox-backdrop,
+textarea.prompt-omnibox-textarea,
+textarea.prompt-omnibox-textarea:hover,
+textarea.prompt-omnibox-textarea:focus,
+textarea.prompt-omnibox-textarea:focus-visible {
+  background: transparent;
+  border: 0;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.65;
+  letter-spacing: normal;
+  padding: 10px 14px;
+}
+
+.prompt-omnibox-backdrop {
+  position: relative;
+  z-index: 0;
+  color: var(--c-ink);
+  pointer-events: none;
+}
+
+textarea.prompt-omnibox-textarea {
+  position: relative;
+  z-index: 1;
+  caret-color: var(--c-ink);
+  color: var(--c-ink);
+}
+
+textarea.prompt-omnibox-textarea[data-has-value="true"] {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+textarea.prompt-omnibox-textarea::selection {
+  background: rgb(47 91 255 / 0.22);
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 label.f {
@@ -1041,60 +1145,71 @@ label.f {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 10px;
-  padding: 12px 16px 16px;
+  gap: 12px;
+  padding: 14px 20px 18px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
 }
 
 .col {
-  width: 256px;
+  width: 274px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   max-height: 100%;
+  padding: 8px;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.col[data-wip-exceeded="true"] {
+  border-color: var(--status-review-border);
+  background: color-mix(in srgb, var(--status-review-bg) 45%, var(--glass-2));
 }
 
 .col-header {
-  padding: 2px 4px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 2px 4px 8px;
 }
 
 .col h3 {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--c-ink);
+  color: var(--text-primary);
   margin: 0 0 6px;
-  min-height: 24px;
+  min-height: 26px;
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
 .col-count {
-  margin-left: 2px;
   font-family: var(--mono);
   font-size: 10.5px;
-  font-weight: 500;
-  color: var(--c-ink-3);
-  background: var(--c-well);
-  padding: 1px 6px;
-  border-radius: 6px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--glass-3) 75%, transparent);
+  border: 1px solid var(--glass-border-soft);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
 }
 
 .col-quick-btn {
   margin-left: auto;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .track-line {
   height: 2.5px;
   border-radius: 999px;
-  background: var(--lamp, var(--c-ink-4));
-  opacity: 0.88;
+  background: var(--lamp, var(--text-muted));
+  opacity: 0.78;
   transform-origin: left center;
   animation: track-draw 200ms var(--ease-out-expo) both;
 }
@@ -1106,28 +1221,33 @@ label.f {
   }
   to {
     transform: scaleX(1);
-    opacity: 0.88;
+    opacity: 0.78;
   }
 }
 
 .col-well {
   flex: 1;
   min-height: 120px;
-  background: var(--c-well);
-  border-radius: var(--radius-card);
-  padding: 6px;
+  background: transparent;
+  border-radius: calc(var(--radius-column) - 6px);
+  padding: 2px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px solid var(--c-line);
-  box-shadow: var(--well-inset);
+  gap: 8px;
+  border: 1px solid transparent;
   transition: border-color 120ms, background-color 120ms;
+  scrollbar-width: thin;
+}
+
+.col.over {
+  border-color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent-tint) 35%, var(--glass-2));
 }
 
 .col.over .col-well {
   border: 1px dashed var(--c-accent);
-  background: color-mix(in srgb, var(--c-accent-tint) 45%, var(--c-well));
+  background: color-mix(in srgb, var(--c-accent-tint) 25%, transparent);
 }
 
 .col-empty {
@@ -1137,70 +1257,56 @@ label.f {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 18px 10px;
-  color: var(--c-ink-3);
-  font-size: 11px;
-  gap: 3px;
+  padding: 20px 12px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  gap: 5px;
 }
 
 .col-empty span {
-  font-size: 10.5px;
-  color: var(--c-ink-4);
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
-/* Task Card (Concentric 10px porcelain plate inside 12px column well) */
+/* Task Card (Level 3 Liquid Glass — solid frosted plate inside transparent column) */
 .card {
   position: relative;
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-radius: 10px;
-  padding: 9px 10px 8px 11px;
+  padding: 11px 12px 10px 13px;
   cursor: pointer;
-  box-shadow: var(--glass-lift-card);
-  transition: border-color 140ms, transform 140ms var(--ease-out), box-shadow 140ms, background-color 140ms;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .card:hover {
-    background: var(--c-raised);
-    border-color: var(--c-line-strong);
-    transform: translateY(-1.5px);
-    box-shadow: var(--glass-lift);
-  }
 }
 
 .card:active {
-  transform: scale(0.985);
+  transform: scale(0.988);
 }
 
 .card[data-selected="true"] {
   border-color: var(--c-accent);
-  background: var(--c-accent-tint);
+  background-color: color-mix(in srgb, var(--c-accent-tint) 45%, var(--glass-3));
 }
 
 .card[data-status="in_progress"] {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-st-in_progress) 45%, transparent), var(--glass-lift-card);
+  border-color: color-mix(in srgb, var(--status-progress) 45%, var(--glass-border));
 }
 
 .card[data-status="review"] {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-st-review) 45%, transparent), var(--glass-lift-card);
+  border-color: color-mix(in srgb, var(--status-review) 35%, var(--glass-border));
 }
 
 .card-coupler {
   position: absolute;
   left: 0;
-  top: 10px;
-  height: 16px;
+  top: 12px;
+  height: 18px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--lamp, var(--c-ink-4));
+  background: var(--lamp, var(--text-muted));
 }
 
 .card-title {
   font-weight: 600;
-  font-size: 12.5px;
-  line-height: 1.35;
-  color: var(--c-ink);
+  font-size: 13px;
+  line-height: 1.38;
+  color: var(--text-primary);
   word-break: break-word;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1209,38 +1315,39 @@ label.f {
 }
 
 .card-snippet {
-  margin-top: 3px;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--c-ink-3);
-  white-space: nowrap;
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.42;
+  color: var(--text-secondary);
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .card .meta {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-  overflow: hidden;
+  gap: 5px;
+  flex-wrap: wrap;
   min-height: 20px;
-  color: var(--c-ink-3);
+  color: var(--text-secondary);
   font-size: 10.5px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .card-footer {
-  margin-top: 7px;
-  padding-top: 6px;
-  border-top: 1px solid color-mix(in srgb, var(--c-line) 65%, transparent);
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, var(--c-line) 55%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  height: 30px;
-  font-size: 10.5px;
-  color: var(--c-ink-3);
+  min-height: 28px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .badge {
@@ -1252,12 +1359,12 @@ label.f {
   font-size: 10.5px;
   font-weight: 500;
   line-height: 1;
-  padding: 0 7px;
-  border-radius: 6px;
+  padding: 0 8px;
+  border-radius: 999px;
   white-space: nowrap;
-  background: var(--c-well);
+  background: color-mix(in srgb, var(--c-well) 78%, transparent);
   border: 1px solid var(--c-line);
-  color: var(--c-ink-2);
+  color: var(--text-secondary);
 }
 
 .badge.accent {
@@ -1464,39 +1571,39 @@ label.f {
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: var(--scrim);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.32);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 50;
   display: flex;
   justify-content: flex-end;
-  padding: 8px;
-  animation: fade-in 160ms var(--ease-out);
+  padding: 10px;
+  animation: fade-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .drawer-panel {
   display: flex;
   height: 100%;
-  width: min(560px, 100%);
+  width: min(600px, 100%);
   flex-direction: column;
-  border-radius: 18px;
-  border: 1px solid var(--c-line-strong);
-  background: var(--glass-tint-dialog);
-  backdrop-filter: blur(28px) saturate(1.6);
-  -webkit-backdrop-filter: blur(28px) saturate(1.6);
-  box-shadow: var(--glass-lift-dialog);
+  border-radius: var(--radius-column);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-4);
+  backdrop-filter: var(--glass-blur-4);
+  -webkit-backdrop-filter: var(--glass-blur-4);
+  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-lg);
   overflow: hidden;
-  animation: drawer-slide-in 240ms var(--ease-drawer);
-  will-change: transform;
+  animation: drawer-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
 @keyframes drawer-slide-in {
   from {
-    transform: translateX(100%);
-    opacity: 0.9;
+    transform: translateX(28px) scale(0.985);
+    opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
     opacity: 1;
   }
 }

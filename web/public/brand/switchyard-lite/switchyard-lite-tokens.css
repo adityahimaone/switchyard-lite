@@ -1,20 +1,20 @@
 /* Switchyard Lite Design System Tokens (v6.0) */
 :root {
-  --sy-ground: oklch(0.965 0.014 264);
+  --sy-ground: oklch(0.962 0.018 268);
   --sy-plate: oklch(1.000 0 0);
-  --sy-well: oklch(0.932 0.022 264);
-  --sy-ink: oklch(0.195 0.038 262);
-  --sy-slate: oklch(0.455 0.046 262);
-  --sy-muted: oklch(0.682 0.038 262);
+  --sy-well: oklch(0.930 0.032 268);
+  --sy-ink: oklch(0.208 0.042 265);
+  --sy-slate: oklch(0.446 0.043 257);
+  --sy-muted: oklch(0.554 0.046 257);
   --sy-line: oklch(0.912 0.024 264);
-  --sy-accent: oklch(0.552 0.235 264);
+  --sy-accent: oklch(0.546 0.245 262);
   --sy-coral: oklch(0.748 0.158 38);
   --sy-orchid: oklch(0.685 0.232 318);
-  --sy-success: oklch(0.518 0.128 156);
+  --sy-success: oklch(0.596 0.145 163);
   --sy-mint: oklch(0.912 0.075 156);
-  --sy-warning: oklch(0.525 0.126 68);
-  --sy-danger: oklch(0.532 0.188 26);
-  --sy-night: oklch(0.155 0.032 264);
+  --sy-warning: oklch(0.555 0.163 48);
+  --sy-danger: oklch(0.577 0.245 27);
+  --sy-night: oklch(0.208 0.042 265);
   /* Semantic Day Scope */
   --sy-surface-page: var(--sy-ground);
   --sy-surface-plate: var(--sy-plate);

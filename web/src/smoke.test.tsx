@@ -1,17 +1,19 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DiffView } from "./Review";
-import { Dag, FlowScreen, layers } from "./Screens";
+import { Dag, FlowScreen, layers, SettingsScreen } from "./Screens";
 import { Login } from "./Login";
 import { BoardScreen } from "./Board";
 import { TaskDrawer } from "./Drawer";
+import { TaskDialog } from "@/components/board/TaskDialog";
 import { WorkspacesPage } from "@/components/workspaces/WorkspacesPage";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
 import { normalizeModels, parseModelCatalog } from "./api";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SearchSelect } from "@/components/ui/select";
 import { AvatarChip, CompoundActionPill, FilterPill, SearchField, StatusPill } from "@/components/ui/pill";
-import { AppHeader, AppInset, AppMain, AppShell, AppSidebar, AppSidebarBrand, AppSidebarGroup, AppSidebarItem } from "@/components/ui/app-shell";
+import { AppHeader, AppInset, AppMain, AppShell, AppSidebar, AppSidebarBrand, AppSidebarGroup, AppSidebarItem, AppSidebarToggle } from "@/components/ui/app-shell";
+import { Kanban } from "@/components/ui/icons";
 import { BrandLockup, BrandMark } from "@/components/ui/brand";
 
 if (typeof globalThis.ResizeObserver === "undefined") {
@@ -20,6 +22,21 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     unobserve() {}
     disconnect() {}
   };
+}
+
+if (typeof Element !== "undefined") {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => {};
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => {};
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
 }
 
 test("diff view renders lines", () => {
@@ -512,4 +529,494 @@ test("flow screen renders global multi-board topology and traces selected task",
   fireEvent.click(screen.getByText("Implement auth middleware"));
   expect(await screen.findByText("Route Hops")).toBeTruthy();
   expect(screen.getByRole("button", { name: /Replay Flow/i })).toBeTruthy();
+});
+
+test("liquid glass kanban board renders WIP bottleneck, empty in-progress CTA, retry X/3 badge, Run board (N), and click-to-copy ID", async () => {
+  localStorage.clear();
+  let dispatchedId = "";
+  let copiedId = "";
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: async (text: string) => {
+        copiedId = text;
+      },
+    },
+  });
+
+  const nowSec = Math.floor(Date.now() / 1000) - 120;
+  const tasksPayload = [
+    {
+      id: "t_todo1",
+      board_id: "b_1",
+      title: "Implement liquid glass tokens",
+      prompt: "Define glass.css variables and contrast hierarchy",
+      status: "todo",
+      executor: "claude",
+      model: "claude-sonnet-4",
+      workspace: "/Users/dev/next-portfolio-site",
+      effort: "high",
+      retry_count: 2,
+      blocked_by: [],
+      created_at: nowSec,
+      updated_at: nowSec,
+    },
+    {
+      id: "t_todo2",
+      board_id: "b_1",
+      title: "Add scroll fade mask",
+      prompt: "Reveal offscreen Failed column",
+      status: "todo",
+      executor: "auto",
+      retry_count: 0,
+      blocked_by: [],
+      created_at: nowSec,
+      updated_at: nowSec,
+    },
+    ...Array.from({ length: 6 }, (_, i) => ({
+      id: `t_rev${i + 1}`,
+      board_id: "b_1",
+      title: `Review item ${i + 1}`,
+      prompt: "Verify diff and tests",
+      status: "review",
+      executor: "codex",
+      retry_count: 0,
+      blocked_by: [],
+      created_at: nowSec,
+      updated_at: nowSec,
+    })),
+  ];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (url.endsWith("/api/v1/boards")) {
+      return new Response(
+        JSON.stringify([{ id: "b_1", name: "Main Board", default_executor: "auto" }]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.includes("/api/v1/boards/b_1/tasks")) {
+      return new Response(JSON.stringify(tasksPayload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/tasks/t_todo1/dispatch") && method === "POST") {
+      dispatchedId = "t_todo1";
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const { container } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <BoardScreen open={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(await screen.findByText("Implement liquid glass tokens")).toBeTruthy();
+
+  // Topbar Run board (2) label
+  expect(screen.getByRole("button", { name: /Run board \(2\)/i })).toBeTruthy();
+
+  // Retry 2/3 badge with dedicated class
+  const retryBadge = screen.getByText(/retry 2\/3/i);
+  expect(retryBadge.className).toContain("badge-retry");
+
+  // Click-to-copy task ID
+  const copyIdBtn = screen.getByRole("button", { name: "Copy task id t_todo1" });
+  fireEvent.click(copyIdBtn);
+  await waitFor(() => expect(copiedId).toBe("t_todo1"));
+
+  // Review WIP bottleneck indicator (6/5 WIP)
+  const wipBadge = screen.getByTestId("review-wip-badge");
+  expect(wipBadge.textContent).toContain("6/5 WIP");
+  const reviewCol = container.querySelector('.col[data-status="review"]');
+  expect(reviewCol?.getAttribute("data-wip-exceeded")).toBe("true");
+
+  // Empty In progress CTA dispatches the first eligible todo task
+  expect(screen.getByText("No active runs")).toBeTruthy();
+  const runNextBtn = screen.getByRole("button", { name: /Run next task/i });
+  fireEvent.click(runNextBtn);
+  await waitFor(() => expect(dispatchedId).toBe("t_todo1"));
+
+  // Dragging disables card blur and applies is-dragging class
+  const cardEl = copyIdBtn.closest(".card") as HTMLElement;
+  fireEvent.dragStart(cardEl, { dataTransfer: { setData: () => {} } });
+  expect(cardEl.classList.contains("is-dragging")).toBe(true);
+  expect(container.querySelector('.board[data-dragging="true"]')).toBeTruthy();
+  fireEvent.dragEnd(cardEl);
+  expect(cardEl.classList.contains("is-dragging")).toBe(false);
+});
+
+test("sidebar toggle and Cmd+B collapse/expand AppShell and expose badge dot", () => {
+  const { container } = render(
+    <AppShell defaultCollapsed={false}>
+      <AppSidebar>
+        <div className="side-top-pod">
+          <div className="side-top-row">
+            <AppSidebarBrand name="Switchyard" tag="LITE" />
+            <AppSidebarToggle />
+          </div>
+        </div>
+        <AppSidebarGroup label="Work">
+          <AppSidebarItem href="#/review" icon={<Kanban className="nav-icon" />} badge={6}>
+            Review
+          </AppSidebarItem>
+        </AppSidebarGroup>
+      </AppSidebar>
+      <AppInset>
+        <AppMain>content</AppMain>
+      </AppInset>
+    </AppShell>
+  );
+
+  const shell = container.querySelector('[data-slot="app-shell"]') as HTMLElement;
+  expect(shell.getAttribute("data-collapsed")).toBeNull();
+  expect(container.querySelector(".nav-badge-dot")).toBeTruthy();
+
+  const toggle = screen.getByRole("button", { name: "Collapse sidebar" });
+  fireEvent.click(toggle);
+  expect(shell.getAttribute("data-collapsed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
+
+  fireEvent.keyDown(window, { key: "b", metaKey: true });
+  expect(shell.getAttribute("data-collapsed")).toBeNull();
+});
+
+test("task drawer and detail page expose LifecycleStepper, solid primary Dispatch now, and retry 2/3 badge", async () => {
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/tasks/t_lg1")) {
+      return new Response(
+        JSON.stringify({
+          id: "t_lg1",
+          board_id: "b_1",
+          title: "Verify glass detail drawer",
+          prompt: "Check lifecycle stepper and retry badge",
+          status: "todo",
+          executor: "claude",
+          effort: "high",
+          retry_count: 2,
+          blocked_by: [],
+          created_at: 1700000000,
+          updated_at: 1700000100,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const { unmount } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDrawer id="t_lg1" onClose={() => {}} review={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(await screen.findByText("Verify glass detail drawer")).toBeTruthy();
+  expect(screen.getByLabelText("Task lifecycle progression")).toBeTruthy();
+  expect(screen.getByText(/retry 2\/3/i)).toBeTruthy();
+  const dispatchDrawerBtn = screen.getByRole("button", { name: /Dispatch now/i });
+  expect(dispatchDrawerBtn.className).toContain("btn primary");
+  unmount();
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDetailPage id="t_lg1" onBack={() => {}} onReview={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(await screen.findByText("Verify glass detail drawer")).toBeTruthy();
+  expect(screen.getByLabelText("Task lifecycle progression")).toBeTruthy();
+  expect(screen.getAllByText(/retry 2\/3/i).length).toBeGreaterThanOrEqual(2);
+  expect(screen.getByRole("button", { name: /Dispatch now/i }).className).toContain("btn primary");
+});
+
+test("TaskDialog exposes agy 6-level thinking presets and switches agy-auth accounts", async () => {
+  window.localStorage.removeItem("switchyard.executors.config");
+  let switchedAccount = "";
+  let activeAccount = "personal@example.com";
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/settings/executors")) {
+      return new Response(JSON.stringify({ order: ["agy", "claude", "codex"], hidden: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/api/v1/models?executor=agy")) {
+      return new Response(
+        JSON.stringify({
+          executor: "agy",
+          source: "cli",
+          models: [{ id: "gemini-4-neon-xhigh", name: "Gemini 4 Neon (XHigh)" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.endsWith("/api/v1/agy/accounts")) {
+      return new Response(
+        JSON.stringify({
+          available: true,
+          active: activeAccount,
+          accounts: [
+            { id: "id-1", email: "personal@example.com", name: "Personal", active: activeAccount === "personal@example.com" },
+            { id: "id-2", email: "work@example.com", name: "Work", active: activeAccount === "work@example.com" },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.endsWith("/api/v1/agy/accounts/switch") && init?.method === "POST") {
+      const body = JSON.parse(String(init.body || "{}")) as { account?: string };
+      switchedAccount = body.account ?? "";
+      activeAccount = switchedAccount;
+      return new Response(JSON.stringify({ ok: true, active: activeAccount }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDialog open boardId="b_1" onClose={() => {}} />
+    </QueryClientProvider>
+  );
+
+  const execTrigger = await screen.findByLabelText("Executor");
+  fireEvent.pointerDown(execTrigger);
+  fireEvent.click(execTrigger);
+  const agyOption = await screen.findByRole("option", { name: /Antigravity CLI \(agy\)/i });
+  fireEvent.click(agyOption);
+
+  expect(await screen.findByTestId("agy-account-picker")).toBeTruthy();
+  expect(screen.getByText("auto-approve")).toBeTruthy();
+
+  const effortTrigger = screen.getByLabelText("Effort");
+  fireEvent.pointerDown(effortTrigger);
+  fireEvent.click(effortTrigger);
+  for (const label of ["minimal (maps to low)", "low", "medium", "high", "xhigh", "max"]) {
+    expect(await screen.findByRole("option", { name: label })).toBeTruthy();
+  }
+  fireEvent.click(screen.getByRole("option", { name: "xhigh" }));
+
+  const acctTrigger = await screen.findByLabelText("AGY account");
+  fireEvent.pointerDown(acctTrigger);
+  fireEvent.click(acctTrigger);
+  const workOpt = await screen.findByRole("option", { name: /Work \(work@example\.com\)/i });
+  fireEvent.click(workOpt);
+
+  await waitFor(() => expect(switchedAccount).toBe("work@example.com"));
+});
+
+test("SettingsScreen swaps and hides executors and reflects them in TaskDialog", async () => {
+  window.localStorage.removeItem("switchyard.executors.config");
+  let savedConfig = {
+    order: ["agy", "claude", "codex", "commandcode", "omp", "dsh"],
+    hidden: [] as string[],
+  };
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/settings/executors") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify(savedConfig), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/settings/executors") && init?.method === "POST") {
+      savedConfig = JSON.parse(String(init.body || "{}"));
+      return new Response(JSON.stringify(savedConfig), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/settings/review")) {
+      return new Response(JSON.stringify({ auto_merge: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/settings/password")) {
+      return new Response(JSON.stringify({ configured: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/agy/accounts")) {
+      return new Response(JSON.stringify({ available: false, accounts: [], active: "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const { unmount } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <SettingsScreen logout={() => {}} />
+    </QueryClientProvider>
+  );
+
+  await screen.findByTestId("executors-order-list");
+  fireEvent.click(screen.getByLabelText("Move claude up"));
+  await waitFor(() => expect(savedConfig.order.slice(0, 2)).toEqual(["claude", "agy"]));
+
+  fireEvent.click(screen.getByLabelText("Hide omp"));
+  await waitFor(() => expect(savedConfig.hidden).toContain("omp"));
+  unmount();
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDialog open boardId="b_1" onClose={() => {}} />
+    </QueryClientProvider>
+  );
+
+  const execTrigger = await screen.findByLabelText("Executor");
+  fireEvent.pointerDown(execTrigger);
+  fireEvent.click(execTrigger);
+
+  const opts = await screen.findAllByRole("option");
+  const texts = opts.map((o) => o.textContent ?? "");
+  expect(texts.some((t) => t.includes("omp (oh-my-pi)"))).toBe(false);
+  const claudeIdx = texts.findIndex((t) => t.includes("Claude Code"));
+  const agyIdx = texts.findIndex((t) => t.includes("Antigravity CLI (agy)"));
+  expect(claudeIdx).toBeGreaterThan(-1);
+  expect(agyIdx).toBeGreaterThan(claudeIdx);
+});
+
+test("TaskDialog tracks workspace machine availability, auto-selects available executor, and shows all 4 agy-auth accounts", async () => {
+  window.localStorage.removeItem("switchyard.executors.config");
+  const seenAccountQueries: string[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/workspaces")) {
+      return new Response(
+        JSON.stringify([
+          { id: "ws_win", name: "Win App", path: "D:\\xampp\\htdocs\\portal", os: "windows", host: "rtx", status: "connected" },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.includes("/api/v1/executors/probe")) {
+      return new Response(
+        JSON.stringify({
+          workspace: "D:\\xampp\\htdocs\\portal",
+          machine: "windows",
+          machine_label: "Windows",
+          is_local: false,
+          probed: true,
+          installed: { agy: true, claude: false, codex: true, commandcode: false, omp: false, dsh: false },
+          available_executors: ["agy", "codex"],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.startsWith("/api/v1/agy/accounts")) {
+      seenAccountQueries.push(url);
+      return new Response(
+        JSON.stringify({
+          available: true,
+          machine: "windows",
+          machine_label: "Windows",
+          active: "izonelikeswan@gmail.com",
+          accounts: [
+            { id: "acct_a30e78a3a6", email: "adityahimaone@gmail.com", name: "personal", alias: "personal", plan: "Pro", quota_5h: "79%", active: false },
+            { id: "acct_de5a253671", email: "izonelikeswan@gmail.com", name: "work-2", alias: "work-2", plan: "Pro", quota_5h: "73%", active: true },
+            { id: "acct_7f340fd018", email: "swanlike101@gmail.com", name: "work-1", alias: "work-1", active: false },
+            { id: "acct_6d8505dcc2", email: "swanlike102@gmail.com", name: "work-3", alias: "work-3", active: false },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.endsWith("/api/v1/settings/executors")) {
+      return new Response(JSON.stringify({ order: ["agy", "claude", "codex", "commandcode", "omp", "dsh"], hidden: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDialog
+        open
+        boardId="b_win"
+        board={{ id: "b_win", name: "Win Board", default_executor: "dsh" }}
+        onClose={() => {}}
+      />
+    </QueryClientProvider>
+  );
+
+  const badge = await screen.findByTestId("task-executor-machine-badge");
+  await waitFor(() => expect(badge.textContent).toContain("Windows"));
+  await waitFor(() => expect(badge.textContent).toContain("2/6 installed"));
+
+  // Auto-selected first installed executor ("agy") when board default ("dsh") is absent on Windows.
+  expect(await screen.findByTestId("agy-account-picker")).toBeTruthy();
+  expect(screen.getByText("4 accts")).toBeTruthy();
+  expect(seenAccountQueries.some((q) => q.includes("D%3A%5Cxampp%5Chtdocs%5Cportal"))).toBe(true);
+
+  const acctTrigger = await screen.findByLabelText("AGY account");
+  fireEvent.pointerDown(acctTrigger);
+  fireEvent.click(acctTrigger);
+  expect(await screen.findByRole("option", { name: /personal \(adityahimaone@gmail\.com\)/i })).toBeTruthy();
+  expect(await screen.findByRole("option", { name: /work-1 \(swanlike101@gmail\.com\)/i })).toBeTruthy();
+  expect(await screen.findByRole("option", { name: /work-2 \(izonelikeswan@gmail\.com\)/i })).toBeTruthy();
+  expect(await screen.findByRole("option", { name: /work-3 \(swanlike102@gmail\.com\)/i })).toBeTruthy();
+
+  // Unavailable executors on Windows show clear missing status.
+  const execTrigger = screen.getByLabelText("Executor");
+  fireEvent.pointerDown(execTrigger);
+  fireEvent.click(execTrigger);
+  expect(await screen.findByRole("option", { name: /Claude Code \(not installed on Windows\)/i })).toBeTruthy();
+});
+
+test("TaskDialog redesigned composer renders inline styled tokens for attached @file and $skill", async () => {
+  window.localStorage.removeItem("switchyard.executors.config");
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/v1/skills")) {
+      return new Response(
+        JSON.stringify({ skills: [{ name: "ui-ux-pro-max", description: "Design skills", linked: true }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.endsWith("/api/v1/settings/executors")) {
+      return new Response(JSON.stringify({ order: ["agy", "claude"], hidden: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDialog open boardId="b_1" board={{ id: "b_1", name: "Main" }} onClose={() => {}} />
+    </QueryClientProvider>
+  );
+
+  const promptBox = await screen.findByLabelText("Prompt");
+  fireEvent.focus(promptBox);
+  fireEvent.change(promptBox, { target: { value: "Polish @web/TaskDialog.tsx with $ui-ux-pro-max" } });
+  fireEvent.blur(promptBox);
+
+  const backdrop = screen.getByTestId("prompt-rich-backdrop");
+  expect(backdrop.querySelector('[data-token-kind="file"]')?.textContent).toBe("@web/TaskDialog.tsx");
+  expect(backdrop.querySelector('[data-token-kind="skill"]')?.textContent).toBe("$ui-ux-pro-max");
+  expect(backdrop.querySelector('[data-token-kind="file"]')?.className).toContain("font-mono");
+  expect(backdrop.querySelector('[data-token-kind="skill"]')?.className).toContain("font-mono");
 });

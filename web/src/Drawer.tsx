@@ -83,7 +83,7 @@ export function TaskDrawer({
           onOpenPage={openFullPage}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-canvas/35 px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--glass-2)] px-4 py-3.5">
           <TaskDetailPanels
             id={id}
             variant="drawer"
@@ -97,11 +97,11 @@ export function TaskDrawer({
           />
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-2.5 border-t border-line bg-surface/85 px-4 py-2.5 backdrop-blur-md">
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-4">
+        <footer className="flex shrink-0 items-center justify-between gap-2.5 border-t border-[var(--glass-border-soft)] bg-[var(--glass-1)] px-4 py-2.5 backdrop-blur-xl">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)]">
             <Kbd>esc</Kbd>
             <span>close</span>
-            <span className="mx-0.5 h-3 w-px bg-line" aria-hidden />
+            <span className="mx-0.5 h-3 w-px bg-[var(--glass-border)]" aria-hidden />
             <Kbd>⌘</Kbd>
             <Kbd>↵</Kbd>
             <span>comment</span>

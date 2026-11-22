@@ -73,14 +73,68 @@ export function SaasRulesBanner({ active, compact = false }: { active: boolean; 
 
 type Token = { kind: "file" | "skill"; query: string; start: number } | null;
 
+export type PromptTokenKind = "text" | "file" | "skill" | "card" | "code";
+export interface PromptSegment {
+  kind: PromptTokenKind;
+  text: string;
+}
+
+const PROMPT_TOKEN_RE =
+  /(`[^`\n]+`)|(@[a-zA-Z0-9_./\\:-]+)|(\$[a-zA-Z0-9][a-zA-Z0-9_:-]*)|(#[a-zA-Z0-9][a-zA-Z0-9_-]*)|((?:^|(?<=\s))\/[a-zA-Z0-9][a-zA-Z0-9_-]*(?=$|\s|[.,;!?]))/g;
+
+/**
+ * Splits prompt text into typed segments so attached `@file`, `$skill`,
+ * `#card`, and inline `` `code` `` references render with distinct typography.
+ */
+export function tokenizePrompt(text: string, skills: string[] = []): PromptSegment[] {
+  if (!text) return [];
+  const skillSet = new Set(skills.map((s) => s.trim().toLowerCase()).filter(Boolean));
+  const out: PromptSegment[] = [];
+  let cursor = 0;
+
+  for (const m of text.matchAll(PROMPT_TOKEN_RE)) {
+    const raw = m[0];
+    const start = m.index ?? 0;
+
+    // Only highlight `/slug` as a skill when it matches an attached/known skill,
+    // preventing POSIX paths like `/tmp` or `/var` from false highlighting.
+    let kind: PromptTokenKind | null = null;
+    if (m[1]) kind = "code";
+    else if (m[2]) kind = "file";
+    else if (m[3]) kind = "skill";
+    else if (m[4]) kind = "card";
+    else if (m[5] && skillSet.has(raw.slice(1).toLowerCase())) kind = "skill";
+
+    if (!kind) continue;
+
+    if (start > cursor) {
+      out.push({ kind: "text", text: text.slice(cursor, start) });
+    }
+    out.push({ kind, text: raw });
+    cursor = start + raw.length;
+  }
+
+  if (cursor < text.length) {
+    out.push({ kind: "text", text: text.slice(cursor) });
+  }
+  return out;
+}
+
 function tokenAt(value: string, caret: number): Token {
   const before = value.slice(0, caret);
   const file = /(?:^|\s)@([a-zA-Z0-9_\-./#\\]*)$/.exec(before);
   if (file) return { kind: "file", query: file[1], start: caret - file[1].length - 1 };
-  const skill = /(?:^|\s)\$([a-zA-Z0-9_\-]*)$/.exec(before);
+  const skill = /(?:^|\s)[$/]([a-zA-Z0-9_\-]*)$/.exec(before);
   if (skill) return { kind: "skill", query: skill[1], start: caret - skill[1].length - 1 };
   return null;
 }
+
+const BACKDROP_TOKEN_BASE: Record<Exclude<PromptTokenKind, "text">, string> = {
+  file: "rounded-[4px] bg-blue-500/12 text-blue-700 ring-1 ring-inset ring-blue-500/25 dark:bg-blue-400/20 dark:text-blue-200 dark:ring-blue-400/35",
+  skill: "rounded-[4px] bg-violet-500/14 text-violet-700 ring-1 ring-inset ring-violet-500/30 dark:bg-violet-400/22 dark:text-violet-200 dark:ring-violet-400/40",
+  card: "rounded-[4px] bg-emerald-500/12 text-emerald-800 ring-1 ring-inset ring-emerald-500/25 dark:bg-emerald-400/20 dark:text-emerald-200 dark:ring-emerald-400/35",
+  code: "rounded-[4px] bg-well text-ink ring-1 ring-inset ring-line-strong/45",
+};
 
 interface OmniboxProps {
   id: string;
@@ -97,6 +151,8 @@ interface OmniboxProps {
   rows?: number;
   placeholder?: string;
   className?: string;
+  /** Optional extra controls rendered in the composer's bottom strip. */
+  composerActions?: React.ReactNode;
 }
 
 type SuggestionKind = "file" | "skill" | "symbol" | "card";
@@ -122,13 +178,16 @@ export function PromptOmnibox({
   onSkillsChange,
   inputRef,
   boardTasks = [],
-  rows = 7,
+  rows = 6,
   placeholder,
   className,
+  composerActions,
 }: OmniboxProps) {
   const [token, setToken] = useState<Token>(null);
   const [index, setIndex] = useState(0);
+  const [focused, setFocused] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   const fileQuery = useQuery({
     queryKey: ["ws-files", workspace, token?.kind === "file" ? token.query : ""],
@@ -202,12 +261,40 @@ export function PromptOmnibox({
 
   useEffect(() => setIndex(0), [token?.kind, token?.query]);
 
+  const segments = useMemo(() => tokenizePrompt(value, skills), [value, skills]);
+
+  const syncScroll = () => {
+    const ta = inputRef.current;
+    const bd = backdropRef.current;
+    if (ta && bd) {
+      bd.scrollTop = ta.scrollTop;
+      bd.scrollLeft = ta.scrollLeft;
+    }
+  };
+
   const sync = () => {
     const el = inputRef.current;
     if (!el) return;
     // Read the live DOM value: onChange schedules this in a rAF, so the `value`
     // captured in the current render may still be one keystroke behind.
     setToken(tokenAt(el.value, el.selectionStart ?? el.value.length));
+  };
+
+  const triggerSigil = (sigil: "@" | "$") => {
+    const el = inputRef.current;
+    const cur = el?.value ?? value;
+    const pos = el?.selectionStart ?? cur.length;
+    const needsSpace = pos > 0 && !/\s/.test(cur[pos - 1]);
+    const prefix = needsSpace ? " " + sigil : sigil;
+    const next = cur.slice(0, pos) + prefix + cur.slice(pos);
+    const tokenStart = pos + (needsSpace ? 1 : 0);
+    const caret = tokenStart + 1;
+    onChange(next);
+    setToken({ kind: sigil === "@" ? "file" : "skill", query: "", start: tokenStart });
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(caret, caret);
+    });
   };
 
   const insert = (s: Suggestion) => {
@@ -235,41 +322,160 @@ export function PromptOmnibox({
     ? fileQuery.isFetching || symbolQuery.isFetching
     : skillQuery.isFetching;
   const hint = token?.kind === "file" ? fileQuery.data?.hint : undefined;
+  const hasAttachedContext = paths.length > 0 || skills.length > 0;
 
   return (
     <div ref={boxRef} className="relative">
-      <Textarea
-        ref={inputRef}
-        id={id}
-        rows={rows}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          requestAnimationFrame(sync);
-        }}
-        onClick={sync}
-        onKeyUp={(e) => {
-          if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) sync();
-        }}
-        onKeyDown={(e) => {
-          if (!token || suggestions.length === 0) return;
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setIndex((i) => (i + 1) % suggestions.length);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
-          } else if (e.key === "Enter" || e.key === "Tab") {
-            e.preventDefault();
-            insert(suggestions[Math.min(index, suggestions.length - 1)]);
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            setToken(null);
-          }
-        }}
-        placeholder={placeholder}
-        className={className}
-      />
+      {/* Unified studio composer frame: focus halo wraps both editor and attached chips */}
+      <div
+        className={cn(
+          "overflow-hidden rounded-[12px] border border-line bg-surface shadow-[var(--lift-1),var(--lift-inset)]",
+          "transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out-quint)]",
+          "hover:border-line-strong focus-within:border-focus focus-within:ring-[3px] focus-within:ring-focus/25"
+        )}
+      >
+        <div className="grid">
+          {/* Rich syntax backdrop aligned on [grid-area:1/1].
+              When unfocused, inline tokens switch cleanly to monospace pills (`font-mono`) over `font-sans` prose.
+              While actively focused, glyph metrics lock to `font-sans` so the native caret never drifts horizontally. */}
+          <div
+            ref={backdropRef}
+            aria-hidden="true"
+            data-testid="prompt-rich-backdrop"
+            data-mode={focused ? "editing" : "rich"}
+            className={cn(
+              "prompt-omnibox-backdrop col-start-1 row-start-1 min-h-[136px] whitespace-pre-wrap break-words",
+              className
+            )}
+          >
+            {segments.map((seg, idx) => {
+              if (seg.kind === "text") {
+                return <span key={idx}>{seg.text}</span>;
+              }
+              return (
+                <span
+                  key={idx}
+                  data-token-kind={seg.kind}
+                  className={cn(
+                    BACKDROP_TOKEN_BASE[seg.kind],
+                    focused
+                      ? "py-[1px] underline decoration-current/35 decoration-dotted underline-offset-2"
+                      : "px-1 py-px font-mono text-[12px] font-medium tracking-[-0.01em]"
+                  )}
+                >
+                  {seg.text}
+                </span>
+              );
+            })}
+            {value.endsWith("\n") && "\u200b"}
+          </div>
+
+          <Textarea
+            ref={inputRef}
+            id={id}
+            rows={rows}
+            value={value}
+            spellCheck={false}
+            data-has-value={value.length > 0 ? "true" : "false"}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onScroll={syncScroll}
+            onChange={(e) => {
+              onChange(e.target.value);
+              requestAnimationFrame(() => {
+                sync();
+                syncScroll();
+              });
+            }}
+            onClick={sync}
+            onKeyUp={(e) => {
+              if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) sync();
+            }}
+            onKeyDown={(e) => {
+              if (!token || suggestions.length === 0) return;
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setIndex((i) => (i + 1) % suggestions.length);
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+              } else if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                insert(suggestions[Math.min(index, suggestions.length - 1)]);
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                setToken(null);
+              }
+            }}
+            placeholder={placeholder}
+            className={cn(
+              "prompt-omnibox-textarea col-start-1 row-start-1 min-h-[136px] resize-none",
+              className
+            )}
+          />
+        </div>
+
+        {/* Attached @file & $skill strip directly inside the prompt frame */}
+        {hasAttachedContext && (
+          <div
+            className="flex flex-wrap items-center gap-1.5 border-t border-line/65 bg-well/25 px-3 py-2"
+            data-testid="prompt-attached-tokens"
+          >
+            {paths.map((p) => (
+              <Chip
+                key={`file:${p}`}
+                tone="file"
+                label={p}
+                icon={<FileCode2 className="size-2.5 shrink-0" />}
+                onRemove={() => onPathsChange(paths.filter((x) => x !== p))}
+              />
+            ))}
+            {skills.map((s) => (
+              <Chip
+                key={`skill:${s}`}
+                tone="skill"
+                prefix="$"
+                label={s}
+                icon={<Sparkles className="size-2.5 shrink-0" />}
+                onRemove={() => onSkillsChange(skills.filter((x) => x !== s))}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Composer quick toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/70 bg-well/40 px-3 py-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => triggerSigil("@")}
+              className="inline-flex h-6 items-center gap-1 rounded-[7px] border border-blue-500/25 bg-blue-500/10 px-2 font-mono text-[10.5px] font-medium text-blue-700 transition-colors hover:bg-blue-500/18 dark:text-blue-200"
+            >
+              <AtSign className="size-2.5" />
+              File
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => triggerSigil("$")}
+              className="inline-flex h-6 items-center gap-1 rounded-[7px] border border-violet-500/25 bg-violet-500/10 px-2 font-mono text-[10.5px] font-semibold text-violet-700 transition-colors hover:bg-violet-500/18 dark:text-violet-200"
+            >
+              <Sparkles className="size-2.5" />
+              Skill
+            </button>
+            {composerActions}
+          </div>
+
+          <span className="hidden text-[10.5px] text-ink-4 sm:inline">
+            <kbd className="rounded border border-line bg-surface px-1 font-mono text-[9.5px] font-semibold text-ink-2">@</kbd> files
+            <span className="mx-1.5 opacity-50">·</span>
+            <kbd className="rounded border border-line bg-surface px-1 font-mono text-[9.5px] font-semibold text-ink-2">$</kbd> or{" "}
+            <kbd className="rounded border border-line bg-surface px-1 font-mono text-[9.5px] font-semibold text-ink-2">/</kbd> skills
+          </span>
+        </div>
+      </div>
+
       {open && (
         <div
           role="listbox"
@@ -278,7 +484,7 @@ export function PromptOmnibox({
         >
           <div className="flex items-center justify-between gap-2 border-b border-line bg-well/45 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-ink-3 uppercase">
             <span className="inline-flex items-center gap-1.5">
-              {token?.kind === "file" ? <FileSearch className="size-3" /> : <Sparkles className="size-3" />}
+              {token?.kind === "file" ? <FileSearch className="size-3 text-blue-600 dark:text-blue-300" /> : <Sparkles className="size-3 text-violet-600 dark:text-violet-300" />}
               {token?.kind === "file" ? "Files · symbols · cards" : "Agent Skills"}
             </span>
             <span className="font-mono text-[9px] font-normal normal-case text-ink-4">↑↓ · ↵ to insert · esc</span>
@@ -294,22 +500,34 @@ export function PromptOmnibox({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insert(s)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-[12px] px-2.5 py-1.5 text-left text-[11px] font-medium transition-colors",
+                  "flex w-full items-center gap-2 rounded-[10px] px-2.5 py-1.5 text-left text-[11px] font-medium transition-colors",
                   i === index ? "bg-accent-tint text-accent-text" : "text-ink-2 hover:bg-well"
                 )}
               >
                 {s.kind === "file" ? (
-                  <FileCode2 className="size-3 shrink-0 text-ink-3" />
+                  <FileCode2 className="size-3.5 shrink-0 text-blue-600 dark:text-blue-300" />
                 ) : s.kind === "symbol" ? (
-                  <Hash className="size-3 shrink-0 text-ink-3" />
+                  <Hash className="size-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
                 ) : s.kind === "card" ? (
-                  <Link2 className="size-3 shrink-0 text-ink-3" />
+                  <Link2 className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-300" />
                 ) : (
-                  <AtSign className="size-3 shrink-0 text-ink-3" />
+                  <Sparkles className="size-3.5 shrink-0 text-violet-600 dark:text-violet-300" />
                 )}
                 <span className="min-w-0 flex-1 truncate font-mono">{s.label}</span>
                 {s.sublabel && <span className="max-w-[45%] truncate text-[10px] text-ink-4">{s.sublabel}</span>}
-                {s.badge && <Badge variant="secondary" className="px-1.5 py-0 text-[9px]">{s.badge}</Badge>}
+                {s.badge && (
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "px-1.5 py-0 font-mono text-[9px]",
+                      s.kind === "file" && "bg-blue-500/12 text-blue-700 dark:text-blue-200",
+                      s.kind === "skill" && "bg-violet-500/14 text-violet-700 dark:text-violet-200",
+                      s.kind === "card" && "bg-emerald-500/12 text-emerald-700 dark:text-emerald-200"
+                    )}
+                  >
+                    {s.badge}
+                  </Badge>
+                )}
               </button>
             ))}
             {suggestions.length === 0 && (
@@ -322,17 +540,6 @@ export function PromptOmnibox({
           </div>
         </div>
       )}
-      <p className="m-0 mt-1.5 text-left text-[11px] leading-relaxed text-ink-4">
-        Type{" "}
-        <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-line bg-well px-1 font-mono text-[10px] font-semibold text-ink-2">
-          @
-        </kbd>{" "}
-        to reference a workspace file or{" "}
-        <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-line bg-well px-1 font-mono text-[10px] font-semibold text-ink-2">
-          $
-        </kbd>{" "}
-        to attach an agent skill.
-      </p>
     </div>
   );
 }
@@ -421,7 +628,7 @@ export function TaskContextPicker({
         {paths.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {paths.map((p) => (
-              <Chip key={p} label={p} icon={<FileCode2 className="size-2.5" />} onRemove={() => onPathsChange(paths.filter((x) => x !== p))} />
+              <Chip key={p} tone="file" label={p} icon={<FileCode2 className="size-2.5" />} onRemove={() => onPathsChange(paths.filter((x) => x !== p))} />
             ))}
           </div>
         )}
@@ -512,7 +719,7 @@ export function TaskContextPicker({
         {skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {skills.map((s) => (
-              <Chip key={s} label={s} icon={<Sparkles className="size-2.5" />} prefix="$" onRemove={() => onSkillsChange(skills.filter((x) => x !== s))} />
+              <Chip key={s} tone="skill" label={s} icon={<Sparkles className="size-2.5" />} prefix="$" onRemove={() => onSkillsChange(skills.filter((x) => x !== s))} />
             ))}
           </div>
         )}
@@ -561,24 +768,39 @@ export function TaskContextPicker({
   );
 }
 
-function Chip({
+const CHIP_TONES: Record<"file" | "skill" | "card" | "accent", string> = {
+  file: "border-blue-500/30 bg-blue-500/12 text-blue-700 dark:border-blue-400/35 dark:bg-blue-400/18 dark:text-blue-200",
+  skill: "border-violet-500/30 bg-violet-500/14 text-violet-700 dark:border-violet-400/40 dark:bg-violet-400/20 dark:text-violet-200",
+  card: "border-emerald-500/30 bg-emerald-500/12 text-emerald-800 dark:border-emerald-400/35 dark:bg-emerald-400/18 dark:text-emerald-200",
+  accent: "border-accent/35 bg-accent-tint text-accent-text",
+};
+
+export function Chip({
   label,
   icon,
   prefix = "@",
+  tone = "accent",
   onRemove,
 }: {
   label: string;
   icon: React.ReactNode;
   prefix?: string;
+  tone?: "file" | "skill" | "card" | "accent";
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex h-6 max-w-full items-center gap-1 rounded-[7px] border border-accent/35 bg-accent-tint px-2 text-[10.5px] font-medium text-accent-text">
+    <span
+      data-chip-tone={tone}
+      className={cn(
+        "inline-flex h-6 max-w-full items-center gap-1 rounded-[7px] border px-2 text-[10.5px] font-medium whitespace-nowrap transition-colors",
+        CHIP_TONES[tone]
+      )}
+    >
       {icon}
       <span className="max-w-[220px] truncate font-mono" title={label}>
         {prefix}{label}
       </span>
-      <button type="button" onClick={onRemove} className="rounded-[4px] p-0.5 hover:bg-surface" aria-label={`Remove ${label}`}>
+      <button type="button" onClick={onRemove} className="shrink-0 rounded-[4px] p-0.5 hover:bg-surface/80" aria-label={`Remove ${label}`}>
         <X className="size-2.5" />
       </button>
     </span>

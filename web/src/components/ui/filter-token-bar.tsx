@@ -153,7 +153,7 @@ function PickerList({
   return (
     <div className="overflow-hidden">
       <div className="border-b border-line/70 p-1.5">
-        <div className="relative flex h-7 items-center rounded-full border border-line/80 bg-well px-2.5">
+        <div className="relative flex h-7 items-center rounded-full border border-line/80 bg-well px-2.5 transition-[border-color,box-shadow] focus-within:border-focus focus-within:shadow-[0_0_0_3px_var(--c-accent-tint)]">
           <Search className="size-3 shrink-0 text-ink-4" aria-hidden />
           <input
             ref={inputRef}
@@ -169,7 +169,11 @@ function PickerList({
             aria-activedescendant={filtered[active] ? `${listId}-${active}` : undefined}
             autoComplete="off"
             spellCheck={false}
-            className="ml-1.5 w-full bg-transparent text-[11px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
+            /* `field-flat` is required: the unlayered global `input` rule paints
+               its own border/background and forces 32px height, which drew a
+               second rounded box inside this 28px pill and overflowed it.
+               Tailwind's `bg-transparent` loses to that unlayered rule. */
+            className="field-flat ml-1.5 h-full min-w-0 flex-1 text-[11px] font-medium text-ink placeholder:font-normal placeholder:text-ink-4"
           />
         </div>
       </div>

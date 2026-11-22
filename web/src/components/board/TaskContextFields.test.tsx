@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi } from "vitest";
-import { BranchField, PromptOmnibox } from "./TaskContextFields";
+import { BranchField, PromptOmnibox, tokenizePrompt } from "./TaskContextFields";
 
 function Harness({
   label,
@@ -216,4 +216,82 @@ test("@ omnibox merges file, symbol and task-card suggestions", async () => {
   expect(await screen.findByRole("option", { name: /TaskDialogProps/i })).toBeTruthy();
   expect(await screen.findByRole("option", { name: /Task dialog polish/i })).toBeTruthy();
   expect(screen.getByRole("listbox", { name: /Workspace file suggestions/i })).toBeTruthy();
+});
+
+test("tokenizePrompt distinguishes @file, $skill, attached /skill, #card, and code while ignoring paths", () => {
+  const segs = tokenizePrompt(
+    "Refactor @src/TaskDialog.tsx using $ui-ux-pro-max /oil-ui #t_42 and `pnpm test` via /tmp/out",
+    ["oil-ui"]
+  );
+  expect(segs.filter((s) => s.kind === "file").map((s) => s.text)).toEqual(["@src/TaskDialog.tsx"]);
+  expect(segs.filter((s) => s.kind === "skill").map((s) => s.text)).toEqual(["$ui-ux-pro-max", "/oil-ui"]);
+  expect(segs.filter((s) => s.kind === "card").map((s) => s.text)).toEqual(["#t_42"]);
+  expect(segs.filter((s) => s.kind === "code").map((s) => s.text)).toEqual(["`pnpm test`"]);
+  expect(segs.some((s) => s.kind === "text" && s.text.includes("/tmp/out"))).toBe(true);
+});
+
+function RichHarness() {
+  const [value, setValue] = useState("");
+  const [paths, setPaths] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  return (
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <label htmlFor="omni-rich">rich prompt</label>
+      <PromptOmnibox
+        id="omni-rich"
+        value={value}
+        onChange={setValue}
+        workspace="/Users/dev/app"
+        paths={paths}
+        onPathsChange={setPaths}
+        skills={skills}
+        onSkillsChange={setSkills}
+        inputRef={ref}
+      />
+    </QueryClientProvider>
+  );
+}
+
+test("PromptOmnibox renders distinct font-mono styles for @file and $skill tokens and quick-trigger buttons", async () => {
+  mockFetch();
+  render(<RichHarness />);
+
+  const box = screen.getByLabelText("rich prompt") as HTMLTextAreaElement;
+  expect(box.getAttribute("data-has-value")).toBe("false");
+  expect(box.className).toContain("prompt-omnibox-textarea");
+
+  fireEvent.focus(box);
+  fireEvent.change(box, { target: { value: "Update @Ta" } });
+  box.setSelectionRange(10, 10);
+  expect(box.getAttribute("data-has-value")).toBe("true");
+
+  const fileOpt = await screen.findByRole("option", { name: /src\/TaskDialog.tsx/i });
+  fireEvent.click(fileOpt);
+
+  // Trigger `$` skill via the quick Skill button and pick `frontend-design`.
+  fireEvent.click(screen.getByRole("button", { name: /^Skill$/i }));
+  const skillOpt = await screen.findByRole("option", { name: /frontend-design/i });
+  fireEvent.click(skillOpt);
+
+  fireEvent.blur(box);
+
+  const backdrop = screen.getByTestId("prompt-rich-backdrop");
+  expect(backdrop.className).toContain("prompt-omnibox-backdrop");
+  const fileToken = backdrop.querySelector('[data-token-kind="file"]');
+  const skillToken = backdrop.querySelector('[data-token-kind="skill"]');
+  expect(fileToken?.textContent).toBe("@src/TaskDialog.tsx");
+  expect(fileToken?.className).toContain("font-mono");
+  expect(fileToken?.className).toContain("bg-blue-500/12");
+
+  expect(skillToken?.textContent).toBe("$frontend-design");
+  expect(skillToken?.className).toContain("font-mono");
+  expect(skillToken?.className).toContain("bg-violet-500/14");
+
+  const dock = screen.getByTestId("prompt-attached-tokens");
+  expect(dock.querySelector('[data-chip-tone="file"]')?.textContent).toContain("@src/TaskDialog.tsx");
+  expect(dock.querySelector('[data-chip-tone="skill"]')?.textContent).toContain("$frontend-design");
+
+  fireEvent.click(screen.getByRole("button", { name: "Remove frontend-design" }));
+  expect(dock.querySelector('[data-chip-tone="skill"]')).toBeNull();
 });

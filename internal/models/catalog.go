@@ -19,11 +19,12 @@ type entry struct {
 
 // Catalog caches GET {base}/api/models?executor=.
 type Catalog struct {
-	BaseURL string
-	Token   string
-	TTL     time.Duration
-	HTTP    *http.Client
-	Now     func() time.Time
+	BaseURL      string
+	Token        string
+	TTL          time.Duration
+	HTTP         *http.Client
+	Now          func() time.Time
+	RunAgyModels func(ctx context.Context) ([]byte, error)
 
 	mu    sync.Mutex
 	cache map[string]entry
@@ -33,13 +34,30 @@ func New(base, token string) *Catalog {
 	return &Catalog{BaseURL: base, Token: token, TTL: 5 * time.Minute, Now: time.Now, cache: map[string]entry{}}
 }
 
-// List returns the node-agent's raw JSON for an executor.
+func (c *Catalog) now() time.Time {
+	if c.Now != nil {
+		return c.Now()
+	}
+	return time.Now()
+}
+
+// List returns the executor's model catalog JSON (via node-agent or local CLI).
 func (c *Catalog) List(ctx context.Context, executor string, refresh bool) (json.RawMessage, error) {
 	c.mu.Lock()
 	e, hit := c.cache[executor]
 	c.mu.Unlock()
-	if hit && !refresh && c.Now().Sub(e.at) < c.TTL {
+	if hit && !refresh && c.now().Sub(e.at) < c.TTL {
 		return e.data, nil
+	}
+	if isAgyExecutor(executor) {
+		raw := c.listAgyModels(ctx, executor)
+		c.mu.Lock()
+		if c.cache == nil {
+			c.cache = map[string]entry{}
+		}
+		c.cache[executor] = entry{at: c.now(), data: raw}
+		c.mu.Unlock()
+		return raw, nil
 	}
 	u := strings.TrimRight(c.BaseURL, "/") + "/api/models?executor=" + url.QueryEscape(executor)
 	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
