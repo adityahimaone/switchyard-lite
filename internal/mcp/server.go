@@ -176,11 +176,12 @@ func NewServer(b Backend) *sdk.Server {
 		return "/api/v1/tasks/" + esc(in.ID) + "/reject", map[string]string{"feedback": in.Feedback, "comment": in.Feedback}
 	})
 	tool(s, b, "list_workers", "List registered workers", "GET", func(empty) (string, any) { return "/api/v1/workers", nil })
-	tool(s, b, "list_models", "List available models (optionally scoped to executor or cache-busted)", "GET", func(in struct {
-		Executor string `json:"executor,omitempty"`
-		Refresh  bool   `json:"refresh,omitempty"`
+	tool(s, b, "list_models", "List available models (optionally scoped to executor, target workspace machine, or cache-busted)", "GET", func(in struct {
+		Executor  string `json:"executor,omitempty"`
+		Workspace string `json:"workspace,omitempty"`
+		Refresh   bool   `json:"refresh,omitempty"`
 	}) (string, any) {
-		return "/api/v1/models" + q("executor", in.Executor, "refresh", boolFlag(in.Refresh)), nil
+		return "/api/v1/models" + q("executor", in.Executor, "workspace", in.Workspace, "refresh", boolFlag(in.Refresh)), nil
 	})
 	tool(s, b, "list_templates", "List pipeline templates", "GET", func(empty) (string, any) { return "/api/v1/pipelines/templates", nil })
 	tool(s, b, "start_pipeline", "Start a pipeline run (design-thinking or meta7) with full context & workspace options", "POST", func(in struct {

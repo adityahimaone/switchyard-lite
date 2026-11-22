@@ -145,10 +145,10 @@ test("KnowledgeScreen renders built-in MCP docs, filters via search, and lists S
 
   expect(await screen.findByRole("heading", { name: "Switchyard-Lite Control Plane" })).toBeTruthy();
   expect(await screen.findByText("Team DSH Playbook")).toBeTruthy();
-  expect(screen.getByText("Complete 62 MCP Tools Reference")).toBeTruthy();
+  expect(screen.getByText("Complete 67 MCP Tools Reference")).toBeTruthy();
 
-  fireEvent.click(screen.getByText("Complete 62 MCP Tools Reference"));
-  expect(await screen.findByRole("heading", { name: "Complete 62 MCP Tools Reference" })).toBeTruthy();
+  fireEvent.click(screen.getByText("Complete 67 MCP Tools Reference"));
+  expect(await screen.findByRole("heading", { name: "Complete 67 MCP Tools Reference" })).toBeTruthy();
 
   const search = screen.getByPlaceholderText(/Search docs/i);
   fireEvent.change(search, { target: { value: "Playbook" } });

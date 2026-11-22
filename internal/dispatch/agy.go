@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -475,11 +476,25 @@ func isUnsupportedExecutorErr(err error) bool {
 	s := strings.ToLower(err.Error())
 	return strings.Contains(s, "unsupported executor") ||
 		strings.Contains(s, "unknown executor") ||
-		strings.Contains(s, "invalid executor")
+		strings.Contains(s, "invalid executor") ||
+		strings.Contains(s, "executor unavailable") ||
+		strings.Contains(s, "executor_unavailable")
+}
+
+func stripShellProvenance(raw string) string {
+	kept := make([]string, 0, 16)
+	for _, line := range strings.Split(strings.ReplaceAll(raw, "\r\n", "\n"), "\n") {
+		trim := strings.TrimSpace(line)
+		if strings.HasPrefix(trim, "provenance ") || strings.HasPrefix(trim, "EXECUTOR_PROOF=") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
 }
 
 func (d *Dispatcher) executeRemoteShellAgy(ctx context.Context, t tasks.Task, boardName, message, workspace, runID string) {
-	if d.Remote == nil || !d.Remote.Enabled() {
+	if (d.Remote == nil || !d.Remote.Enabled()) && (d.Client == nil || strings.TrimSpace(d.Client.BaseURL) == "") {
 		d.failRun(t, runID, "remote shell unavailable for agy", nil, false)
 		return
 	}
@@ -498,6 +513,114 @@ func (d *Dispatcher) executeRemoteShellAgy(ctx context.Context, t tasks.Task, bo
 			findBin := `AGY=""; for c in "$HOME/.local/bin/agy" "$(command -v agy 2>/dev/null)" /opt/homebrew/bin/agy /usr/local/bin/agy "$HOME"/.nvm/versions/node/*/bin/agy; do [ -x "$c" ] && AGY="$c" && break; done; [ -n "$AGY" ] || { echo "agy binary not found" >&2; exit 127; }; `
 			cmd = findBin + `PATH="$(dirname "$AGY"):$PATH" "$AGY" ` + strings.Join(quoted, " ")
 		}
+
+		// Prefer streaming shell dispatch through d.Client when available so long-running
+		// remote agy tasks get full TimeoutS, incremental logs, and lease renewal without
+		// needing native agy support in node-agent.
+		if d.Client != nil && strings.TrimSpace(d.Client.BaseURL) != "" {
+			timeoutS := in.TimeoutS
+			if timeoutS <= 0 {
+				timeoutS = 1200
+			}
+			tctx, cancel := context.WithTimeout(rctx, time.Duration(timeoutS)*time.Second)
+			defer cancel()
+
+			req := Request{
+				TaskID:        t.ID,
+				Title:         t.Title,
+				Board:         firstNonEmpty(boardName, "switchyard-lite"),
+				Message:       "agy remote shell execution",
+				Workspace:     workspace,
+				Executor:      "shell",
+				Command:       cmd,
+				ExecutionMode: "direct",
+				NoRTK:         true,
+				RunID:         runID,
+				TimeoutS:      timeoutS,
+			}
+			if _, err := d.Client.DispatchWithAck(tctx, req); err != nil {
+				return AgyExecResult{
+					Success:    false,
+					Error:      err.Error(),
+					DurationMs: time.Since(started).Milliseconds(),
+				}, err
+			}
+
+			var logOffset int64
+			flushProgress := func() {
+				chunk, nextOff, perr := d.Client.FetchProgress(tctx, t.ID, logOffset)
+				if perr != nil {
+					return
+				}
+				if chunk != "" && onChunk != nil {
+					onChunk(chunk)
+				}
+				logOffset = nextOff
+			}
+
+			pollInterval := d.Cfg.Poll
+			if pollInterval <= 0 {
+				pollInterval = 2 * time.Second
+			}
+			for {
+				if !d.renew(t.ID, runID) {
+					return AgyExecResult{
+						Success:    false,
+						Error:      "dispatch lease lost",
+						DurationMs: time.Since(started).Milliseconds(),
+					}, errors.New("dispatch lease lost")
+				}
+				flushProgress()
+				res, err := d.Client.FetchResult(tctx, t.ID)
+				if err == nil {
+					flushProgress()
+					cleanOut := stripShellProvenance(res.Output)
+					rendered, sid := ParseAgyOutput(cleanOut)
+					if rendered == "" {
+						rendered = cleanOut
+					}
+					if sid == "" {
+						sid = firstNonEmpty(res.AgySessionID, res.SessionID)
+					}
+					dur := res.DurationMs
+					if dur <= 0 {
+						dur = time.Since(started).Milliseconds()
+					}
+					if !res.Success {
+						errMsg := strings.TrimSpace(res.Error)
+						if errMsg == "" {
+							errMsg = rendered
+						}
+						return AgyExecResult{
+							Success:    false,
+							Output:     rendered,
+							Error:      errMsg,
+							DurationMs: dur,
+							SessionID:  sid,
+						}, errors.New(firstNonEmpty(errMsg, "remote shell agy failed"))
+					}
+					return AgyExecResult{
+						Success:    true,
+						Output:     rendered,
+						DurationMs: dur,
+						SessionID:  sid,
+					}, nil
+				}
+				if !errors.Is(err, ErrPending) {
+					// Transient result fetch errors are retried until timeout/cancel.
+				}
+				select {
+				case <-tctx.Done():
+					return AgyExecResult{
+						Success:    false,
+						Error:      tctx.Err().Error(),
+						DurationMs: time.Since(started).Milliseconds(),
+					}, tctx.Err()
+				case <-time.After(pollInterval):
+				}
+			}
+		}
+
 		out, err := d.Remote.Shell(rctx, workspace, cmd)
 		dur := time.Since(started).Milliseconds()
 		if out != "" && onChunk != nil {

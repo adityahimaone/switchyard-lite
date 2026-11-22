@@ -534,3 +534,154 @@ func TestAgyLocalExecutionAuthAndGrillMeResume(t *testing.T) {
 		t.Fatalf("expected task in review after turn 2, got %s", afterTurn2.Status)
 	}
 }
+
+func TestAgyRemoteFallbackOnNodeAgent409Unavailable(t *testing.T) {
+	var mu sync.Mutex
+	var sawAgy409 bool
+	var shellReq Request
+	results := map[string]Result{}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Node-Agent-Token") != "tok" {
+			w.WriteHeader(401)
+			return
+		}
+		switch {
+		case r.Method == "POST" && r.URL.Path == "/api/dispatch":
+			var q Request
+			_ = json.NewDecoder(r.Body).Decode(&q)
+			if q.Executor == "agy" {
+				mu.Lock()
+				sawAgy409 = true
+				mu.Unlock()
+				http.Error(w, "executor unavailable on node(s) owning workspace: agy", http.StatusConflict)
+				return
+			}
+			if q.Executor == "shell" && strings.HasPrefix(q.TaskID, "syprobe-") {
+				mu.Lock()
+				results[q.TaskID] = Result{TaskID: q.TaskID, Success: false, Error: "not a git repo"}
+				mu.Unlock()
+				w.WriteHeader(200)
+				_, _ = w.Write([]byte(`{"status":"queued"}`))
+				return
+			}
+			if q.Executor == "shell" {
+				mu.Lock()
+				shellReq = q
+				results[q.TaskID] = Result{
+					TaskID:  q.TaskID,
+					Success: true,
+					Output: "provenance executor=shell requested=shell bin=/bin/bash ws=/remote/linux/repo\n" +
+						`{"conversation_id":"agy_conv_remote_99","result":"Remote shell agy complete."}` + "\n" +
+						"EXECUTOR_PROOF=shell\n",
+					DurationMs: 42,
+				}
+				mu.Unlock()
+				w.WriteHeader(200)
+				_, _ = w.Write([]byte(`{"status":"queued","transport":"http"}`))
+				return
+			}
+			http.Error(w, "unexpected request", 400)
+		case strings.HasPrefix(r.URL.Path, "/api/progress/"):
+			id := strings.TrimPrefix(r.URL.Path, "/api/progress/")
+			mu.Lock()
+			_, ok := results[id]
+			mu.Unlock()
+			if !ok {
+				w.WriteHeader(404)
+				return
+			}
+			off := r.URL.Query().Get("offset")
+			if off == "0" || off == "" {
+				chunk := `{"conversation_id":"agy_conv_remote_99","text":"Scanning remote repo..."}` + "\n"
+				_ = json.NewEncoder(w).Encode(ProgressChunk{Text: chunk, Offset: int64(len(chunk))})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(ProgressChunk{Text: "", Offset: 64})
+		case strings.HasPrefix(r.URL.Path, "/api/results/"):
+			id := strings.TrimPrefix(r.URL.Path, "/api/results/")
+			mu.Lock()
+			res, ok := results[id]
+			mu.Unlock()
+			if !ok {
+				w.WriteHeader(404)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(res)
+		}
+	}))
+	defer srv.Close()
+
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	d, err := New(s, Config{
+		NodeAgentURL: srv.URL,
+		Token:        "tok",
+		WorkerID:     "w-remote-agy",
+		Lease:        time.Minute,
+		Poll:         5 * time.Millisecond,
+		MaxParallel:  2,
+		TimeoutS:     180,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.LogDir = t.TempDir()
+	d.Remote.Poll = 5 * time.Millisecond
+	d.Remote.Wait = 2 * time.Second
+
+	b, err := d.Tasks.CreateBoard("RemoteAGY")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tk, err := d.Tasks.Create(tasks.NewTask{
+		BoardID:       b.ID,
+		Title:         "Run agy on remote VPS without node-agent upgrade",
+		Prompt:        "Inspect remote service",
+		Executor:      "agy",
+		Model:         "gemini-4-neon-xhigh",
+		Effort:        "max",
+		Workspace:     "/remote/linux/repo",
+		ExecutionMode: tasks.ExecManaged,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := d.Start(context.Background(), tk.ID); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	d.Wait()
+
+	mu.Lock()
+	got409 := sawAgy409
+	gotShell := shellReq
+	mu.Unlock()
+	if !got409 {
+		t.Fatalf("expected initial agy dispatch to hit node-agent 409")
+	}
+	if gotShell.Executor != "shell" || !gotShell.NoRTK || gotShell.ExecutionMode != "direct" || gotShell.TimeoutS != 180 {
+		t.Fatalf("unexpected shell fallback request: %+v", gotShell)
+	}
+	if !strings.Contains(gotShell.Command, "agy") || !strings.Contains(gotShell.Command, "--dangerously-skip-permissions") || !strings.Contains(gotShell.Command, "--effort") {
+		t.Fatalf("shell command missing agy CLI args: %q", gotShell.Command)
+	}
+
+	gotTask, err := d.Tasks.Get(tk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotTask.Status != tasks.Review {
+		t.Fatalf("expected task status review, got %s (error_sig=%q)", gotTask.Status, gotTask.ErrorSig)
+	}
+	if gotTask.SessionID != "agy_conv_remote_99" {
+		t.Fatalf("expected persisted session_id agy_conv_remote_99, got %q", gotTask.SessionID)
+	}
+	if strings.Contains(gotTask.Result, "EXECUTOR_PROOF") || strings.Contains(gotTask.Result, "provenance executor=") {
+		t.Fatalf("expected provenance stripped from task result, got %q", gotTask.Result)
+	}
+}

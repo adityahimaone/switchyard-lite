@@ -23,7 +23,9 @@ type Request struct {
 	Model                string `json:"model,omitempty"`
 	Effort               string `json:"effort,omitempty"`
 	Executor             string `json:"executor,omitempty"`
+	Command              string `json:"command,omitempty"`
 	ExecutionMode        string `json:"execution_mode,omitempty"`
+	NoRTK                bool   `json:"no_rtk,omitempty"`
 	Acceptance           string `json:"acceptance,omitempty"`
 	RunID                string `json:"run_id,omitempty"`
 	TimeoutS             int    `json:"timeout_s,omitempty"`

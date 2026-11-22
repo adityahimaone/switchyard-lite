@@ -1,6 +1,6 @@
 # switchyard-lite
 
-Standalone agent task control plane — Kanban board, single dispatcher with atomic claim/leases, review gate with per-task git worktrees, interactive open questions with session continuity, dual task execution modes (managed vs passive tracker), 62 MCP tools with full control-plane parity, a 3-column Knowledge Center, and a deterministic autonomous pipeline engine (`design-thinking` + `meta7`).
+Standalone agent task control plane — Kanban board, single dispatcher with atomic claim/leases, review gate with per-task git worktrees, interactive open questions with session continuity, dual task execution modes (managed vs passive tracker), 67 MCP tools with full control-plane parity, a 3-column Knowledge Center, and a deterministic autonomous pipeline engine (`design-thinking` + `meta7`).
 
 Zero dependency on Hermes. Connects directly to your existing **[node-agent](https://github.com/adityahimaone/node-agent)** workers using the unchanged `POST /api/dispatch` and `GET /api/results/{id}` wire contract.
 
@@ -10,7 +10,7 @@ Zero dependency on Hermes. Connects directly to your existing **[node-agent](htt
 
 ```mermaid
 flowchart LR
-  A["External agents (dsh, commandcode, Claude Code, Antigravity)"] -- "MCP (stdio / HTTP)" --> M[MCP Server: 62 tools]
+  A["External agents (dsh, commandcode, Claude Code, Antigravity)"] -- "MCP (stdio / HTTP)" --> M[MCP Server: 67 tools]
   H[Human] -- browser --> UI["Embedded React UI (Kanban, Flow Map, Knowledge)"]
   M -- REST + Bearer Token --> API[REST API /api/v1/*]
   UI -- REST + Session --> API
@@ -39,11 +39,11 @@ flowchart LR
    - Structured decision prompts and choices captured via explicit MCP tool (`ask_task_question`) or automatic worker output parsing (`DetectOpenQuestion` matching fenced JSON, `[QUESTION]` tags, or natural numbered choices).
    - Clickable option pills rendered **inline directly on Kanban cards** and inside the Task Drawer/Page.
    - **Session Continuity**: Selecting an answer automatically records the decision and resumes `managed` tasks in `dsh` or `commandcode` by forwarding `session_continuation: true`, `dsh_session_id`, and `commandcode_session_id`.
-3. **62 MCP Tools with Complete Control-Plane Parity**:
-   - Full control over boards, tasks, attachments, passive tracker mirroring, retries, live logs/runs, git worktrees, review settings, pipelines/`meta7`, workspaces/skills, workers, flow map, server logs, and knowledge docs.
+3. **67 MCP Tools with Complete Control-Plane Parity**:
+   - Full control over boards, tasks, attachments, passive tracker mirroring, retries, live logs/runs, git worktrees, review settings, pipelines/`meta7`, workspaces/skills, executor ordering/probing, `agy-auth` accounts, workers, flow map, server logs, and knowledge docs.
    - Available via both standard **stdio** and **Streamable HTTP** at `/mcp` with token scopes (`read`, `write`, `admin`).
 4. **Hybrid 3-Column Knowledge / Docs Center (`#/knowledge`)**:
-   - Comprehensive built-in guides (Control Plane architecture, dual modes, Grill-Me Q&A, `meta7`, Flow Map, 62 MCP tools reference, and Review Gate).
+   - Comprehensive built-in guides (Control Plane architecture, dual modes, Grill-Me Q&A, `meta7`, Flow Map, 67 MCP tools reference, and Review Gate).
    - SQLite-backed custom articles (`knowledge_docs`) editable through both the web UI and MCP (`list_knowledge`, `get_knowledge`, `upsert_knowledge`, `delete_knowledge`).
 5. **Global Flow Map & Live Ping Telemetry (`/api/v1/flow/active`)**:
    - Real-time visual topology across all boards showing active executions, recent transitions, pipelines, workspaces, and worker nodes.
@@ -177,7 +177,7 @@ Connect Claude Code, `dsh`, `commandcode`, Antigravity, or Cursor to `switchyard
 
 ---
 
-## Complete MCP Tools Catalog (62 Tools)
+## Complete MCP Tools Catalog (67 Tools)
 
 | Category | Count | Tools |
 |---|:---:|---|
@@ -188,10 +188,10 @@ Connect Claude Code, `dsh`, `commandcode`, Antigravity, or Cursor to `switchyard
 | **Managed Execution & Logs** | 5 | `dispatch_task`, `retry_task`, `get_task_logs`, `get_task_runs`, `get_task_worktree` |
 | **Open Questions / Grill-Me** | 3 | `ask_task_question`, `get_task_questions`, `answer_task_question` |
 | **Review Gate** | 5 | `get_diff`, `approve_task`, `reject_task`, `get_review_settings`, `set_review_settings` |
-| **Pipelines & meta7** | 8 | `list_templates`, `get_default_template`, `set_default_template`, `list_pipelines`, `start_pipeline`, `get_pipeline_run`, `cancel_pipeline`, `retry_pipeline_node`, `restart_pipeline` |
+| **Pipelines & meta7** | 9 | `list_templates`, `get_default_template`, `set_default_template`, `list_pipelines`, `start_pipeline`, `get_pipeline_run`, `cancel_pipeline`, `retry_pipeline_node`, `restart_pipeline` |
 | **Workspaces & Skills** | 8 | `list_workspaces`, `create_workspace`, `update_workspace`, `delete_workspace`, `sync_workspaces`, `inspect_workspace`, `search_workspace_files`, `list_skills` |
-| **Workers & Models** | 4 | `list_workers`, `create_worker`, `delete_worker`, `list_models` |
-| **Telemetry & Observability** | 5 | `get_flow_map`, `get_overview`, `read_logs`, `tail_events`, `list_models` |
+| **Workers, Models, Executors & agy-auth** | 9 | `list_workers`, `create_worker`, `delete_worker`, `list_models`, `probe_executors`, `get_executors_settings`, `set_executors_settings`, `list_agy_accounts`, `switch_agy_account` |
+| **Telemetry & Observability** | 4 | `get_flow_map`, `get_overview`, `read_logs`, `tail_events` |
 | **Knowledge / Docs** | 4 | `list_knowledge`, `get_knowledge`, `upsert_knowledge`, `delete_knowledge` |
 
 ---

@@ -80,6 +80,7 @@ func registerTrackerDispatchQuestionTools(s *sdk.Server, b Backend) {
 		Workspace  string   `json:"workspace,omitempty"`
 		Executor   string   `json:"executor,omitempty"`
 		Model      string   `json:"model,omitempty"`
+		Effort     string   `json:"effort,omitempty"`
 		SessionID  string   `json:"session_id,omitempty"`
 		Paths      []string `json:"paths,omitempty"`
 		Skills     []string `json:"skills,omitempty"`
@@ -174,6 +175,33 @@ func registerTrackerDispatchQuestionTools(s *sdk.Server, b Backend) {
 		AutoMerge bool `json:"auto_merge"`
 	}) (string, any) {
 		return "/api/v1/settings/review", in
+	})
+
+	tool(s, b, "probe_executors", "Probe target workspace machine (macOS, Windows, or Linux/VPS) and detect which executors (agy, claude, codex, commandcode, omp, dsh) are installed", "GET", func(in struct {
+		Workspace string `json:"workspace,omitempty"`
+		Refresh   bool   `json:"refresh,omitempty"`
+	}) (string, any) {
+		return "/api/v1/executors/probe" + q("workspace", in.Workspace, "refresh", boolFlag(in.Refresh)), nil
+	})
+	tool(s, b, "get_executors_settings", "Read executor dropdown order, hidden executor IDs, and all supported executor IDs", "GET", func(empty) (string, any) {
+		return "/api/v1/settings/executors", nil
+	})
+	tool(s, b, "set_executors_settings", "Update executor display order (swap positions) and hidden executor IDs (at least one executor must remain visible)", "POST", func(in struct {
+		Order  []string `json:"order,omitempty"`
+		Hidden []string `json:"hidden,omitempty"`
+	}) (string, any) {
+		return "/api/v1/settings/executors", in
+	})
+	tool(s, b, "list_agy_accounts", "List agy-auth accounts and active account on the machine owning the target workspace", "GET", func(in struct {
+		Workspace string `json:"workspace,omitempty"`
+	}) (string, any) {
+		return "/api/v1/agy/accounts" + q("workspace", in.Workspace), nil
+	})
+	tool(s, b, "switch_agy_account", "Switch the active agy-auth account on the machine owning the target workspace and persist the per-machine preference", "POST", func(in struct {
+		Account   string `json:"account"`
+		Workspace string `json:"workspace,omitempty"`
+	}) (string, any) {
+		return "/api/v1/agy/accounts/switch", in
 	})
 }
 

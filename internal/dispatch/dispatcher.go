@@ -304,9 +304,10 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 		Paths:       t.Paths, Skills: t.Skills, Branch: t.Branch,
 		RunID: runID, TimeoutS: d.Cfg.TimeoutS}
 	applyTaskSession(&req, t)
+	hasRemote := (d.Remote != nil && d.Remote.Enabled()) || (d.Client != nil && strings.TrimSpace(d.Client.BaseURL) != "")
 	ack, err := d.Client.DispatchWithAck(ctx, req)
 	if err != nil {
-		if isAgyExecutor(t.Executor) && isUnsupportedExecutorErr(err) && d.Remote != nil && d.Remote.Enabled() {
+		if isAgyExecutor(t.Executor) && isUnsupportedExecutorErr(err) && hasRemote {
 			d.executeRemoteShellAgy(ctx, t, boardName, message, workspace, runID)
 			return
 		}
@@ -360,6 +361,10 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 		res, err := d.Client.FetchResult(ctx, t.ID)
 		if err == nil {
 			flushProgress()
+			if !res.Success && isAgyExecutor(t.Executor) && isUnsupportedExecutorErr(errors.New(res.Error)) && hasRemote {
+				d.executeRemoteShellAgy(ctx, t, boardName, message, workspace, runID)
+				return
+			}
 			d.finishWithStream(t, runID, res, streamedBytes > 0)
 			return
 		}

@@ -608,6 +608,7 @@ func init() {
 				Workspace  string   `json:"workspace"`
 				Executor   string   `json:"executor"`
 				Model      string   `json:"model"`
+				Effort     string   `json:"effort"`
 				SessionID  string   `json:"session_id"`
 				Paths      []string `json:"paths"`
 				Skills     []string `json:"skills"`
@@ -627,6 +628,7 @@ func init() {
 					Workspace:     in.Workspace,
 					Executor:      firstNonEmpty(in.Executor, "external"),
 					Model:         in.Model,
+					Effort:        in.Effort,
 					ExecutionMode: tasks.ExecTracker,
 					SessionID:     in.SessionID,
 					Paths:         in.Paths,
@@ -649,6 +651,9 @@ func init() {
 				}
 				if in.Model != "" {
 					patch.Model = &in.Model
+				}
+				if in.Effort != "" {
+					patch.Effort = &in.Effort
 				}
 				if in.Workspace != "" {
 					patch.Workspace = &in.Workspace

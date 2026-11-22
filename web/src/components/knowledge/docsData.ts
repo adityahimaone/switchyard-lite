@@ -61,7 +61,7 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
           },
           {
             label: "internal/mcp",
-            detail: "Stdio and HTTP (/mcp) Model Context Protocol server exposing all 62 control-plane operations.",
+            detail: "Stdio and HTTP (/mcp) Model Context Protocol server exposing all 67 control-plane operations.",
           },
         ],
       },
@@ -227,7 +227,7 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
     category: "MCP & API Reference",
     badge: "MCP",
     summary:
-      "Switchyard-Lite bundles both a local stdio MCP server (`switchyard-lite mcp`) and an authenticated Streamable HTTP endpoint (`POST/GET /mcp`). All 62 tools proxy straight through Switchyard's token-scoped REST handlers.",
+      "Switchyard-Lite bundles both a local stdio MCP server (`switchyard-lite mcp`) and an authenticated Streamable HTTP endpoint (`POST/GET /mcp`). All 67 tools proxy straight through Switchyard's token-scoped REST handlers.",
     sections: [
       {
         id: "stdio-setup",
@@ -261,10 +261,10 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
   },
   {
     slug: "mcp-tools-catalog",
-    title: "Complete 62 MCP Tools Reference",
-    subtitle: "Full feature parity across boards, tasks, passive tracking, retry, Grill-Me Q&A, pipelines, workspaces, and knowledge.",
+    title: "Complete 67 MCP Tools Reference",
+    subtitle: "Full feature parity across boards, tasks, passive tracking, retry, Grill-Me Q&A, pipelines, workspaces, executors, agy-auth, and knowledge.",
     category: "MCP & API Reference",
-    badge: "62 Tools",
+    badge: "67 Tools",
     summary:
       "Every control-plane feature available in the Switchyard web UI is directly invokable by coding agents over MCP.",
     sections: [
@@ -312,7 +312,9 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
             ["list_templates / get_default_template / set_default_template", "GET/POST /api/v1/pipelines/*", "Manage design-thinking vs meta7 default template"],
             ["list_pipelines / start_pipeline / get_pipeline_run / cancel_pipeline / retry_pipeline_node / restart_pipeline", "GET/POST /api/v1/pipelines/*", "Full lifecycle control of deterministic DAG pipelines"],
             ["list_workspaces / create_workspace / update_workspace / delete_workspace / sync_workspaces", "GET/POST/PATCH/DELETE /api/v1/workspaces*", "Manage and sync local/remote workspaces"],
-            ["inspect_workspace / search_workspace_files / list_skills / list_models", "GET /workspaces/*, /skills, /models", "Git branches, file omnibox search, skills, and model catalogs"],
+            ["inspect_workspace / search_workspace_files / list_skills / list_models", "GET /workspaces/*, /skills, /models", "Git branches, file omnibox search, skills, and workspace-aware model catalogs"],
+            ["probe_executors / get_executors_settings / set_executors_settings", "GET/POST /executors/probe, /settings/executors", "Detect installed CLIs on target machine and reorder or hide executors"],
+            ["list_agy_accounts / switch_agy_account", "GET/POST /api/v1/agy/accounts*", "Inspect and switch active agy-auth account on target workspace machine"],
             ["list_workers / create_worker / delete_worker", "GET/POST/DELETE /api/v1/workers*", "Inspect or register node-agent workers (admin write/delete)"],
             ["get_flow_map / get_overview / read_logs / tail_events", "GET /flow/active, /overview, /logs, /events", "Global live graph topology, counters, server logs, event stream"],
             ["list_knowledge / get_knowledge / upsert_knowledge / delete_knowledge", "GET/POST/DELETE /api/v1/knowledge*", "Query and curate SQLite-backed custom Knowledge articles"],
