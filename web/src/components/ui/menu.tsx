@@ -81,8 +81,7 @@ export function MenuItem({
   return (
     <MenuPrimitive.Item
       disabled={disabled}
-      onSelect={(e) => {
-        e.preventDefault();
+      onSelect={() => {
         onSelect?.();
       }}
       className={cn(

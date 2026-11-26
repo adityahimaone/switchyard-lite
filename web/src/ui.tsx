@@ -147,14 +147,16 @@ export function useToggle(initial = false): [boolean, () => void] {
 export function Panel({
   title,
   actions,
+  className,
   children,
 }: {
   title?: ReactNode;
   actions?: ReactNode;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="panel">
+    <section className={cn("panel", className)}>
       {(title || actions) && (
         <div className="bar" style={{ marginBottom: 10 }}>
           {title && <h3 style={{ margin: 0, flex: 1 }}>{title}</h3>}

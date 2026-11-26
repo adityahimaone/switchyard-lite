@@ -612,20 +612,44 @@ export function BoardScreen({
       <StudioPageHeader
         leading={(boards.data?.length ?? 0) <= 1 && activeBoard ? <BoardEmojiTile board={activeBoard} size={26} /> : undefined}
         title={
-          (boards.data?.length ?? 0) > 1 ? (
-            <BoardSwitcher
-              boards={boards.data}
-              value={boardId}
-              onChange={setBoardId}
-              showTriggerBadge={false}
-              triggerClassName="h-8 rounded-[9px] border-transparent bg-transparent px-2 text-[15px] font-semibold hover:border-line hover:bg-well"
-              className="w-auto min-w-[160px] max-w-[240px]"
-            />
-          ) : (
-            <h2 className="m-0 truncate text-[17px] font-semibold tracking-[-0.02em] text-ink">
-              {activeBoard ? activeBoard.name : "Board"}
-            </h2>
-          )
+          <div className="flex min-w-0 items-center gap-1">
+            {(boards.data?.length ?? 0) > 1 ? (
+              <BoardSwitcher
+                boards={boards.data}
+                value={boardId}
+                onChange={setBoardId}
+                showTriggerBadge={false}
+                triggerClassName="h-8 rounded-[9px] border-transparent bg-transparent px-2 text-[15px] font-semibold hover:border-line hover:bg-well"
+                className="w-auto min-w-[160px] max-w-[240px]"
+              />
+            ) : (
+              <h2 className="m-0 truncate text-[17px] font-semibold tracking-[-0.02em] text-ink">
+                {activeBoard ? activeBoard.name : "Board"}
+              </h2>
+            )}
+            {activeBoard && (
+              <Tip label="Edit board & emoji">
+                <button
+                  type="button"
+                  onClick={() => (onEditBoard ? onEditBoard(activeBoard) : setBoardModal("edit"))}
+                  aria-label="Edit board"
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-[8px] border border-transparent text-ink-3 transition-[background-color,border-color,color,transform] duration-150 hover:border-line hover:bg-well hover:text-ink active:scale-95"
+                >
+                  <Settings2 className="size-3.5" />
+                </button>
+              </Tip>
+            )}
+            <Tip label="Create new board">
+              <button
+                type="button"
+                onClick={() => (onNewBoard ? onNewBoard() : setBoardModal("new"))}
+                aria-label="New board"
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-[8px] border border-transparent text-ink-3 transition-[background-color,border-color,color,transform] duration-150 hover:border-line hover:bg-well hover:text-ink active:scale-95"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </Tip>
+          </div>
         }
         count={
           filtered.length === allTasks.length
@@ -871,10 +895,14 @@ export function BoardScreen({
                 return (
                   <div
                     key={s}
-                    className={cn("col glass-column items-center justify-start px-1.5 py-3", over === s && "over")}
+                    className={cn(
+                      "col col-collapsed-rail group/rail flex flex-col items-center justify-between rounded-[14px] border border-dashed border-line-strong/75 bg-well/45 p-1.5 transition-[border-color,background-color,box-shadow,transform] duration-180 ease-[var(--ease-out)]",
+                      "hover:border-line-strong hover:bg-surface hover:shadow-[var(--lift-1)]",
+                      over === s && "over border-solid border-accent bg-accent-tint/50 shadow-[0_0_0_2px_color-mix(in_srgb,var(--c-accent)_25%,transparent)]"
+                    )}
                     data-status={s}
                     data-collapsed="true"
-                    style={{ ["--lamp" as string]: statusColor(s), width: "44px", minWidth: "44px", maxWidth: "44px" }}
+                    style={{ ["--lamp" as string]: statusColor(s), width: "42px", minWidth: "42px", maxWidth: "42px" }}
                     onDragOver={(e) => {
                       e.preventDefault();
                       setOver(s);
@@ -888,19 +916,29 @@ export function BoardScreen({
                       if (id) move.mutate({ id, to: s });
                     }}
                   >
-                    <Tip label={`Expand ${LABEL[s]} column (empty)`}>
+                    <Tip side="right" label={`Expand ${LABEL[s]} stage (empty — drop cards here)`}>
                       <button
                         type="button"
                         onClick={() => toggleColExpanded(s)}
                         aria-label={`Expand ${LABEL[s]} column`}
-                        className="flex h-full w-full flex-col items-center gap-2 rounded-lg py-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--glass-2)] hover:text-[var(--text-primary)]"
+                        className="flex h-full w-full flex-col items-center gap-2.5 rounded-[10px] py-2 text-ink-3 transition-[color,transform] duration-150 hover:text-ink active:scale-[0.98]"
                       >
-                        <span className="col-count">0</span>
                         <span
-                          className="select-none text-[11px] font-semibold tracking-wide"
+                          aria-hidden
+                          className="h-1 w-5 shrink-0 rounded-full opacity-75 transition-opacity group-hover/rail:opacity-100"
+                          style={{ background: statusColor(s) }}
+                        />
+                        <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface font-mono text-[10.5px] font-semibold tabular-nums text-ink-3 shadow-[var(--lift-1)]">
+                          0
+                        </span>
+                        <span
+                          className="select-none font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase text-ink-3 transition-colors group-hover/rail:text-ink"
                           style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
                         >
-                          <StatusHeaderPill status={s} />
+                          {LABEL[s] ?? s}
+                        </span>
+                        <span className="mt-auto inline-flex size-6 shrink-0 items-center justify-center rounded-[7px] border border-transparent text-ink-4 transition-colors group-hover/rail:border-line group-hover/rail:bg-well group-hover/rail:text-ink">
+                          <Plus className="size-3" />
                         </span>
                       </button>
                     </Tip>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Activity,
   Apple,
   CloudDownload,
   FolderGit2,
@@ -8,12 +9,14 @@ import {
   HardDrive,
   Info,
   Laptop,
+  LayoutGrid,
   Monitor,
   Pencil,
   Plus,
   Radio,
   RefreshCw,
   Search,
+  Table2,
   Trash2,
 } from "@/components/ui/icons";
 import {
@@ -33,6 +36,8 @@ import { toast, toastError } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { ErrorBox } from "@/ui";
 import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
+import { StudioMetricCard } from "@/components/studio/StudioCharts";
+import { Segmented } from "@/components/ui/segmented";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -162,6 +167,7 @@ function OscilloscopeMonitor({
   status,
   wsId,
   staggerIndex = 0,
+  compact = false,
 }: {
   points: PingPoint[];
   ok: boolean;
@@ -171,13 +177,12 @@ function OscilloscopeMonitor({
   status?: string;
   wsId?: string;
   staggerIndex?: number;
+  compact?: boolean;
 }) {
   const pts = points.slice(-24);
   const last = pts[pts.length - 1];
   const isOffline = (!ok && pts.length > 0) || (last ? !last.ok : false) || status === "unreachable";
 
-  // 屏幕外的示波器不跑 dash 动画：每张卡片有两个逐帧重绘的 stroked path，
-  // 十几张卡片同时跑就是十几份 SVG 重绘负担。
   const bayRef = useRef<HTMLDivElement>(null);
   const [onScreen, setOnScreen] = useState(true);
   useEffect(() => {
@@ -191,25 +196,33 @@ function OscilloscopeMonitor({
     return () => io.disconnect();
   }, []);
 
-  const w = 260;
-  const h = 34;
-  const mid = 17;
+  const w = compact ? 150 : 260;
+  const h = compact ? 24 : 38;
+  const mid = h / 2;
 
   const modeKey = isOffline
-    ? "unreachable"
+    ? "offline"
     : running
-      ? "running"
+      ? "exec"
       : ok || status === "local" || status === "connected"
-        ? "online"
+        ? "live"
         : "standby";
 
   const strokeColor = isOffline
     ? "#f43f5e"
     : running
       ? "#38bdf8"
-      : modeKey === "online"
+      : modeKey === "live"
         ? "#10b981"
         : "#94a3b8";
+
+  const validMs = useMemo(
+    () => pts.filter((p) => p.ok && p.ms != null).map((p) => p.ms!),
+    [pts]
+  );
+  const avgMs = validMs.length ? Math.round(validMs.reduce((a, b) => a + b, 0) / validMs.length) : latencyMs;
+  const minMs = validMs.length ? Math.min(...validMs) : latencyMs;
+  const maxMs = validMs.length ? Math.max(...validMs) : latencyMs;
 
   const delaySeconds = useMemo(() => {
     let hash = 0;
@@ -222,7 +235,7 @@ function OscilloscopeMonitor({
     return Number(step.toFixed(2));
   }, [wsId, staggerIndex]);
 
-  const durationSeconds = pinging ? 1.0 : running ? 1.5 : isOffline ? 4.2 : 2.8;
+  const durationSeconds = pinging ? 1.0 : running ? 1.45 : isOffline ? 4.2 : 2.6;
 
   const gradientId = useMemo(
     () => `scope-grad-${wsId ? wsId.replace(/[^a-zA-Z0-9]/g, "") : Math.random().toString(36).slice(2, 7)}`,
@@ -243,14 +256,11 @@ function OscilloscopeMonitor({
 
     const step = w / 23;
     const currentMs = latencyMs ?? (pts.length > 0 && pts[pts.length - 1]?.ms != null ? pts[pts.length - 1].ms! : 4);
-
-    const validMs = pts.filter((p) => p.ok && p.ms != null).map((p) => p.ms!);
-    const minMs = validMs.length ? Math.min(...validMs) : currentMs * 0.8;
-    const maxMs = validMs.length ? Math.max(...validMs) : currentMs * 1.2;
-    const range = Math.max(6, maxMs - minMs);
-
-    // Dynamic latency scale (0.15 for ~2ms local, up to 1.0 for ~200ms+ remote)
+    const localMin = validMs.length ? Math.min(...validMs) : currentMs * 0.8;
+    const localMax = validMs.length ? Math.max(...validMs) : currentMs * 1.2;
+    const range = Math.max(6, localMax - localMin);
     const latScale = Math.min(1, Math.max(0.15, Math.log10(Math.max(2, currentMs)) / 2.3));
+    const ampScale = compact ? 0.65 : 1;
 
     let peakX = Math.round(9 * step);
     let peakY = mid;
@@ -259,36 +269,34 @@ function OscilloscopeMonitor({
       const x = Number((i * step).toFixed(1));
       const p = pts[i];
       const ms = p && p.ok && p.ms != null ? p.ms : currentMs;
-
-      // Base line sits lower for local/low latency, rises higher as latency increases
-      const baseSignalY = mid + 3 - latScale * 9;
+      const baseSignalY = mid + 2.5 * ampScale - latScale * (8 * ampScale);
 
       let dy = 0;
       if (running) {
-        if (i === 6 || i === 18) dy = -11;
-        else if (i === 7 || i === 19) dy = 8;
-        else if (i === 5 || i === 17) dy = -3;
-        else dy = Math.sin(i * 1.4) * 2.5;
+        if (i === 6 || i === 18) dy = -12 * ampScale;
+        else if (i === 7 || i === 19) dy = 8.5 * ampScale;
+        else if (i === 5 || i === 17) dy = -3 * ampScale;
+        else dy = Math.sin(i * 1.4) * (2.5 * ampScale);
       } else {
-        const relNorm = (ms - minMs) / range;
-        const pingDelta = (0.5 - relNorm) * (6 * latScale);
+        const relNorm = (ms - localMin) / range;
+        const pingDelta = (0.5 - relNorm) * (6 * latScale * ampScale);
 
         if (i === 9) {
-          dy = -9 - latScale * 5;
+          dy = (-10 - latScale * 5) * ampScale;
           peakX = x;
           peakY = Math.round(Math.max(3, baseSignalY + dy));
         } else if (i === 10) {
-          dy = 7;
+          dy = 7.5 * ampScale;
         } else if (i === 8) {
-          dy = -2.5;
+          dy = -2.5 * ampScale;
         } else if (i === 12) {
-          dy = -3;
+          dy = -3 * ampScale;
         } else if (i === 21) {
-          dy = -5 - latScale * 4 + pingDelta;
+          dy = (-5.5 - latScale * 4) * ampScale + pingDelta;
         } else if (i === 22) {
-          dy = 4;
+          dy = 4.5 * ampScale;
         } else {
-          dy = Math.sin(i * 1.1 + (wsId ? wsId.charCodeAt(0) : 0)) * (1.8 + latScale * 3) + pingDelta;
+          dy = Math.sin(i * 1.1 + (wsId ? wsId.charCodeAt(0) : 0)) * ((1.8 + latScale * 2.8) * ampScale) + pingDelta;
         }
       }
 
@@ -299,7 +307,7 @@ function OscilloscopeMonitor({
     const d = pointsToSmoothPath(coords);
     const area = `${d} L ${w} ${h} L 0 ${h} Z`;
     return { pathD: d, areaD: area, blipPoint: { x: peakX, y: peakY } };
-  }, [isOffline, running, pts, latencyMs, wsId, w, h, mid]);
+  }, [isOffline, running, pts, validMs, latencyMs, wsId, w, h, mid, compact]);
 
   const peakFraction = blipPoint ? blipPoint.x / w : 0.36;
   const pingOffsetSeconds = Number((durationSeconds * peakFraction).toFixed(2));
@@ -308,7 +316,8 @@ function OscilloscopeMonitor({
     <div
       ref={bayRef}
       className={cn(
-        "oscilloscope-bay",
+        "oscilloscope-bay rounded-[10px] border border-white/10",
+        compact ? "px-2 py-1" : "px-2.5 py-2",
         isOffline && "unreachable",
         running && "running"
       )}
@@ -319,40 +328,50 @@ function OscilloscopeMonitor({
         ["--scope-ping-offset" as string]: `${pingOffsetSeconds}s`,
         ["--scope-stroke" as string]: strokeColor,
       }}
-      title="Live workspace telemetry oscilloscope"
+      title={
+        avgMs !== undefined
+          ? `EKG telemetry · avg ${avgMs}ms (min ${minMs}ms / max ${maxMs}ms)`
+          : "Live workspace EKG telemetry"
+      }
     >
       <div className="oscilloscope-reticle-center" />
 
-      {/* Top micro HUD bar */}
-      <div className="relative z-10 flex items-center justify-between gap-1 text-[9px] font-mono leading-none">
-        <span className="tracking-[0.14em] text-neutral-400 uppercase">
-          CH-1 · {modeKey}
-        </span>
-        <div>
-          {isOffline ? (
-            <span className="font-bold tracking-wider text-rose-400">FLATLINE</span>
-          ) : running ? (
-            <span className="flex items-center gap-1 font-bold tracking-wider text-cyan-400">
-              <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              RUNNING
-            </span>
-          ) : pinging ? (
-            <span className="flex items-center gap-1 font-bold tracking-wider text-amber-400">
-              <RefreshCw className="size-2.5 animate-spin" />
-              PINGING
-            </span>
-          ) : latencyMs !== undefined ? (
-            <span className="font-bold tabular-nums text-emerald-400">
-              {latencyMs} ms
-            </span>
-          ) : (
-            <span className="text-neutral-400">STANDBY</span>
-          )}
+      {!compact && (
+        <div className="relative z-10 mb-1 flex items-center justify-between gap-1 font-mono text-[9px] leading-none">
+          <span className="inline-flex items-center gap-1.5 tracking-[0.12em] text-neutral-400 uppercase">
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                isOffline ? "bg-rose-400" : running ? "bg-sky-400 animate-pulse" : "bg-emerald-400"
+              )}
+            />
+            EKG · {modeKey}
+          </span>
+          <div className="flex items-center gap-2 tabular-nums">
+            {avgMs !== undefined && !isOffline && (
+              <span className="text-[8.5px] text-neutral-500">
+                avg {avgMs}ms
+              </span>
+            )}
+            {isOffline ? (
+              <span className="font-bold tracking-wider text-rose-400">FLATLINE</span>
+            ) : running ? (
+              <span className="font-bold tracking-wider text-sky-400">ACTIVE</span>
+            ) : pinging ? (
+              <span className="inline-flex items-center gap-1 font-bold tracking-wider text-amber-400">
+                <RefreshCw className="size-2.5 animate-spin" />
+                PING
+              </span>
+            ) : latencyMs !== undefined ? (
+              <span className="font-bold text-emerald-400">{latencyMs} ms</span>
+            ) : (
+              <span className="text-neutral-400">READY</span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Waveform SVG */}
-      <div className="relative z-0 h-[34px] w-full">
+      <div className={cn("relative z-0 w-full", compact ? "h-[24px]" : "h-[38px]")}>
         <svg
           viewBox={`0 0 ${w} ${h}`}
           preserveAspectRatio="none"
@@ -360,21 +379,19 @@ function OscilloscopeMonitor({
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.22" />
+              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.26" />
               <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
             </linearGradient>
             <linearGradient id={beamGradId} x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor={strokeColor} stopOpacity="0" />
               <stop offset="55%" stopColor={strokeColor} stopOpacity="0.08" />
               <stop offset="88%" stopColor={strokeColor} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={strokeColor} stopOpacity="0.75" />
+              <stop offset="100%" stopColor={strokeColor} stopOpacity="0.78" />
             </linearGradient>
           </defs>
 
-          {/* Area fill with subtle gradient */}
           <path d={areaD} fill={`url(#${gradientId})`} />
 
-          {/* Static substrate baseline */}
           <path
             d={pathD}
             fill="none"
@@ -382,10 +399,9 @@ function OscilloscopeMonitor({
             strokeWidth="1.2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={isOffline ? 0.35 : 0.22}
+            opacity={isOffline ? 0.35 : 0.24}
           />
 
-          {/* Diffused outer phosphor glow */}
           {!isOffline && (
             <path
               d={pathD}
@@ -396,11 +412,10 @@ function OscilloscopeMonitor({
               strokeLinecap="round"
               strokeLinejoin="round"
               className="oscilloscope-pulse-glow"
-              opacity="0.36"
+              opacity="0.38"
             />
           )}
 
-          {/* High-intensity electron core impulse */}
           {!isOffline && (
             <path
               d={pathD}
@@ -414,7 +429,10 @@ function OscilloscopeMonitor({
             />
           )}
 
-          {/* Lightweight GPU-composited vertical CRT scan front */}
+          {!isOffline && blipPoint && !compact && (
+            <circle cx={blipPoint.x} cy={blipPoint.y} r="2.2" fill={strokeColor} opacity="0.85" />
+          )}
+
           {!isOffline && (
             <g className="oscilloscope-scan-beam" aria-hidden="true">
               <rect x="-30" y="0" width="30" height={h} fill={`url(#${beamGradId})`} />
@@ -430,19 +448,24 @@ function OscilloscopeMonitor({
         </svg>
       </div>
 
-      {/* Bottom micro HUD bar */}
-      <div className="relative z-10 flex items-center justify-between gap-1 text-[8.5px] font-mono leading-none text-neutral-500">
-        <span>200mV / DIV</span>
-        <span>
-          {isOffline
-            ? "TIMEOUT"
-            : running
-              ? "EXEC LOAD 100%"
-              : pts.length > 0
-                ? `${pts.length} PTS`
-                : "READY"}
-        </span>
-      </div>
+      {!compact && (
+        <div className="relative z-10 mt-1 flex items-center justify-between gap-1 font-mono text-[8.5px] leading-none text-neutral-500 tabular-nums">
+          <span>
+            {minMs !== undefined && maxMs !== undefined && !isOffline
+              ? `${minMs}–${maxMs}ms range`
+              : "200mV / DIV"}
+          </span>
+          <span>
+            {isOffline
+              ? "TIMEOUT"
+              : running
+                ? "EXEC LOAD 100%"
+                : pts.length > 0
+                  ? `${pts.length} SAMPLES`
+                  : "STANDBY"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -848,6 +871,7 @@ export function WorkspacesPage() {
   const [inspectTarget, setInspectTarget] = useState<Workspace | null>(null);
   const [platform, setPlatform] = useState<PlatformKey | "all">("all");
   const [tagFilter, setTagFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [q, setQ] = useState("");
   const [autoPing, setAutoPing] = useState(true);
   const [pinging, setPinging] = useState<string | null>(null);
@@ -1071,26 +1095,79 @@ export function WorkspacesPage() {
 
   const shownTotal = shownGroups.reduce((acc, [, items]) => acc + items.length, 0);
 
+  const fleetStats = useMemo(() => {
+    const online = list.filter((w) => w.status !== "unreachable").length;
+    const offline = list.length - online;
+    const gitRepos = list.filter((w) => w.git || w.kind === "repo").length;
+    const activeCount = list.filter((w) => runningWorkspaces.data?.has(w.path)).length;
+    const latencies = list
+      .filter((w) => w.status !== "unreachable" && typeof w.latency_ms === "number")
+      .map((w) => w.latency_ms as number);
+    const avgLatency = latencies.length
+      ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+      : null;
+    const latencySpark = Array.from({ length: 10 }, (_, idx) => {
+      const vals: number[] = [];
+      for (const w of list) {
+        const hist = histories[w.id];
+        if (!hist?.length) continue;
+        const pt = hist[Math.max(0, hist.length - 10 + idx)];
+        if (pt?.ok && pt.ms != null) vals.push(pt.ms);
+      }
+      return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : avgLatency ?? 0;
+    });
+    return { online, offline, gitRepos, activeCount, avgLatency, latencySpark };
+  }, [list, runningWorkspaces.data, histories]);
+
   return (
     <div className="flex flex-1 flex-col">
       <StudioPageHeader
         title="Workspaces"
-        count={`${shownTotal} registered`}
+        count={`${shownTotal} / ${list.length}`}
+        center={
+          <Segmented
+            label="Workspaces view mode"
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              {
+                value: "grid",
+                label: (
+                  <>
+                    <LayoutGrid className="size-3" />
+                    Fleet
+                  </>
+                ),
+              },
+              {
+                value: "list",
+                label: (
+                  <>
+                    <Table2 className="size-3" />
+                    Table
+                  </>
+                ),
+              },
+            ]}
+          />
+        }
         actions={
           <>
-            <Button
+            <button
               type="button"
-              variant={autoPing ? "default" : "outline"}
-              size="sm"
               onClick={() => setAutoPing((v) => !v)}
               title="Auto ping workspaces every 30s"
+              className={cn(
+                "btn sm",
+                autoPing && "border-success/35 bg-success-tint text-success-text"
+              )}
             >
-              <Radio className={cn("size-3.5", autoPing && "text-success-text")} />
-              Auto ping
-            </Button>
+              <Radio className={cn("size-3.5", autoPing && "animate-pulse")} />
+              <span>{autoPing ? "Live EKG" : "Paused"}</span>
+            </button>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
               loading={pinging === "__all__"}
               onClick={() => void pingAll()}
@@ -1104,255 +1181,323 @@ export function WorkspacesPage() {
               size="sm"
               loading={syncLive.isPending}
               onClick={() => syncLive.mutate()}
-              title="Import machine identity (name, OS, host, labels) from kanban-board's live workspaces.json"
+              title="Sync workspaces from node-agent live registry"
             >
               <CloudDownload className="size-3.5" />
-              Sync live
+              Sync
               {(liveCatalog.data?.count ?? 0) > 0 && (
                 <span className="font-mono text-[10px] opacity-70">{liveCatalog.data?.count}</span>
               )}
             </Button>
-            <Button
+            <button
               type="button"
-              variant="signal"
-              size="sm"
+              className="btn studio-scenic-cta sm"
+              onClick={() => setSheet({ open: true, edit: null })}
+            >
+              <Plus className="size-3.5" />
+              <span>New workspace</span>
+            </button>
+          </>
+        }
+        toolbar={
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <div className="relative flex h-7 w-[220px] items-center rounded-[9px] border border-line bg-well/65 pr-2 pl-2.5 transition-colors hover:border-line-strong hover:bg-surface">
+              <Search className="size-3.5 shrink-0 text-ink-4" aria-hidden />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search workspaces, paths, hosts…"
+                aria-label="Search workspaces"
+                className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
+              />
+            </div>
+
+            <div className="chip-row">
+              <button
+                type="button"
+                className={cn("chip", platform === "all" && "active")}
+                onClick={() => setPlatform("all")}
+              >
+                All ({list.length})
+              </button>
+              {PLATFORM_ORDER.map((pk) => {
+                const Icon = PLATFORM_META[pk].Icon;
+                const c = platformCounts.get(pk) ?? 0;
+                if (c === 0) return null;
+                return (
+                  <button
+                    key={pk}
+                    type="button"
+                    className={cn("chip inline-flex items-center gap-1", platform === pk && "active")}
+                    onClick={() => setPlatform(platform === pk ? "all" : pk)}
+                  >
+                    <Icon className="size-3" />
+                    {PLATFORM_META[pk].label} ({c})
+                  </button>
+                );
+              })}
+            </div>
+
+            {availableTags.length > 0 && (
+              <div className="chip-row ml-auto">
+                <button
+                  type="button"
+                  className={cn("chip", tagFilter === "all" && "active")}
+                  onClick={() => setTagFilter("all")}
+                >
+                  All tags
+                </button>
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={cn("chip", tagFilter === tag && "active")}
+                    onClick={() => setTagFilter(tagFilter === tag ? "all" : tag)}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        }
+      />
+
+      <div className="space-y-5 px-5 py-4">
+        {/* Fleet Telemetry Summary Strip */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StudioMetricCard
+            label="Online Nodes"
+            value={`${fleetStats.online}/${list.length}`}
+            delta={fleetStats.offline > 0 ? `${fleetStats.offline} unreachable` : "All hosts reachable"}
+            deltaTone={fleetStats.offline > 0 ? "danger" : "positive"}
+            icon={<Radio className="size-3.5" />}
+          />
+          <StudioMetricCard
+            label="Fleet Latency"
+            value={fleetStats.avgLatency !== null ? `${fleetStats.avgLatency}ms` : "—"}
+            delta={autoPing ? "30s EKG polling" : "Polling paused"}
+            icon={<Activity className="size-3.5" />}
+            spark={fleetStats.latencySpark}
+            sparkColor="#10b981"
+          />
+          <StudioMetricCard
+            label="Active Runs"
+            value={fleetStats.activeCount}
+            delta={fleetStats.activeCount > 0 ? "Executing tasks now" : "Idle capacity"}
+            deltaTone={fleetStats.activeCount > 0 ? "positive" : "neutral"}
+            icon={<Monitor className="size-3.5" />}
+          />
+          <StudioMetricCard
+            label="Git Repositories"
+            value={fleetStats.gitRepos}
+            delta={
+              (liveCatalog.data?.count ?? 0) > 0
+                ? `${liveCatalog.data?.count} in live registry`
+                : "Local registry"
+            }
+            icon={<GitBranch className="size-3.5" />}
+          />
+        </div>
+
+        <ErrorBox error={workspaces.error ?? remove.error} />
+
+        {workspaces.data === null ? (
+          <div className="panel">Workspaces require an active control plane connection.</div>
+        ) : list.length === 0 ? (
+          <div className="panel flex flex-col items-center gap-2.5 py-12 text-center">
+            <FolderGit2 className="size-7 text-ink-3" />
+            <strong className="text-sm text-ink">No workspaces registered</strong>
+            <p className="m-0 max-w-md text-xs text-ink-3">
+              Register a checkout on this machine, macOS, or Windows so autonomous agents can open isolated git worktrees.
+            </p>
+            <button
+              type="button"
+              className="btn studio-scenic-cta sm mt-1"
               onClick={() => setSheet({ open: true, edit: null })}
             >
               <Plus className="size-3.5" />
               New workspace
-            </Button>
-          </>
-        }
-      />
-
-      <div className="px-5 py-4">
-
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface/60 px-3 py-2 text-[11px] text-ink-3">
-        <Radio className={cn("size-3.5", (liveCatalog.data?.count ?? 0) > 0 && "text-success-text")} />
-        <span>
-          <strong className="font-medium text-ink-2">kanban-board live registry</strong>
-          {" · "}
-          {(liveCatalog.data?.count ?? 0) > 0
-            ? `${liveCatalog.data?.count} workspaces reported by node-agent`
-            : "node-agent registry unavailable — showing local records"}
-        </span>
-        <span className="h-3 w-px bg-line" aria-hidden />
-        <span>
-          Machine type is resolved from the live OS/host and the path shape (
-          <code className="font-mono">D:\…</code> → Windows), so stale <code className="font-mono">mac: </code>
-          prefixes no longer decide the preset.
-        </span>
-      </div>
-
-      {/* Filter bar */}
-      <div className="toolbar-row mb-4 rounded-card border border-line bg-surface/60 px-3 py-2">
-        <div className="search-box">
-          <Search className="size-3.5 text-ink-3" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search workspaces…"
-            aria-label="Search workspaces"
-          />
-        </div>
-
-        <div className="chip-row">
-          <button
-            type="button"
-            className={cn("chip", platform === "all" && "active")}
-            onClick={() => setPlatform("all")}
-          >
-            All ({list.length})
-          </button>
-          {PLATFORM_ORDER.map((pk) => {
-            const Icon = PLATFORM_META[pk].Icon;
-            const c = platformCounts.get(pk) ?? 0;
-            return (
-              <button
-                key={pk}
-                type="button"
-                className={cn("chip inline-flex items-center gap-1", platform === pk && "active")}
-                onClick={() => setPlatform(platform === pk ? "all" : pk)}
-              >
-                <Icon className="size-3" />
-                {PLATFORM_META[pk].label} ({c})
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="chip-row">
-          <button
-            type="button"
-            className={cn("chip", tagFilter === "all" && "active")}
-            onClick={() => setTagFilter("all")}
-          >
-            All tags
-          </button>
-          {availableTags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              className={cn("chip", tagFilter === tag && "active")}
-              onClick={() => setTagFilter(tagFilter === tag ? "all" : tag)}
-            >
-              #{tag}
             </button>
-          ))}
-        </div>
-
-        <span className="muted tabular ml-auto text-xs">
-          {shownTotal} of {list.length}
-        </span>
-      </div>
-
-      <ErrorBox error={workspaces.error ?? remove.error} />
-
-      {workspaces.data === null ? (
-        <div className="panel">Workspaces require an active control plane connection.</div>
-      ) : list.length === 0 ? (
-        <div className="panel flex flex-col items-center gap-2 py-10 text-center">
-          <FolderGit2 className="size-6 text-ink-3" />
-          <strong className="text-sm text-ink">No workspaces yet</strong>
-          <p className="m-0 max-w-md text-xs text-ink-3">
-            Add your Current machine directory, Mac host, or Windows host so tasks can target the right checkout.
-          </p>
-          <Button variant="signal" size="sm" onClick={() => setSheet({ open: true, edit: null })}>
-            <Plus className="size-3.5" />
-            New workspace
-          </Button>
-        </div>
-      ) : shownGroups.length === 0 ? (
-        <div className="panel flex flex-col items-center gap-2 py-8 text-center">
-          <strong className="text-sm text-ink">No matching workspaces</strong>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setQ("");
-              setPlatform("all");
-              setTagFilter("all");
-            }}
-          >
-            Clear filters
-          </Button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {shownGroups.map(([pk, items]) => {
-            const meta = PLATFORM_META[pk];
-            const Icon = meta.Icon;
-            return (
-              <section key={pk} className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 border-b border-line pb-2">
-                  <Icon className="size-4 text-ink-2" />
-                  <h3 className="m-0 text-sm font-semibold text-ink">{meta.label}</h3>
-                  <Badge variant="secondary" className="tabular-nums">
-                    {items.length} {items.length === 1 ? "workspace" : "workspaces"}
-                  </Badge>
-                </div>
-
-                <div
-                  className="grid gap-3"
-                  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))" }}
-                >
-                  {items.map((w, idx) => {
+          </div>
+        ) : shownGroups.length === 0 ? (
+          <div className="panel flex flex-col items-center gap-2 py-8 text-center">
+            <strong className="text-sm text-ink">No matching workspaces</strong>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setQ("");
+                setPlatform("all");
+                setTagFilter("all");
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        ) : viewMode === "list" ? (
+          <div className="overflow-x-auto rounded-[14px] border border-line bg-surface shadow-[var(--lift-1)]">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="border-b border-line bg-well/50 font-mono text-[10px] tracking-[0.08em] text-ink-4 uppercase">
+                  <th className="px-3.5 py-2.5 font-medium">Workspace</th>
+                  <th className="px-3 py-2.5 font-medium">Host / OS</th>
+                  <th className="px-3 py-2.5 font-medium">Status</th>
+                  <th className="px-3 py-2.5 font-medium">Live EKG</th>
+                  <th className="px-3.5 py-2.5 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line/70">
+                {shownGroups.flatMap(([pk, items]) =>
+                  items.map((w, idx) => {
+                    const meta = PLATFORM_META[pk];
+                    const Icon = meta.Icon;
                     const st = statusStyleFor(w);
                     const isRunning = runningWorkspaces.data?.has(w.path) ?? false;
                     return (
-                      <div
-                        key={w.id}
-                        className={cn(
-                          "group relative flex flex-col justify-between rounded-[12px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)]",
-                          "transition-[border-color,box-shadow,transform] duration-150 ease-[var(--ease-out-expo)]",
-                          "hover:border-line-strong hover:shadow-[var(--lift-2),var(--lift-inset)]"
-                        )}
-                      >
-                        <div>
-                          {/* Card Tier 1: Identity, status, and quick management */}
-                          <div className="flex items-start justify-between gap-2.5">
-                            <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                              <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-line bg-well/70 shadow-[var(--well-inset)]">
-                                <Icon className="size-4 text-ink-2" />
+                      <tr key={w.id} className="transition-colors hover:bg-well/45">
+                        <td className="px-3.5 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[8px] border border-line bg-well/70 text-ink-2">
+                              <Icon className="size-3.5" />
+                            </span>
+                            <div className="min-w-0">
+                              <div className="truncate font-semibold text-ink">{w.name}</div>
+                              <div className="max-w-[300px] truncate font-mono text-[10.5px] text-ink-4" title={w.path}>
+                                {w.path}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-ink-3">
+                          {w.host ? `ssh · ${w.host}` : w.node ? `node · ${w.node}` : meta.badge}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className={cn("inline-flex items-center gap-1.5 font-medium", st.tone)}>
+                            <span className={cn("size-1.5 rounded-full", st.dot, isRunning && "animate-pulse")} />
+                            {isRunning ? "Running" : st.label}
+                          </span>
+                        </td>
+                        <td className="w-[175px] px-3 py-2">
+                          <OscilloscopeMonitor
+                            compact
+                            points={histories[w.id] ?? []}
+                            ok={w.status !== "unreachable"}
+                            running={isRunning}
+                            pinging={pinging === w.id || pinging === "__all__"}
+                            latencyMs={w.latency_ms}
+                            status={w.status}
+                            wsId={w.id}
+                            staggerIndex={idx}
+                          />
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right">
+                          <div className="inline-flex items-center gap-1">
+                            <Button type="button" variant="outline" size="xs" loading={pinging === w.id} onClick={() => void pingOne(w)}>
+                              Ping
+                            </Button>
+                            <Button type="button" variant="outline" size="xs" onClick={() => setInspectTarget(w)}>
+                              Git
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon-xs" aria-label={`Edit ${w.name}`} onClick={() => setSheet({ open: true, edit: w })}>
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon-xs" aria-label={`Delete ${w.name}`} onClick={() => setPendingDelete(w)} className="text-danger-text hover:bg-danger/10">
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {shownGroups.map(([pk, items]) => {
+              const meta = PLATFORM_META[pk];
+              const Icon = meta.Icon;
+              return (
+                <section key={pk} className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex size-6 items-center justify-center rounded-[7px] border border-line bg-well/70 text-ink-2">
+                        <Icon className="size-3.5" />
+                      </span>
+                      <h3 className="m-0 text-[13.5px] font-semibold tracking-[-0.01em] text-ink">{meta.label}</h3>
+                      <span className="font-mono text-[11px] tabular-nums text-ink-4">
+                        {items.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    className="grid gap-3.5"
+                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
+                  >
+                    {items.map((w, idx) => {
+                      const st = statusStyleFor(w);
+                      const isRunning = runningWorkspaces.data?.has(w.path) ?? false;
+                      const transportTag = w.host ? `ssh · ${w.host}` : w.node ? `node · ${w.node}` : "local";
+                      return (
+                        <article
+                          key={w.id}
+                          className={cn(
+                            "group relative flex flex-col justify-between gap-3 rounded-[14px] border border-line bg-surface p-3.5 shadow-[var(--lift-1)]",
+                            "transition-[border-color,box-shadow,transform] duration-180 ease-[var(--ease-out)]",
+                            "hover:border-line-strong hover:shadow-[var(--lift-2)]",
+                            isRunning && "border-accent/45"
+                          )}
+                        >
+                          {/* Top Row: Identity + Clean Status + Hover Actions */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                              <div
+                                className={cn(
+                                  "relative flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-line bg-well/70 text-ink-2",
+                                  isRunning && "border-accent/35 bg-accent-tint text-accent-text"
+                                )}
+                              >
+                                <Icon className="size-4" />
+                                <span
+                                  aria-hidden
+                                  className={cn(
+                                    "absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-surface",
+                                    st.dot,
+                                    isRunning && "animate-pulse"
+                                  )}
+                                />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h4 className="m-0 truncate text-[13.5px] font-semibold tracking-tight text-ink" title={w.name}>
-                                  {w.name}
-                                </h4>
-                                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                  <span
-                                    className={cn(
-                                      "inline-flex h-5 items-center gap-1.5 rounded-md border px-2 text-[10.5px] font-medium leading-none",
-                                      st.tone === "text-success-text" && "border-success/30 bg-success-tint text-success-text",
-                                      st.tone === "text-danger-text" && "border-danger/30 bg-danger-tint text-danger-text",
-                                      st.tone === "text-ink-2" && "border-line bg-well text-ink-2",
-                                      st.tone === "text-ink-3" && "border-line bg-well text-ink-3"
-                                    )}
-                                  >
-                                    <span
-                                      className={cn(
-                                        "size-1.5 shrink-0 rounded-full",
-                                        st.dot,
-                                        isRunning && "animate-pulse"
-                                      )}
-                                      aria-hidden
-                                    />
-                                    {isRunning ? "Running task" : st.label}
-                                  </span>
-
-                                  <Badge variant="outline" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
-                                    {meta.badge}
-                                  </Badge>
-
-                                  {w.live && (
-                                    <Badge
-                                      variant="success"
-                                      className="h-5 rounded-md px-1.5 font-mono text-[10px]"
-                                      title={`From kanban-board live registry${w.live_id ? ` · ${w.live_id}` : ""}`}
-                                    >
-                                      live · kanban
-                                    </Badge>
-                                  )}
-
-                                  {w.machine && w.machine !== pk && (
-                                    <Badge variant="outline" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
-                                      machine · {w.machine}
-                                    </Badge>
-                                  )}
-
-                                  {w.host && (
-                                    <Badge variant="secondary" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
-                                      ssh · {w.host}
-                                    </Badge>
-                                  )}
-
-                                  {!w.host && w.node && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="h-5 rounded-md px-1.5 font-mono text-[10px]"
-                                      title={w.hostname || w.node}
-                                    >
-                                      node · {w.node}
-                                    </Badge>
-                                  )}
-
+                                <div className="flex items-center gap-1.5">
+                                  <h4 className="m-0 truncate text-[13.5px] font-semibold tracking-[-0.015em] text-ink" title={w.name}>
+                                    {w.name}
+                                  </h4>
                                   {(w.git || w.kind === "repo") && (
-                                    <Badge variant="success" className="h-5 rounded-md px-1.5 font-mono text-[10px]">
-                                      <GitBranch className="size-2.5" />
-                                      git
-                                    </Badge>
+                                    <GitBranch className="size-3 shrink-0 text-success-text" aria-label="Git repository" />
                                   )}
-
-                                  {(w.labels ?? []).map((lbl) => (
-                                    <Badge key={lbl} variant="review" className="h-5 rounded-md px-1.5 text-[10px]">
-                                      {lbl}
-                                    </Badge>
+                                </div>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 font-mono text-[10.5px] text-ink-4">
+                                  <span className={cn("font-medium", st.tone)}>
+                                    {isRunning ? "Executing" : st.label}
+                                  </span>
+                                  <span>·</span>
+                                  <span className="truncate">{transportTag}</span>
+                                  {(w.labels ?? []).slice(0, 2).map((lbl) => (
+                                    <span
+                                      key={lbl}
+                                      className="rounded-full bg-well px-1.5 py-px text-[9.5px] text-ink-3"
+                                    >
+                                      #{lbl}
+                                    </span>
                                   ))}
                                 </div>
                               </div>
                             </div>
 
-                            <div className="flex shrink-0 items-center gap-1">
+                            <div className="flex shrink-0 items-center gap-0.5 opacity-80 transition-opacity group-hover:opacity-100">
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1377,8 +1522,8 @@ export function WorkspacesPage() {
                             </div>
                           </div>
 
-                          {/* Card Tier 2: Path capsule and note */}
-                          <div className="mt-2.5 flex items-center justify-between gap-1.5 rounded-[7px] border border-line/70 bg-well/60 px-2 py-1 text-[11px]">
+                          {/* Path Capsule */}
+                          <div className="flex items-center justify-between gap-1.5 rounded-[9px] border border-line/80 bg-well/55 px-2.5 py-1.5 text-[11px]">
                             <div className="flex min-w-0 flex-1 items-center gap-1.5 font-mono text-ink-3">
                               <FolderGit2 className="size-3 shrink-0 text-ink-4" />
                               <span className="truncate" title={w.path}>
@@ -1389,14 +1534,12 @@ export function WorkspacesPage() {
                           </div>
 
                           {w.note && (
-                            <p className="mt-1.5 mb-0 line-clamp-2 text-xs leading-relaxed text-ink-2">
+                            <p className="m-0 line-clamp-2 text-[11.5px] leading-relaxed text-ink-3">
                               {w.note}
                             </p>
                           )}
-                        </div>
 
-                        {/* Card Tier 3: Oscilloscope Telemetry Bay & Actions */}
-                        <div className="mt-3 flex flex-col gap-2">
+                          {/* Elevated EKG Oscilloscope Bay */}
                           <OscilloscopeMonitor
                             points={histories[w.id] ?? []}
                             ok={w.status !== "unreachable"}
@@ -1408,6 +1551,7 @@ export function WorkspacesPage() {
                             staggerIndex={idx}
                           />
 
+                          {/* Footer Actions */}
                           <div className="flex items-center justify-between gap-2 pt-0.5">
                             <div className="flex items-center gap-1.5">
                               <Button
@@ -1431,23 +1575,24 @@ export function WorkspacesPage() {
                               </Button>
                             </div>
 
-                            {isRunning && (
-                              <span className="inline-flex h-5 items-center gap-1 rounded-md border border-accent/30 bg-accent-tint px-2 font-mono text-[10px] font-semibold text-accent-text">
+                            {isRunning ? (
+                              <span className="inline-flex h-5 items-center gap-1 rounded-full border border-accent/35 bg-accent-tint px-2 font-mono text-[10px] font-semibold text-accent-text">
                                 <span className="size-1.5 rounded-full bg-accent animate-pulse" />
                                 active
                               </span>
-                            )}
+                            ) : w.live ? (
+                              <span className="font-mono text-[10px] text-ink-4">live sync</span>
+                            ) : null}
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
 
       {sheet.open && (
         <WorkspaceSheet

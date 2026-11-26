@@ -267,53 +267,63 @@ const LIFECYCLE_STAGES: Status[] = ["backlog", "todo", "in_progress", "review", 
 
 function LifecycleStepper({ status, compact = false }: { status: Status; compact?: boolean }) {
   const activeIdx = LIFECYCLE_STAGES.indexOf(status);
-  const offTrack = status === "blocked" || status === "failed";
+  const offTrack = status === "blocked" || status === "failed" || status === "waiting_input";
 
   return (
     <div
       className={cn(
-        "mt-2 flex flex-wrap items-center gap-1 rounded-[12px] border border-[var(--glass-border-soft)] bg-[var(--glass-2)] p-1",
+        "mt-2 flex items-center gap-1 overflow-x-auto rounded-[11px] border border-line bg-well/55 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         compact && "gap-0.5 py-0.5"
       )}
       aria-label="Task lifecycle progression"
     >
-      {LIFECYCLE_STAGES.map((stage, idx) => {
-        const isCurrent = stage === status;
-        const isPast = !offTrack && activeIdx > idx;
-        return (
-          <div key={stage} className="flex items-center gap-1">
-            <span
-              className={cn(
-                "inline-flex h-[22px] items-center gap-1.5 rounded-[8px] px-2 text-[10.5px] font-medium leading-none transition-colors",
-                isCurrent
-                  ? "border border-[var(--glass-border)] bg-[var(--glass-3)] font-semibold text-[var(--text-primary)] shadow-[var(--glass-highlight),var(--glass-shadow-sm)]"
-                  : isPast
-                    ? "text-[var(--text-secondary)]"
-                    : "text-[var(--text-muted)]"
-              )}
-            >
+      <div className="flex min-w-0 flex-1 items-center gap-0.5">
+        {LIFECYCLE_STAGES.map((stage, idx) => {
+          const isCurrent = stage === status;
+          const isPast = !offTrack && activeIdx > idx;
+          return (
+            <div key={stage} className="flex shrink-0 items-center gap-0.5">
               <span
                 className={cn(
-                  "inline-block size-1.5 rounded-full shrink-0",
+                  "inline-flex h-[22px] items-center gap-1 rounded-[7px] text-[10.5px] font-medium leading-none whitespace-nowrap transition-colors",
+                  compact ? "px-1.5" : "px-2",
                   isCurrent
-                    ? STATUS_DOT[stage]
+                    ? "border border-line-strong bg-surface font-semibold text-ink shadow-[var(--lift-1)]"
                     : isPast
-                      ? "bg-success"
-                      : "bg-slate-400/50"
+                      ? "text-ink-2"
+                      : "text-ink-4"
                 )}
-                aria-hidden
-              />
-              {LABEL[stage] ?? stage}
-            </span>
-            {idx < LIFECYCLE_STAGES.length - 1 && (
-              <ChevronRight className="size-3 shrink-0 text-[var(--text-muted)]" aria-hidden />
-            )}
-          </div>
-        );
-      })}
+              >
+                <span
+                  className={cn(
+                    "inline-block size-1.5 rounded-full shrink-0",
+                    isCurrent
+                      ? STATUS_DOT[stage]
+                      : isPast
+                        ? "bg-success"
+                        : "bg-slate-400/50"
+                  )}
+                  aria-hidden
+                />
+                {LABEL[stage] ?? stage}
+              </span>
+              {idx < LIFECYCLE_STAGES.length - 1 && (
+                <ChevronRight className="size-2.5 shrink-0 text-ink-4/70" aria-hidden />
+              )}
+            </div>
+          );
+        })}
+      </div>
       {offTrack && (
-        <span className="ml-auto inline-flex h-[22px] items-center gap-1.5 rounded-full border border-[var(--status-failed-border)] bg-[var(--status-failed-bg)] px-2.5 text-[10.5px] font-semibold leading-none text-[var(--status-failed)]">
-          <span className={cn("inline-block size-1.5 rounded-full", STATUS_DOT[status])} aria-hidden />
+        <span
+          className={cn(
+            "inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-[7px] border px-2 text-[10.5px] font-semibold leading-none whitespace-nowrap",
+            status === "waiting_input"
+              ? "border-[var(--status-waiting-border)] bg-[var(--status-waiting-soft)] text-[var(--status-waiting)]"
+              : "border-[var(--status-failed-border)] bg-[var(--status-failed-bg)] text-[var(--status-failed)]"
+          )}
+        >
+          <span className={cn("inline-block size-1.5 rounded-full shrink-0", STATUS_DOT[status])} aria-hidden />
           {LABEL[status] ?? status}
         </span>
       )}

@@ -540,9 +540,9 @@ export function TaskDetailPanels({
       <TabsList
         variant="default"
         className={cn(
-          "h-9 w-full justify-start overflow-x-auto rounded-[14px] border border-[var(--glass-border-soft)] bg-[var(--glass-2)] p-1",
-          "[&_[data-slot=tabs-trigger]]:h-[26px] [&_[data-slot=tabs-trigger]]:rounded-[10px] [&_[data-slot=tabs-trigger]]:px-2.5 [&_[data-slot=tabs-trigger]]:py-0 [&_[data-slot=tabs-trigger]]:text-[var(--text-secondary)] [&_[data-slot=tabs-trigger]]:after:hidden",
-          "[&_[data-slot=tabs-trigger][data-state=active]]:border [&_[data-slot=tabs-trigger][data-state=active]]:border-[var(--glass-border)] [&_[data-slot=tabs-trigger][data-state=active]]:bg-[var(--glass-3)] [&_[data-slot=tabs-trigger][data-state=active]]:text-[var(--text-primary)] [&_[data-slot=tabs-trigger][data-state=active]]:shadow-[var(--glass-highlight),var(--glass-shadow-sm)]",
+          "h-9 w-full justify-start gap-0.5 overflow-x-auto rounded-[12px] border border-line bg-well/65 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "[&_[data-slot=tabs-trigger]]:h-[26px] [&_[data-slot=tabs-trigger]]:shrink-0 [&_[data-slot=tabs-trigger]]:gap-1.5 [&_[data-slot=tabs-trigger]]:rounded-[8px] [&_[data-slot=tabs-trigger]]:px-2 [&_[data-slot=tabs-trigger]]:py-0 [&_[data-slot=tabs-trigger]]:text-[11.5px] [&_[data-slot=tabs-trigger]]:text-ink-3 [&_[data-slot=tabs-trigger]]:after:hidden",
+          "[&_[data-slot=tabs-trigger][data-state=active]]:border [&_[data-slot=tabs-trigger][data-state=active]]:border-line [&_[data-slot=tabs-trigger][data-state=active]]:bg-surface [&_[data-slot=tabs-trigger][data-state=active]]:text-ink [&_[data-slot=tabs-trigger][data-state=active]]:shadow-[var(--lift-1)]",
           variant === "page" && "sticky top-[106px] z-10 backdrop-blur-xl"
         )}
       >
@@ -556,14 +556,14 @@ export function TaskDetailPanels({
           {t?.status === "in_progress" ? (
             <span className="size-1.5 rounded-full bg-accent animate-pulse" aria-hidden />
           ) : runCount > 0 ? (
-            <span className="rounded-full bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[10px] leading-none text-[var(--text-secondary)]">
+            <span className="rounded-full bg-well px-1.5 py-0.5 font-mono text-[10px] leading-none text-ink-3">
               {runCount}
             </span>
           ) : null}
         </TabsTrigger>
-        <TabsTrigger value="diff">
+        <TabsTrigger value="diff" title="Diff & worktree" aria-label="Diff & worktree">
           <FileCode2 className="size-3.5" />
-          Diff &amp; worktree
+          Diff
           {worktree.data?.exists && <span className="size-1.5 rounded-full bg-accent" aria-hidden />}
         </TabsTrigger>
         <TabsTrigger value="discussion">

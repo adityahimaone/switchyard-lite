@@ -91,6 +91,12 @@ import {
 } from "@/lib/executors";
 import { GlobalFlowMap } from "@/components/flow/GlobalFlowMap";
 import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
+import {
+  StudioAreaChart,
+  StudioBarChart,
+  StudioMetricCard,
+  StudioRingChart,
+} from "@/components/studio/StudioCharts";
 
 interface Overview {
   counts: Record<string, number>;
@@ -105,6 +111,7 @@ interface Overview {
 export function OverviewScreen() {
   const { boardId, activeBoard, boards, setBoardId } = useBoardId();
   const [scopeBoard, setScopeBoard] = useState(false);
+  const [rangeDays, setRangeDays] = useState<7 | 14>(14);
 
   const q = useQuery({
     queryKey: ["overview", scopeBoard ? boardId : "all"],
@@ -115,24 +122,76 @@ export function OverviewScreen() {
       ),
   });
 
-  const summaryCards = q.data
-    ? [
-        { label: "Total tasks", value: q.data.total, icon: Layers, accent: true },
-        { label: "Boards", value: q.data.boards, icon: GitBranch, accent: false },
-        ...(q.data.workspaces !== undefined
-          ? [{ label: "Workspaces", value: q.data.workspaces, icon: Server, accent: false }]
-          : []),
-        ...(q.data.workers !== undefined
-          ? [{ label: "Workers", value: q.data.workers, icon: Cpu, accent: false }]
-          : []),
-      ]
-    : [];
+  const boardTasksQuery = useQuery({
+    queryKey: ["overview-tasks", scopeBoard ? boardId : "all", (boards.data ?? []).map((b) => b.id).join(",")],
+    enabled: (boards.data?.length ?? 0) > 0,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const targetIds = scopeBoard && boardId ? [boardId] : (boards.data ?? []).map((b) => b.id);
+      const chunks = await Promise.all(
+        targetIds.map((id) => apiOr<Task[]>(`/api/v1/boards/${id}/tasks`, []))
+      );
+      return chunks.flat();
+    },
+  });
+
+  const allTasks = boardTasksQuery.data ?? [];
+
+  const velocity = useMemo(() => {
+    const now = new Date();
+    const days: { key: string; label: string; created: number; completed: number }[] = [];
+    for (let i = rangeDays - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      days.push({ key, label, created: 0, completed: 0 });
+    }
+    const byKey = new Map(days.map((d) => [d.key, d]));
+    const toKey = (ts?: number) => {
+      if (!ts) return "";
+      const ms = ts > 1e12 ? ts : ts * 1000;
+      const d = new Date(ms);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    for (const t of allTasks) {
+      const ck = toKey(t.created_at);
+      if (byKey.has(ck)) byKey.get(ck)!.created += 1;
+      if (t.status === "done") {
+        const uk = toKey(t.updated_at || t.created_at);
+        if (byKey.has(uk)) byKey.get(uk)!.completed += 1;
+      }
+    }
+    return days;
+  }, [allTasks, rangeDays]);
+
+  const executorBreakdown = useMemo(() => {
+    const map = new Map<string, { total: number; done: number; active: number }>();
+    for (const t of allTasks) {
+      const ex = t.executor || "auto";
+      const cur = map.get(ex) ?? { total: 0, done: 0, active: 0 };
+      cur.total += 1;
+      if (t.status === "done") cur.done += 1;
+      if (t.status === "in_progress" || t.status === "waiting_input") cur.active += 1;
+      map.set(ex, cur);
+    }
+    return Array.from(map.entries())
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.total - a.total);
+  }, [allTasks]);
+
+  const counts = q.data?.counts ?? {};
+  const totalTasks = q.data?.total ?? 0;
+  const doneCount = counts.done ?? 0;
+  const activeCount = (counts.in_progress ?? 0) + (counts.waiting_input ?? 0);
+  const reviewCount = counts.review ?? 0;
+  const blockedFailedCount = (counts.blocked ?? 0) + (counts.failed ?? 0);
+  const completionPct = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
 
   return (
     <div className="flex flex-1 flex-col">
       <StudioPageHeader
         title="Overview"
-        count="telemetry"
+        count={`${totalTasks} tasks`}
         actions={
           <>
             {(boards.data?.length ?? 0) > 0 && (
@@ -149,18 +208,18 @@ export function OverviewScreen() {
             )}
             <Link href="/logs" className="chip inline-flex items-center gap-1.5" title="Open the Logs page">
               <Activity className="size-3.5" />
-              <span>Live Activity Stream → Logs</span>
+              <span>Activity Stream</span>
             </Link>
             {q.data && (
               <span
-                className="lamp rounded-full border border-line bg-surface px-3 py-1.5 text-xs"
+                className="lamp rounded-full border border-line bg-surface px-2.5 py-1 text-[11.5px]"
                 style={{
                   ["--lamp" as string]:
                     q.data.health.status === "ok" ? "var(--c-success)" : "var(--c-danger)",
                 }}
               >
                 <span className="lamp-dot pulse" />
-                Health: {q.data.health.status}
+                {q.data.health.status === "ok" ? "Healthy" : q.data.health.status}
               </span>
             )}
           </>
@@ -168,106 +227,149 @@ export function OverviewScreen() {
       />
 
       <div className="space-y-4 px-5 py-4">
-      <ErrorBox error={q.error} />
+        <ErrorBox error={q.error} />
 
-      {q.data && (
-        <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {summaryCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.label}
-                  className="rounded-[22px] border border-line bg-surface p-4 shadow-[var(--lift-1),var(--lift-inset)]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[10.5px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
-                      {card.label}
-                    </span>
-                    <span
-                      className={
-                        card.accent
-                          ? "inline-flex size-7 items-center justify-center rounded-full bg-accent-tint text-accent-text"
-                          : "inline-flex size-7 items-center justify-center rounded-full bg-well text-ink-3"
-                      }
-                    >
-                      <Icon className="size-3.5" />
-                    </span>
-                  </div>
-                  <div className="mt-2 font-[var(--font-display)] text-[28px] font-extrabold leading-none tracking-[-0.03em] tabular-nums text-ink">
-                    {card.value}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <Panel title="Status Station Matrix">
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
-              {STATUSES.map((s) => {
-                const count = q.data!.counts[s] ?? 0;
-                const pct = q.data!.total > 0 ? Math.round((count / q.data!.total) * 100) : 0;
-                return (
-                  <div
-                    key={s}
-                    className="flex flex-col justify-between gap-2 rounded-[18px] border border-line bg-well/55 p-3 shadow-[var(--well-inset)]"
-                  >
-                    <Lamp status={s} />
-                    <div className="flex items-baseline justify-between gap-2">
-                      <b className="font-[var(--font-display)] text-2xl font-extrabold leading-none tabular-nums text-ink">
-                        {count}
-                      </b>
-                      <span className="font-mono text-[10.5px] tabular-nums text-ink-4">{pct}%</span>
-                    </div>
-                  </div>
-                );
-              })}
+        {q.data && (
+          <>
+            {/* Bklit-inspired KPI Metric Strip */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StudioMetricCard
+                label="Total tasks"
+                value={totalTasks}
+                delta={`${completionPct}% completed · ${q.data.boards} ${q.data.boards === 1 ? "board" : "boards"}`}
+                deltaTone="positive"
+                icon={<Layers className="size-3.5" />}
+                spark={velocity.map((d) => d.created)}
+                sparkColor="var(--c-accent)"
+              />
+              <StudioMetricCard
+                label="Active execution"
+                value={activeCount}
+                delta={`${counts.todo ?? 0} queued · ${counts.waiting_input ?? 0} waiting input`}
+                deltaTone={activeCount > 0 ? "positive" : "neutral"}
+                icon={<Activity className="size-3.5" />}
+                spark={velocity.map((d) => d.completed)}
+                sparkColor="var(--c-success)"
+              />
+              <StudioMetricCard
+                label="Review & alerts"
+                value={reviewCount}
+                delta={
+                  blockedFailedCount > 0
+                    ? `${blockedFailedCount} blocked / failed`
+                    : "Zero blocked tasks"
+                }
+                deltaTone={blockedFailedCount > 0 ? "danger" : "neutral"}
+                icon={<AlertTriangle className="size-3.5" />}
+              />
+              <StudioMetricCard
+                label="Fleet capacity"
+                value={q.data.workers ?? 0}
+                delta={`${q.data.workspaces ?? 0} workspaces registered`}
+                icon={<Cpu className="size-3.5" />}
+              />
             </div>
-          </Panel>
 
-          {q.data.total > 0 && (
-            <Panel title="Task Distribution">
-              <div className="space-y-3">
-                <div className="flex h-3.5 overflow-hidden rounded-full bg-well p-0.5 shadow-[var(--well-inset)] gap-0.5">
-                  {STATUSES.map((s) => {
-                    const n = q.data!.counts[s] ?? 0;
-                    if (!n) return null;
-                    const pct = (n / q.data!.total) * 100;
-                    return (
-                      <div
-                        key={s}
-                        title={`${s}: ${n} (${Math.round(pct)}%)`}
-                        className="h-full rounded-full"
-                        style={{ width: `${pct}%`, background: statusColor(s) }}
-                      />
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {STATUSES.map((s) => {
-                    const n = q.data!.counts[s] ?? 0;
-                    if (!n) return null;
-                    return (
-                      <span
-                        key={s}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-well/60 px-2.5 py-1 text-[11px] font-medium text-ink-2"
-                      >
-                        <span
-                          className="size-2 rounded-full"
-                          style={{ background: statusColor(s) }}
-                          aria-hidden
-                        />
-                        <span>{LABEL[s] ?? s}</span>
-                        <span className="font-mono tabular-nums text-ink-3">{n}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            </Panel>
-          )}
-        </>
-      )}
+            {/* Primary Charts Row: Task Velocity Area Chart + Health Ring Chart */}
+            <div className="grid gap-4 lg:grid-cols-12">
+              <Panel
+                title="Task Velocity"
+                className="lg:col-span-7"
+                actions={
+                  <Segmented
+                    label="Velocity time window"
+                    value={String(rangeDays)}
+                    onChange={(v) => setRangeDays(v === "7" ? 7 : 14)}
+                    options={[
+                      { value: "7", label: "7d" },
+                      { value: "14", label: "14d" },
+                    ]}
+                  />
+                }
+              >
+                <StudioAreaChart
+                  labels={velocity.map((d) => d.label)}
+                  series={[
+                    {
+                      id: "created",
+                      label: "Created",
+                      color: "var(--c-accent)",
+                      data: velocity.map((d) => d.created),
+                    },
+                    {
+                      id: "completed",
+                      label: "Completed",
+                      color: "var(--c-success)",
+                      data: velocity.map((d) => d.completed),
+                    },
+                  ]}
+                />
+              </Panel>
+
+              <Panel title="Completion & Health" className="lg:col-span-5">
+                <StudioRingChart
+                  total={totalTasks}
+                  centerValue={`${completionPct}%`}
+                  centerLabel="Done"
+                  segments={[
+                    { key: "done", label: "Completed", value: doneCount, color: "var(--c-success)" },
+                    { key: "active", label: "In flight", value: activeCount, color: "var(--c-accent)" },
+                    { key: "review", label: "In review", value: reviewCount, color: "var(--c-review)" },
+                    { key: "risk", label: "Blocked / Failed", value: blockedFailedCount, color: "var(--c-danger)" },
+                  ]}
+                />
+              </Panel>
+            </div>
+
+            {/* Secondary Charts Row: Stage Distribution Bar Chart + Executor Breakdown */}
+            <div className="grid gap-4 lg:grid-cols-12">
+              <Panel title="Stage Distribution" className="lg:col-span-7">
+                <StudioBarChart
+                  data={STATUSES.map((s) => ({
+                    key: s,
+                    label: (LABEL[s] ?? s).replace("Waiting input", "Wait").replace("In progress", "Active"),
+                    value: counts[s] ?? 0,
+                    color: statusColor(s),
+                  }))}
+                />
+              </Panel>
+
+              <Panel title="Executor Workload" className="lg:col-span-5">
+                {executorBreakdown.length === 0 ? (
+                  <div className="flex h-[176px] items-center justify-center text-xs text-ink-4">
+                    No tasks assigned to executors yet.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 pt-1">
+                    {executorBreakdown.map((ex) => {
+                      const share = allTasks.length > 0 ? Math.round((ex.total / allTasks.length) * 100) : 0;
+                      const doneShare = ex.total > 0 ? Math.round((ex.done / ex.total) * 100) : 0;
+                      return (
+                        <div key={ex.name} className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="inline-flex items-center gap-1.5 font-mono font-semibold text-ink">
+                              <Cpu className="size-3 text-accent-text" />
+                              {ex.name}
+                            </span>
+                            <span className="font-mono text-[11px] tabular-nums text-ink-3">
+                              <strong className="text-ink">{ex.total}</strong> tasks · {doneShare}% done
+                            </span>
+                          </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-well">
+                            <div
+                              className="h-full rounded-full bg-accent transition-[width] duration-300 ease-[var(--ease-out)]"
+                              style={{ width: `${Math.max(4, share)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Panel>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
