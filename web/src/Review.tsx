@@ -5,6 +5,7 @@ import { api, ApiError, apiOr, LIVE_FALLBACK_MS, post, type Task } from "./api";
 import { ErrorBox, Lamp, Unavailable } from "./ui";
 import { useBoardId } from "./Board";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export function DiffView({ text }: { text: string }) {
@@ -91,34 +92,29 @@ export function ReviewScreen({ taskId, pick }: { taskId?: string; pick: (id: str
   });
 
   return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2>Review Gate</h2>
-            <span className="pill-count tabular-nums">{queue.data?.length ?? 0} awaiting</span>
-          </div>
-          <p className="page-subtitle">
-            Inspect worktree diffs against base SHA before marking tasks done or requeueing with feedback.
-          </p>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Review Gate"
+        count={`${queue.data?.length ?? 0} awaiting`}
+        actions={
+          <>
+            {(boards.data?.length ?? 0) > 1 && (
+              <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
+            )}
+            <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[10px] border border-line bg-surface px-2.5 text-xs font-medium text-ink-2 transition-colors hover:border-line-strong hover:bg-well/50 hover:text-ink select-none">
+              <Checkbox
+                id="auto-merge-toggle"
+                checked={reviewSettings.data?.auto_merge ?? false}
+                onCheckedChange={(checked) => toggleAutoMerge.mutate(checked === true)}
+                aria-label="Auto-merge branch on approve"
+              />
+              <span>Auto-merge branch on approve</span>
+            </label>
+          </>
+        }
+      />
 
-        <div className="page-header-actions">
-          {(boards.data?.length ?? 0) > 1 && (
-            <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-          )}
-          <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[10px] border border-line bg-surface px-2.5 text-xs font-medium text-ink-2 shadow-[var(--lift-1),var(--lift-inset)] transition-colors hover:border-line-strong hover:bg-well/50 hover:text-ink select-none">
-            <Checkbox
-              id="auto-merge-toggle"
-              checked={reviewSettings.data?.auto_merge ?? false}
-              onCheckedChange={(checked) => toggleAutoMerge.mutate(checked === true)}
-              aria-label="Auto-merge branch on approve"
-            />
-            <span>Auto-merge branch on approve</span>
-          </label>
-        </div>
-      </div>
-
+      <div className="space-y-4 px-5 py-4">
       <ErrorBox error={queue.error ?? approve.error ?? reject.error} />
 
       {queue.data?.length === 0 && !taskId && (
@@ -236,6 +232,7 @@ export function ReviewScreen({ taskId, pick }: { taskId?: string; pick: (id: str
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

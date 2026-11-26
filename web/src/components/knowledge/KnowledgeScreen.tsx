@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiOr, del, post, type KnowledgeDoc } from "@/api";
 import { BUILTIN_DOCS, type BuiltinDocArticle } from "@/components/knowledge/docsData";
 import { cn } from "@/lib/utils";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -263,19 +264,20 @@ export function KnowledgeScreen({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-4 lg:flex-row lg:items-start">
-      {/* Left Navigation Sidebar */}
-      <aside className="w-full shrink-0 rounded-[12px] border border-line bg-surface p-3 shadow-[var(--lift-1)] lg:sticky lg:top-4 lg:w-64">
-        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-line">
-          <div className="flex items-center gap-1.5 text-[12.5px] font-bold tracking-tight text-ink">
-            <BookOpen className="size-4 text-accent" />
-            <span>Knowledge</span>
-          </div>
-          <Button type="button" size="xs" variant="signal" onClick={openNewEditor}>
-            <Plus className="size-3" />
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Knowledge"
+        count={`${allDocs.length} docs`}
+        actions={
+          <Button type="button" size="sm" variant="signal" onClick={openNewEditor}>
+            <Plus className="size-3.5" />
             New doc
           </Button>
-        </div>
+        }
+      />
+      <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-start">
+      {/* Left Navigation Sidebar */}
+      <aside className="w-full shrink-0 rounded-[12px] border border-line bg-surface p-3 shadow-[var(--lift-1)] lg:sticky lg:top-4 lg:w-64">
 
         <div
           className={cn(
@@ -656,6 +658,7 @@ export function KnowledgeScreen({
           </div>
         </div>
       </aside>
+      </div>
     </div>
   );
 }

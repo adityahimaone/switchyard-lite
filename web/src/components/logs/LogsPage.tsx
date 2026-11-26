@@ -13,6 +13,7 @@ import { ErrorBox, Lamp, Panel } from "@/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 
 const TAILS = ["100", "200", "500", "1000"] as const;
 
@@ -94,44 +95,40 @@ export function LogsPage() {
   }, [logs.data, live]);
 
   return (
-    <div>
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2 className="inline-flex items-center gap-2">
-              <ScrollText className="size-4" /> Logs
-            </h2>
-          </div>
-          <p className="page-subtitle">
-            Live activity, service journal and agent runtime output — read-only.
-          </p>
-        </div>
-        <div className="page-header-actions">
-          <Button
-            type="button"
-            variant={live ? "default" : "outline"}
-            size="sm"
-            onClick={() => setLive((v) => !v)}
-            title="Auto-refresh every 5 seconds"
-          >
-            <Activity className={cn("size-3.5", live && "text-success-text")} />
-            {live ? "Live" : "Paused"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              void logs.refetch();
-              void events.refetch();
-              void sources.refetch();
-            }}
-          >
-            <RefreshCw className="size-3.5" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Logs"
+        count={live ? "live" : "paused"}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant={live ? "default" : "outline"}
+              size="sm"
+              onClick={() => setLive((v) => !v)}
+              title="Auto-refresh every 5 seconds"
+            >
+              <Activity className={cn("size-3.5", live && "text-success-text")} />
+              {live ? "Live" : "Paused"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                void logs.refetch();
+                void events.refetch();
+                void sources.refetch();
+              }}
+            >
+              <RefreshCw className="size-3.5" />
+              Refresh
+            </Button>
+          </>
+        }
+      />
+
+      <div className="space-y-4 px-5 py-4">
 
       {/* Live Activity Stream (moved from Overview) */}
       <Panel title={<><Activity className="size-3.5" /> Live Activity Stream</>}>
@@ -229,6 +226,7 @@ export function LogsPage() {
           <span>Log files are whitelisted on the server; only read operations are exposed.</span>
         </div>
       </Panel>
+      </div>
     </div>
   );
 }

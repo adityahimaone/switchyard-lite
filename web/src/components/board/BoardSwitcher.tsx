@@ -15,6 +15,7 @@ export function BoardSwitcher({
   value,
   onChange,
   size = "sm",
+  showTriggerBadge = false,
   className,
   triggerClassName,
   ariaLabel = "Switch board",
@@ -23,6 +24,7 @@ export function BoardSwitcher({
   value: string | undefined;
   onChange: (boardId: string) => void;
   size?: "sm" | "default";
+  showTriggerBadge?: boolean;
   className?: string;
   triggerClassName?: string;
   ariaLabel?: string;
@@ -50,7 +52,7 @@ export function BoardSwitcher({
       emptyMessage="No boards match"
       ariaLabel={ariaLabel}
       size={size}
-      showTriggerBadge
+      showTriggerBadge={showTriggerBadge}
       className={className}
       triggerClassName={triggerClassName ?? "h-8 rounded-[10px]"}
     />

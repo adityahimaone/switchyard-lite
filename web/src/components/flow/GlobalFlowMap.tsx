@@ -36,6 +36,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@/components/ui/icons";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 import {
   api,
   LIVE_FALLBACK_MS,
@@ -1343,27 +1344,11 @@ export function GlobalFlowMap({
   );
 
   return (
-    <div className="space-y-3">
-      <div className="page-header page-header-stack">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="page-header-left">
-            <div className="page-title-row">
-              <h2>Flow map</h2>
-              <Badge variant="outline" className="font-mono text-[10.5px] tabular-nums">
-                {visibleTasks.length} visible
-              </Badge>
-              <Badge variant={liveCount > 0 ? "default" : "secondary"} className="font-mono text-[10.5px] tabular-nums">
-                {liveCount} live
-              </Badge>
-              <Badge variant="secondary" className="font-mono text-[10.5px] tabular-nums">
-                {boards.length} boards
-              </Badge>
-            </div>
-            <p className="page-subtitle">
-              Global real-time routing across all boards, meta7 pipelines, and remote worker hosts. Hover or click any pill to trace its route.
-            </p>
-          </div>
-
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Flow map"
+        count={`${visibleTasks.length} visible · ${liveCount} live · ${boards.length} boards`}
+        center={
           <Segmented
             label="Flow map layer"
             value={layerMode}
@@ -1389,9 +1374,9 @@ export function GlobalFlowMap({
               },
             ]}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        }
+        toolbar={
+          <div className="flex w-full flex-wrap items-center gap-2">
           <div
             className={cn(
               "group relative flex h-8 min-w-[200px] flex-1 max-w-[280px] items-center rounded-[10px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
@@ -1487,9 +1472,11 @@ export function GlobalFlowMap({
             {replaying ? <RotateCcw className="size-3.5 animate-spin" /> : <Play className="size-3.5 fill-current" />}
             <span>{replaying ? "Replaying…" : "Replay Flow"}</span>
           </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
+      <div className="space-y-3 px-5 py-3">
       <ErrorBox error={q.error} />
 
       {layerMode === "topology" ? (
@@ -1856,6 +1843,7 @@ export function GlobalFlowMap({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

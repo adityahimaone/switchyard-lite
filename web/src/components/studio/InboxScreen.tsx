@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, FileCode2, GitBranch, Play } from "@/components/ui/icons";
+import { ChevronDown, ChevronRight, FileCode2, GitBranch, Plus } from "@/components/ui/icons";
 import { type Task } from "@/api";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { EmptyHorizonArt, HarnessAvatar } from "@/components/studio/StudioAssets";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 import { StatusHeaderPill } from "@/ui";
 import { relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -73,65 +74,61 @@ export function InboxScreen({
   const greeting = greetingForHour(new Date().getHours());
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6" data-testid="studio-inbox-view">
-      {/* Greeting Header matching Warm Light Tactile editorial layout */}
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="m-0 text-[22px] font-semibold tracking-tight text-ink">
-            {greeting}
-            {boardName ? `, ${boardName}` : ""}
-          </h2>
-          <span className="font-mono text-[13px] tabular-nums text-ink-4">
-            {tasks.length.toLocaleString()} {tasks.length === 1 ? "Task" : "Tasks"}
-          </span>
-        </div>
-        {onNewTask && (
-          <button
-            type="button"
-            onClick={onNewTask}
-            className="studio-scenic-cta inline-flex h-9 items-center gap-2 rounded-[11px] px-4 text-[13px] font-semibold"
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="studio-inbox-view">
+      <StudioPageHeader
+        title={`${greeting}${boardName ? `, ${boardName}` : ""}`}
+        count={`${tasks.length.toLocaleString()} ${tasks.length === 1 ? "Task" : "Tasks"}`}
+        center={
+          <div
+            role="tablist"
+            aria-label="Inbox filter"
+            className="inline-flex flex-wrap items-center gap-0.5 rounded-[10px] border border-line/70 bg-well p-0.5"
           >
-            <Play className="size-3.5 fill-current" />
-            <span>New task</span>
-          </button>
-        )}
-      </div>
-
-      {/* Tactile Segmented Filter Bar */}
-      <div
-        role="tablist"
-        aria-label="Inbox filter"
-        className="mt-4 inline-flex flex-wrap items-center gap-1 rounded-[12px] bg-well/80 p-1"
-      >
-        {(
-          [
-            { id: "all", label: "All tasks", count: counts.all },
-            { id: "waiting", label: "Waiting", count: counts.waiting },
-            { id: "review", label: "Review", count: counts.review },
-            { id: "active", label: "Active", count: counts.active },
-          ] as const
-        ).map((item) => {
-          const active = tab === item.id;
-          return (
+            {(
+              [
+                { id: "all", label: "All tasks", count: counts.all },
+                { id: "waiting", label: "Waiting", count: counts.waiting },
+                { id: "review", label: "Review", count: counts.review },
+                { id: "active", label: "Active", count: counts.active },
+              ] as const
+            ).map((item) => {
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(item.id)}
+                  className={cn(
+                    "rounded-[8px] px-3 py-1 font-mono text-[11.5px] transition-colors",
+                    active
+                      ? "bg-surface font-medium text-ink shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                      : "text-ink-3 hover:text-ink"
+                  )}
+                >
+                  {item.label}
+                  {item.id !== "all" && <span className="ml-1 opacity-75">({item.count})</span>}
+                </button>
+              );
+            })}
+          </div>
+        }
+        actions={
+          onNewTask && (
             <button
-              key={item.id}
               type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(item.id)}
-              className={cn(
-                "rounded-[9px] px-3.5 py-1.5 font-mono text-[12px] transition-all",
-                active
-                  ? "bg-surface font-semibold text-ink shadow-[0_1px_3px_rgba(17,24,39,0.08)]"
-                  : "text-ink-3 hover:text-ink"
-              )}
+              onClick={onNewTask}
+              className="btn studio-scenic-cta sm"
             >
-              {item.label}
-              {item.id !== "all" && <span className="ml-1 opacity-75">({item.count})</span>}
+              <Plus className="size-3.5" />
+              <span>New task</span>
             </button>
-          );
-        })}
-      </div>
+          )
+        }
+      />
+
+      <div className="mx-auto w-full max-w-4xl px-5 py-5">
 
       {/* Grouped Feed */}
       {sections.length === 0 ? (
@@ -238,6 +235,7 @@ export function InboxScreen({
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

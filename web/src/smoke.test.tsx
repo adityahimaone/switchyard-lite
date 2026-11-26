@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DiffView } from "./Review";
+import { App } from "./App";
 import { Dag, FlowScreen, layers, SettingsScreen } from "./Screens";
 import { Login } from "./Login";
 import { BoardScreen } from "./Board";
@@ -11,7 +12,7 @@ import { WorkflowTree } from "@/components/studio/WorkflowTree";
 import { PreviewBrowserTab, WorktreeTerminalTab } from "@/components/studio/WorktreeStudioTabs";
 import { WorkspacesPage } from "@/components/workspaces/WorkspacesPage";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
-import { normalizeModels, parseModelCatalog } from "./api";
+import { normalizeModels, parseModelCatalog, setToken } from "./api";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SearchSelect } from "@/components/ui/select";
 import { AvatarChip, CompoundActionPill, FilterPill, SearchField, StatusPill } from "@/components/ui/pill";
@@ -1261,4 +1262,42 @@ test("BoardDialog persists board emoji, BoardEmojiTile renders it, and Dark Mode
   await waitFor(() => expect(createdBoard).not.toBeNull());
   expect(createdBoard).toMatchObject({ name: "Design System", emoji: "🚀" });
   document.documentElement.classList.remove("dark");
+});
+
+test("App renders General sidebar menu (Board, Inbox, Review, Flow map) and unified StudioPageHeader", async () => {
+  setToken("test-tok");
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/boards")) {
+      return new Response(
+        JSON.stringify([{ id: "b_main", name: "visual-fixture", emoji: "🧠", default_executor: "auto" }]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.includes("/api/v1/boards/b_main/tasks")) {
+      return new Response(
+        JSON.stringify([
+          { id: "t_a", board_id: "b_main", title: "Verify sidebar nav", status: "todo", retry_count: 0, blocked_by: [], created_at: 1, updated_at: 1 },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const { container } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <App />
+    </QueryClientProvider>
+  );
+
+  expect(await screen.findByText("Verify sidebar nav")).toBeTruthy();
+  const nav = container.querySelector('nav[aria-label="Main"]') as HTMLElement;
+  expect(nav.textContent).toContain("General");
+  expect(nav.textContent).toContain("Board");
+  expect(nav.textContent).toContain("Inbox");
+  expect(nav.textContent).toContain("Review");
+  expect(nav.textContent).toContain("Flow map");
+  expect(container.querySelectorAll('[data-slot="studio-page-header"]')).toHaveLength(1);
+  setToken("");
 });

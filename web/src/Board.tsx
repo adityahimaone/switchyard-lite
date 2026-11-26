@@ -51,6 +51,7 @@ import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { WorkflowTree } from "@/components/studio/WorkflowTree";
 import { BOARD_EMOJI_PRESETS, BoardEmojiTile } from "@/components/studio/StudioAssets";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 import { ErrorBox, LABEL, StatusHeaderPill, statusColor } from "./ui";
 import { fmtDateTime, initials, relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -608,105 +609,73 @@ export function BoardScreen({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, minWidth: 0 }}>
-      <div className="page-header page-header-stack">
-        {/* Topbar row: Left = board switcher + auto badge + settings, Center = Board/Table/Lanes, Right = Run board + single primary New task */}
-        <div className="grid w-full grid-cols-1 items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {activeBoard && <BoardEmojiTile board={activeBoard} size={28} />}
-            {(boards.data?.length ?? 0) > 0 ? (
-              <BoardSwitcher
-                boards={boards.data}
-                value={boardId}
-                onChange={setBoardId}
-                className="w-[180px]"
-              />
-            ) : (
-              <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">
-                {activeBoard ? activeBoard.name : "Board"}
-              </h2>
-            )}
-            <span className="font-mono text-[11.5px] tabular-nums text-ink-4">
-              {allTasks.length} {allTasks.length === 1 ? "task" : "tasks"}
-            </span>
-
-            {activeBoard?.default_executor && (
-              <Tip label="Board default executor & model">
-                <span className="badge accent">
-                  {activeBoard.default_executor}
-                  {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
-                </span>
-              </Tip>
-            )}
-
-            {activeBoard && (
-              <Tip label="Board settings">
-                <button
-                  type="button"
-                  className="btn ghost icon"
-                  onClick={() => (onEditBoard ? onEditBoard(activeBoard) : setBoardModal("edit"))}
-                  aria-label="Board settings"
-                >
-                  <Settings2 className="size-3.5" />
-                </button>
-              </Tip>
-            )}
-
-            <Tip label="Create a new board">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => (onNewBoard ? onNewBoard() : setBoardModal("new"))}
-              >
-                <Plus className="size-3.5" />
-                <span>New board</span>
-              </button>
-            </Tip>
-          </div>
-
-          <div className="justify-self-start lg:justify-self-center">
-            <Segmented
-              label="Board view mode"
-              value={viewMode}
-              onChange={setViewMode}
-              options={[
-                {
-                  value: "board",
-                  label: (
-                    <>
-                      <Columns3 className="size-3" />
-                      Board
-                    </>
-                  ),
-                },
-                {
-                  value: "table",
-                  label: (
-                    <>
-                      <Table2 className="size-3" />
-                      Table
-                    </>
-                  ),
-                },
-                {
-                  value: "lanes",
-                  label: (
-                    <>
-                      <LayoutGrid className="size-3" />
-                      Lanes
-                    </>
-                  ),
-                },
-              ]}
+      <StudioPageHeader
+        leading={(boards.data?.length ?? 0) <= 1 && activeBoard ? <BoardEmojiTile board={activeBoard} size={26} /> : undefined}
+        title={
+          (boards.data?.length ?? 0) > 1 ? (
+            <BoardSwitcher
+              boards={boards.data}
+              value={boardId}
+              onChange={setBoardId}
+              showTriggerBadge={false}
+              triggerClassName="h-8 rounded-[9px] border-transparent bg-transparent px-2 text-[15px] font-semibold hover:border-line hover:bg-well"
+              className="w-auto min-w-[160px] max-w-[240px]"
             />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 justify-self-start lg:justify-self-end">
+          ) : (
+            <h2 className="m-0 truncate text-[17px] font-semibold tracking-[-0.02em] text-ink">
+              {activeBoard ? activeBoard.name : "Board"}
+            </h2>
+          )
+        }
+        count={
+          filtered.length === allTasks.length
+            ? `${allTasks.length} ${allTasks.length === 1 ? "task" : "tasks"}`
+            : `${filtered.length} / ${allTasks.length} tasks`
+        }
+        center={
+          <Segmented
+            label="Board view mode"
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              {
+                value: "board",
+                label: (
+                  <>
+                    <Columns3 className="size-3" />
+                    Board
+                  </>
+                ),
+              },
+              {
+                value: "table",
+                label: (
+                  <>
+                    <Table2 className="size-3" />
+                    Table
+                  </>
+                ),
+              },
+              {
+                value: "lanes",
+                label: (
+                  <>
+                    <LayoutGrid className="size-3" />
+                    Lanes
+                  </>
+                ),
+              },
+            ]}
+          />
+        }
+        actions={
+          <>
             {isPipelinesEnabled()
               ? eligibleMeta7Tasks.length > 0 && (
                   <Tip label="Coordinate all eligible todo/backlog tasks on this board into a meta7 pipeline">
                     <button
                       type="button"
-                      className="btn"
+                      className="btn sm"
                       onClick={() => runBoardMeta7.mutate()}
                       disabled={!boardId || runBoardMeta7.isPending}
                     >
@@ -719,7 +688,7 @@ export function BoardScreen({
                   <Tip label="Dispatch all queued Todo tasks on this board to active workers">
                     <button
                       type="button"
-                      className="btn"
+                      className="btn sm"
                       onClick={() => runBoardTasks.mutate(eligibleDispatchTasks.map((t) => t.id))}
                       disabled={!boardId || runBoardTasks.isPending}
                     >
@@ -730,99 +699,93 @@ export function BoardScreen({
                 )}
 
             <button
-              className="btn studio-scenic-cta"
+              className="btn studio-scenic-cta sm"
               onClick={() => setCreating({ startMode: "queue" })}
               disabled={!boardId}
             >
               <Plus className="size-3.5" />
               <span>New task</span>
             </button>
-          </div>
-        </div>
+          </>
+        }
+        toolbar={
+          <div className="flex w-full flex-wrap items-center gap-2" role="search" aria-label="Filter tasks">
+            <div
+              className={cn(
+                "group relative flex h-7 w-[220px] items-center rounded-[9px] border pr-2 pl-2.5 transition-[border-color,background-color] duration-150",
+                q
+                  ? "border-accent/45 bg-surface"
+                  : "border-line bg-well/65 hover:border-line-strong hover:bg-surface"
+              )}
+            >
+              <Search
+                className={cn("size-3.5 shrink-0 transition-colors", q ? "text-accent-text" : "text-ink-4")}
+                aria-hidden
+              />
+              <input
+                ref={searchRef}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setQ("");
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder="Search tasks, prompts, IDs…"
+                aria-label="Search tasks"
+                className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-4"
+              />
+              {q ? (
+                <button
+                  type="button"
+                  onClick={() => setQ("")}
+                  aria-label="Clear search"
+                  className="inline-flex size-4 shrink-0 items-center justify-center rounded-[5px] text-ink-3 transition-colors hover:bg-well hover:text-ink"
+                >
+                  <span aria-hidden className="text-[12px] leading-none">×</span>
+                </button>
+              ) : (
+                <span className="hidden shrink-0 items-center gap-1 sm:inline-flex">
+                  <kbd className="rounded-[4px] border border-line bg-surface px-1 py-0.5 font-mono text-[9px] text-ink-4">
+                    /
+                  </kbd>
+                  <kbd className="rounded-[4px] border border-line bg-surface px-1 py-0.5 font-mono text-[9px] text-ink-4">
+                    ⌘K
+                  </kbd>
+                </span>
+              )}
+            </div>
 
-        {/* Single board-level search + filters row */}
-        <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter tasks">
-          <div
-            className={cn(
-              "group relative flex h-8 w-[260px] items-center rounded-[12px] border pr-2 pl-2.5 transition-[border-color,background-color,box-shadow] duration-150",
-              q
-                ? "border-accent/45 bg-[var(--glass-3)] shadow-[var(--glass-shadow-sm)]"
-                : "border-[var(--glass-border)] bg-[var(--glass-2)] hover:border-line-strong hover:bg-[var(--glass-3)]"
-            )}
-          >
-            <Search
-              className={cn("size-3.5 shrink-0 transition-colors", q ? "text-accent-text" : "text-[var(--text-secondary)]")}
-              aria-hidden
+            <FilterBar
+              fields={filterFields}
+              value={filters}
+              onChange={setFilters}
+              addLabel="Filter"
+              emptyLabel="Add filter"
+              aria-label="Task filters"
             />
-            <input
-              ref={searchRef}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setQ("");
-                  e.currentTarget.blur();
-                }
+
+            <div className="bar-spacer" />
+
+            <button
+              type="button"
+              className={cn(
+                "btn sm",
+                bulkMode && "border-accent bg-accent-tint text-accent-text"
+              )}
+              aria-pressed={bulkMode}
+              onClick={() => {
+                setBulkMode((v) => !v);
+                setSelected(new Set());
               }}
-              placeholder="Search tasks, prompts, IDs…"
-              aria-label="Search tasks"
-              className="field-flat ml-2 h-full w-full bg-transparent text-xs font-medium text-[var(--text-primary)] outline-none placeholder:font-normal placeholder:text-[var(--text-muted)]"
-            />
-            {q ? (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                aria-label="Clear search"
-                className="inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--text-secondary)] transition-colors hover:bg-well hover:text-[var(--text-primary)]"
-              >
-                <span aria-hidden className="text-[13px] leading-none">×</span>
-              </button>
-            ) : (
-              <span className="hidden shrink-0 items-center gap-1 sm:inline-flex">
-                <kbd className="rounded-[5px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)]">
-                  /
-                </kbd>
-                <kbd className="rounded-[5px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)]">
-                  ⌘K
-                </kbd>
-              </span>
-            )}
+            >
+              <CheckCircle2 className="size-3" />
+              Bulk select
+            </button>
           </div>
-
-          <FilterBar
-            fields={filterFields}
-            value={filters}
-            onChange={setFilters}
-            addLabel="Filter"
-            emptyLabel="Add filter"
-            aria-label="Task filters"
-          />
-
-          <span className="ml-0.5 font-mono text-[11px] tabular-nums text-[var(--text-secondary)]">
-            {filtered.length === allTasks.length
-              ? `${allTasks.length} ${allTasks.length === 1 ? "task" : "tasks"}`
-              : `${filtered.length} of ${allTasks.length}`}
-          </span>
-
-          <div className="bar-spacer" />
-
-          <button
-            type="button"
-            className={cn(
-              "btn",
-              bulkMode && "border-accent bg-accent-tint text-accent-text"
-            )}
-            aria-pressed={bulkMode}
-            onClick={() => {
-              setBulkMode((v) => !v);
-              setSelected(new Set());
-            }}
-          >
-            <CheckCircle2 className="size-3.5" />
-            Bulk select
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {bulkMode && (
         <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-surface px-4 py-1.5">

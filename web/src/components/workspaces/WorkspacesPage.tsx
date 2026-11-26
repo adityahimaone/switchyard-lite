@@ -32,6 +32,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { toast, toastError } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { ErrorBox } from "@/ui";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -1071,59 +1072,60 @@ export function WorkspacesPage() {
   const shownTotal = shownGroups.reduce((acc, [, items]) => acc + items.length, 0);
 
   return (
-    <div>
-      <div className="bar" style={{ flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Workspaces</h2>
-          <span className="bar-sub">
-            Hosts and repositories across macOS, Windows, and current machine.
-          </span>
-        </div>
-        <div className="bar-spacer" />
-        <Button
-          type="button"
-          variant={autoPing ? "default" : "outline"}
-          size="sm"
-          onClick={() => setAutoPing((v) => !v)}
-          title="Auto ping workspaces every 30s"
-        >
-          <Radio className={cn("size-3.5", autoPing && "text-success-text")} />
-          Auto ping
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          loading={pinging === "__all__"}
-          onClick={() => void pingAll()}
-        >
-          <RefreshCw className="size-3.5" />
-          Ping all
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          loading={syncLive.isPending}
-          onClick={() => syncLive.mutate()}
-          title="Import machine identity (name, OS, host, labels) from kanban-board's live workspaces.json"
-        >
-          <CloudDownload className="size-3.5" />
-          Sync live
-          {(liveCatalog.data?.count ?? 0) > 0 && (
-            <span className="font-mono text-[10px] opacity-70">{liveCatalog.data?.count}</span>
-          )}
-        </Button>
-        <Button
-          type="button"
-          variant="signal"
-          size="sm"
-          onClick={() => setSheet({ open: true, edit: null })}
-        >
-          <Plus className="size-3.5" />
-          New workspace
-        </Button>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Workspaces"
+        count={`${shownTotal} registered`}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant={autoPing ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAutoPing((v) => !v)}
+              title="Auto ping workspaces every 30s"
+            >
+              <Radio className={cn("size-3.5", autoPing && "text-success-text")} />
+              Auto ping
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={pinging === "__all__"}
+              onClick={() => void pingAll()}
+            >
+              <RefreshCw className="size-3.5" />
+              Ping all
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              loading={syncLive.isPending}
+              onClick={() => syncLive.mutate()}
+              title="Import machine identity (name, OS, host, labels) from kanban-board's live workspaces.json"
+            >
+              <CloudDownload className="size-3.5" />
+              Sync live
+              {(liveCatalog.data?.count ?? 0) > 0 && (
+                <span className="font-mono text-[10px] opacity-70">{liveCatalog.data?.count}</span>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="signal"
+              size="sm"
+              onClick={() => setSheet({ open: true, edit: null })}
+            >
+              <Plus className="size-3.5" />
+              New workspace
+            </Button>
+          </>
+        }
+      />
+
+      <div className="px-5 py-4">
 
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface/60 px-3 py-2 text-[11px] text-ink-3">
         <Radio className={cn("size-3.5", (liveCatalog.data?.count ?? 0) > 0 && "text-success-text")} />
@@ -1522,6 +1524,7 @@ export function WorkspacesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

@@ -90,6 +90,7 @@ import {
   useWorkspaceExecutors,
 } from "@/lib/executors";
 import { GlobalFlowMap } from "@/components/flow/GlobalFlowMap";
+import { StudioPageHeader } from "@/components/studio/StudioPageHeader";
 
 interface Overview {
   counts: Record<string, number>;
@@ -128,50 +129,45 @@ export function OverviewScreen() {
     : [];
 
   return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2>Overview</h2>
-            <span className="pill-count">telemetry</span>
-          </div>
-          <p className="page-subtitle">
-            Control-plane health, queue depth, and execution status across boards and agents.
-          </p>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Overview"
+        count="telemetry"
+        actions={
+          <>
+            {(boards.data?.length ?? 0) > 0 && (
+              <button
+                type="button"
+                className={"chip" + (scopeBoard ? " active" : "")}
+                onClick={() => setScopeBoard((v) => !v)}
+              >
+                {scopeBoard && activeBoard ? `Board: ${activeBoard.name}` : "All boards"}
+              </button>
+            )}
+            {(boards.data?.length ?? 0) > 1 && scopeBoard && (
+              <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
+            )}
+            <Link href="/logs" className="chip inline-flex items-center gap-1.5" title="Open the Logs page">
+              <Activity className="size-3.5" />
+              <span>Live Activity Stream → Logs</span>
+            </Link>
+            {q.data && (
+              <span
+                className="lamp rounded-full border border-line bg-surface px-3 py-1.5 text-xs"
+                style={{
+                  ["--lamp" as string]:
+                    q.data.health.status === "ok" ? "var(--c-success)" : "var(--c-danger)",
+                }}
+              >
+                <span className="lamp-dot pulse" />
+                Health: {q.data.health.status}
+              </span>
+            )}
+          </>
+        }
+      />
 
-        <div className="page-header-actions">
-          {(boards.data?.length ?? 0) > 0 && (
-            <button
-              type="button"
-              className={"chip" + (scopeBoard ? " active" : "")}
-              onClick={() => setScopeBoard((v) => !v)}
-            >
-              {scopeBoard && activeBoard ? `Board: ${activeBoard.name}` : "All boards"}
-            </button>
-          )}
-          {(boards.data?.length ?? 0) > 1 && scopeBoard && (
-            <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-          )}
-          <Link href="/logs" className="chip inline-flex items-center gap-1.5" title="Open the Logs page">
-            <Activity className="size-3.5" />
-            <span>Live Activity Stream → Logs</span>
-          </Link>
-          {q.data && (
-            <span
-              className="lamp rounded-full border border-line bg-surface px-3 py-1.5 text-xs shadow-[var(--lift-1)]"
-              style={{
-                ["--lamp" as string]:
-                  q.data.health.status === "ok" ? "var(--c-success)" : "var(--c-danger)",
-              }}
-            >
-              <span className="lamp-dot pulse" />
-              Health: {q.data.health.status}
-            </span>
-          )}
-        </div>
-      </div>
-
+      <div className="space-y-4 px-5 py-4">
       <ErrorBox error={q.error} />
 
       {q.data && (
@@ -272,6 +268,7 @@ export function OverviewScreen() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }
@@ -309,17 +306,13 @@ export function WorkersScreen() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2>Workers</h2>
-            {q.data && <span className="pill-count tabular-nums">{q.data.length} online</span>}
-          </div>
-          <p className="page-subtitle">Node-agent endpoints executing claimed tasks across workspaces.</p>
-        </div>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Workers"
+        count={q.data ? `${q.data.length} online` : undefined}
+      />
 
+      <div className="space-y-4 px-5 py-4">
       <ErrorBox error={q.error ?? add.error ?? remove.error} />
 
       <form
@@ -404,6 +397,7 @@ export function WorkersScreen() {
             </table>
           </div>
         ))}
+      </div>
     </div>
   );
 }
@@ -1421,24 +1415,18 @@ export function PipelineScreen({ open }: { open?: (id: string) => void }) {
     !!goal.trim() || (isMeta7 && includeBoardTasks && eligibleBoardTasks.length > 0);
 
   return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2>Pipeline runs</h2>
-            {q.data && <span className="pill-count tabular-nums">{q.data.length} runs</span>}
-          </div>
-          <p className="page-subtitle">
-            Autonomous multi-stage DAG orchestrations and meta7 context studio executed on the active board.
-          </p>
-        </div>
-        <div className="page-header-actions">
-          {(boards.data?.length ?? 0) > 1 && (
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader
+        title="Pipeline runs"
+        count={q.data ? `${q.data.length} runs` : undefined}
+        actions={
+          (boards.data?.length ?? 0) > 1 ? (
             <BoardSwitcher boards={boards.data} value={boardId} onChange={setBoardId} className="w-auto min-w-[180px]" />
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
+      <div className="space-y-4 px-5 py-4">
       <ErrorBox error={q.error ?? start.error ?? cancel.error ?? setDefault.error ?? retryNode.error ?? restartRun.error} />
 
       {boardId && (
@@ -1752,6 +1740,7 @@ export function PipelineScreen({ open }: { open?: (id: string) => void }) {
           restarting={restartRun.isPending}
         />
       ))}
+      </div>
     </div>
   );
 }
@@ -1841,16 +1830,10 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <div className="page-header-left">
-          <div className="page-title-row">
-            <h2>Settings</h2>
-          </div>
-          <p className="page-subtitle">Workspace appearance tokens, scoped API credentials, and session control.</p>
-        </div>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <StudioPageHeader title="Settings" />
 
+      <div className="space-y-4 px-5 py-4">
       <Panel
         title={
           <span className="inline-flex items-center gap-1.5">
@@ -2096,6 +2079,7 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
           Sign out (forget token)
         </button>
       </Panel>
+      </div>
     </div>
   );
 }

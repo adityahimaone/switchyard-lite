@@ -3,15 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BookOpen,
+  Check,
+  ChevronDown,
   Cpu,
   FolderGit2,
   GitPullRequest,
   Inbox,
   Kanban,
-  MoreHorizontal,
   Network,
-  PanelLeft,
-  PanelLeftClose,
   Plus,
   ScrollText,
   Search,
@@ -27,10 +26,10 @@ import { Login } from "./Login";
 import { useLiveEvents } from "@/lib/live";
 import { ReviewScreen } from "./Review";
 import { Kbd } from "@/components/ui/kbd";
+import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/menu";
 import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
-  AppHeader,
   AppInset,
   AppMain,
   AppShell,
@@ -39,8 +38,8 @@ import {
   AppSidebarFooter,
   AppSidebarGroup,
   AppSidebarItem,
+  AppSidebarToggle,
   AppSidebarTrack,
-  useAppShell,
 } from "@/components/ui/app-shell";
 import { StatusPill } from "@/components/ui/pill";
 import {
@@ -74,25 +73,6 @@ const NAV = [
 
 export function useHash() {
   return useRoute();
-}
-
-/**
- * 只订阅侧栏状态的按钮：折叠状态留在 AppShell 内部，
- * 切换时不会重渲染整个页面（Workspaces / Board 的成百个节点）。
- */
-function ShellToggle() {
-  const { collapsed, setCollapsed } = useAppShell();
-  return (
-    <button
-      type="button"
-      className="btn ghost icon sm"
-      onClick={() => setCollapsed((v) => !v)}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-    >
-      {collapsed ? <PanelLeft className="size-4" /> : <PanelLeftClose className="size-4" />}
-    </button>
-  );
 }
 
 export function App() {
@@ -149,43 +129,66 @@ export function App() {
   const pipelinesEnabled = isPipelinesEnabled();
   const visibleNav = NAV.filter((item) => item.id !== "pipelines" || pipelinesEnabled);
   const reviewCount = taskList.filter((t) => t.status === "review").length;
-  const waitingInputCount = taskList.filter((t) => t.status === "waiting_input").length;
-  const queuedCount = taskList.filter((t) => t.status === "todo").length;
-  const runningCount = taskList.filter((t) => t.status === "in_progress").length;
-  const doneCount = taskList.filter((t) => t.status === "done").length;
 
-  const groups = ["Work", "Infrastructure", "Observe"] as const;
+  const groups = ["General", "Infrastructure", "Observe"] as const;
 
   return (
     <TooltipProvider>
     <AppShell>
       <AppSidebar>
         <div className="side-top-pod">
-          <div className="side-top-row">
-            <AppSidebarBrand name="Switchyard" tag="STUDIO" markSize={26} />
+          <div className="side-top-row justify-between">
+            <AppSidebarBrand name="Switchyard" tag="STUDIO" markSize={24} />
+            <AppSidebarToggle />
           </div>
-          <div className="side-board-box mt-2 space-y-2">
+          <div className="side-board-box mt-1 space-y-2">
             {activeBoard && (
-              <div className="flex items-center gap-2.5 rounded-[12px] border border-line bg-surface px-2.5 py-2">
-                <BoardEmojiTile board={activeBoard} size={34} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-ink">
-                    {activeBoard.name}
-                  </div>
-                  <div className="truncate font-mono text-[10.5px] text-ink-4">
-                    {activeBoard.default_executor || "auto"} · {(tasks.data ?? []).length} tasks
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBoardDialog({ mode: "edit", board: activeBoard })}
-                  aria-label="Edit active board"
-                  title="Edit board & emoji"
-                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-ink-4 transition-colors hover:bg-well hover:text-ink"
+              <Menu
+                align="start"
+                trigger={
+                  <button
+                    type="button"
+                    aria-label="Sidebar switch board"
+                    className="flex w-full items-center gap-2.5 rounded-[12px] border border-line bg-surface px-2.5 py-2 text-left transition-colors hover:border-line-strong hover:bg-well/45"
+                  >
+                    <BoardEmojiTile board={activeBoard} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-ink">
+                        {activeBoard.name}
+                      </div>
+                      <div className="truncate font-mono text-[10.5px] text-ink-4">
+                        {activeBoard.default_executor || "auto"} · {taskList.length} tasks
+                      </div>
+                    </div>
+                    <ChevronDown className="size-3.5 shrink-0 text-ink-4" />
+                  </button>
+                }
+              >
+                <MenuLabel>Boards</MenuLabel>
+                {(boards.data ?? []).map((b) => (
+                  <MenuItem
+                    key={b.id}
+                    onSelect={() => {
+                      setBoardId(b.id);
+                      if (page !== "board" && page !== "inbox") go("board");
+                    }}
+                  >
+                    <BoardEmojiTile board={b} size={18} className="rounded-[5px]" />
+                    <span className="truncate">{b.name}</span>
+                    {b.id === boardId && <Check className="ml-auto size-3.5 text-accent" />}
+                  </MenuItem>
+                ))}
+                <MenuSeparator />
+                <MenuItem icon={Plus} onSelect={() => setBoardDialog({ mode: "new" })}>
+                  New board…
+                </MenuItem>
+                <MenuItem
+                  icon={Settings2}
+                  onSelect={() => setBoardDialog({ mode: "edit", board: activeBoard })}
                 >
-                  <MoreHorizontal className="size-3.5" />
-                </button>
-              </div>
+                  Board settings &amp; emoji…
+                </MenuItem>
+              </Menu>
             )}
             <button
               type="button"
@@ -203,7 +206,7 @@ export function App() {
               type="button"
               disabled={!boardId}
               onClick={() => setTaskDialogOpen(true)}
-              className="studio-scenic-cta flex h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[12.5px] font-semibold disabled:opacity-50"
+              className="btn studio-scenic-cta flex h-9 w-full items-center justify-start gap-2 rounded-[10px] px-3 text-[12.5px] font-semibold disabled:opacity-50"
             >
               <Plus className="size-3.5" />
               <span>Compose task</span>
@@ -269,85 +272,7 @@ export function App() {
       </AppSidebar>
 
       <AppInset>
-        <AppHeader>
-          <div className="header-left">
-            <ShellToggle />
-            <div className="crumbs">
-              <span>Switchyard</span>
-              <span className="crumb-sep">/</span>
-              <strong>{page === "task" ? "Task" : (NAV.find((item) => item.id === page)?.label ?? "Board")}</strong>
-              {page === "task" && arg && (
-                <>
-                  <span className="crumb-sep">/</span>
-                  <span className="badge mono">{arg}</span>
-                </>
-              )}
-              {activeBoard && (page === "board" || page === "flow" || page === "review") && (
-                <>
-                  <span className="crumb-sep">/</span>
-                  <span className="badge">{activeBoard.name}</span>
-                  {activeBoard.default_executor && (
-                    <span className="badge accent hidden sm:inline-flex" title="Board default executor">
-                      {activeBoard.default_executor}
-                      {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="header-right">
-            {activeBoard && (
-              <div className="hidden h-7 items-center gap-1.5 rounded-full border border-[var(--glass-border-soft)] bg-[var(--glass-2)] px-2.5 text-[11px] text-[var(--text-secondary)] lg:flex">
-                <span className="inline-flex items-center gap-1 font-mono tabular">
-                  <span className="size-1.5 rounded-full bg-[var(--c-st-todo)]" aria-hidden />
-                  <strong className="text-[var(--text-primary)]">{queuedCount}</strong> queued
-                </span>
-                <span className="text-[var(--text-muted)]">·</span>
-                <span className="inline-flex items-center gap-1 font-mono tabular">
-                  <span className="size-1.5 rounded-full bg-[var(--c-st-in_progress)]" aria-hidden />
-                  <strong className="text-[var(--status-progress)]">{runningCount}</strong> running
-                </span>
-                {waitingInputCount > 0 && (
-                  <>
-                    <span className="text-[var(--text-muted)]">·</span>
-                    <span className="inline-flex items-center gap-1 font-mono tabular">
-                      <span className="size-1.5 rounded-full bg-[var(--c-st-waiting_input)]" aria-hidden />
-                      <strong className="text-[var(--status-waiting)]">{waitingInputCount}</strong> waiting
-                    </span>
-                  </>
-                )}
-                <span className="text-[var(--text-muted)]">·</span>
-                <span className="inline-flex items-center gap-1 font-mono tabular">
-                  <span className="size-1.5 rounded-full bg-[var(--c-st-review)]" aria-hidden />
-                  <strong className="text-[var(--status-review)]">{reviewCount}</strong> review
-                </span>
-                <span className="text-[var(--text-muted)]">·</span>
-                <span className="inline-flex items-center gap-1 font-mono tabular">
-                  <span className="size-1.5 rounded-full bg-[var(--c-st-done)]" aria-hidden />
-                  <strong className="text-[var(--status-done)]">{doneCount}</strong> done
-                </span>
-              </div>
-            )}
-
-            {page !== "board" && (
-              <button
-                type="button"
-                className="cmd-trigger"
-                onClick={() => setPaletteOpen(true)}
-                aria-label="Open command palette"
-              >
-                <Search className="size-3.5 text-[var(--text-secondary)]" />
-                <span className="hidden sm:inline">Search boards, tasks…</span>
-                <kbd>⌘K</kbd>
-              </button>
-            )}
-
-          </div>
-        </AppHeader>
-
-        <AppMain bleed={page === "board"}>
+        <AppMain bleed={page === "board" || page === "task"}>
           {page === "board" && (
             <BoardScreen
               open={setDrawer}
