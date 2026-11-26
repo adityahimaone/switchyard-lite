@@ -359,7 +359,6 @@ nav.side .nav-label {
 }
 
 nav.side .side-brand h1,
-nav.side .side-board-box,
 nav.side .nav-badge,
 nav.side .side-footer-status {
   opacity: 1;
@@ -368,15 +367,44 @@ nav.side .side-footer-status {
   transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms;
 }
 
+nav.side .side-board-box {
+  opacity: 1;
+  max-height: 240px;
+  overflow: hidden;
+  transform: translateY(0);
+  transition:
+    opacity 160ms var(--ease-out) 35ms,
+    transform 160ms var(--ease-out) 35ms,
+    max-height 220ms var(--ease-out),
+    margin-top 220ms var(--ease-out);
+}
+
 .shell.collapsed nav.side .nav-label,
-.shell.collapsed nav.side .side-board-box,
 .shell.collapsed nav.side .nav-badge,
-.shell.collapsed nav.side .side-brand h1,
-.shell.collapsed nav.side .side-footer-status {
+.shell.collapsed nav.side .side-brand h1 {
   opacity: 0;
+  width: 0;
+  overflow: hidden;
   transform: translateX(-6px);
   pointer-events: none;
   transition: opacity 110ms ease-out, transform 110ms ease-out;
+}
+
+.shell.collapsed nav.side .side-board-box {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity 90ms ease-out,
+    transform 90ms ease-out,
+    max-height 220ms var(--ease-out),
+    margin-top 220ms var(--ease-out);
+}
+
+.shell.collapsed nav.side .side-footer-status {
+  display: none;
 }
 
 .shell.collapsed nav.side .nav-group-label {
@@ -394,11 +422,27 @@ nav.side .side-footer-status {
 }
 
 .shell.collapsed nav.side .side-top-pod {
-  padding: 6px;
+  padding: 0 0 10px 0;
+  gap: 0;
+}
+
+.shell.collapsed nav.side .side-brand {
+  justify-content: center;
+  padding: 2px 0;
+  gap: 0;
 }
 
 .shell.collapsed nav.side a {
   min-width: 0;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.shell.collapsed nav.side .side-footer-bar {
+  justify-content: center;
+  padding: 2px 0 0;
+  gap: 0;
 }
 
 nav.side a {

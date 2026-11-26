@@ -38,7 +38,6 @@ import {
   AppSidebarFooter,
   AppSidebarGroup,
   AppSidebarItem,
-  AppSidebarToggle,
   AppSidebarTrack,
 } from "@/components/ui/app-shell";
 import { StatusPill } from "@/components/ui/pill";
@@ -137,9 +136,8 @@ export function App() {
     <AppShell>
       <AppSidebar>
         <div className="side-top-pod">
-          <div className="side-top-row justify-between">
+          <div className="side-top-row">
             <AppSidebarBrand name="Switchyard" tag="STUDIO" markSize={24} />
-            <AppSidebarToggle />
           </div>
           <div className="side-board-box mt-1 space-y-2">
             {activeBoard && (

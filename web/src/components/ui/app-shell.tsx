@@ -161,7 +161,7 @@ export function AppSidebarBrand({
 export function AppSidebarToggle({ className }: { className?: string }) {
   const { collapsed, setCollapsed } = useAppShell();
   return (
-    <Tip side="right" delayDuration={120} label={collapsed ? "Expand sidebar (⌘B)" : "Collapse sidebar (⌘B)"}>
+    <Tip side="bottom" delayDuration={120} label={collapsed ? "Expand sidebar (⌘B)" : "Collapse sidebar (⌘B)"}>
       <button
         type="button"
         data-slot="app-sidebar-toggle"

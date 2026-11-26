@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppSidebarToggle, useAppShell } from "@/components/ui/app-shell";
+import { AppSidebarToggle } from "@/components/ui/app-shell";
 import { cn } from "@/lib/utils";
 
 export interface StudioPageHeaderProps {
@@ -14,7 +14,7 @@ export interface StudioPageHeaderProps {
 
 /**
  * Single unified flush page header rendered at the top of every Switchyard Studio view.
- * Automatically surfaces the sidebar expand toggle when the sidebar is collapsed.
+ * Houses the single sidebar collapse/expand toggle so it never duplicates inside the sidebar.
  */
 export function StudioPageHeader({
   title,
@@ -25,8 +25,6 @@ export function StudioPageHeader({
   toolbar,
   className,
 }: StudioPageHeaderProps) {
-  const { collapsed } = useAppShell();
-
   return (
     <header
       data-slot="studio-page-header"
@@ -34,7 +32,7 @@ export function StudioPageHeader({
     >
       <div className="flex min-h-[34px] flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          {collapsed && <AppSidebarToggle className="-ml-1" />}
+          <AppSidebarToggle className="-ml-1" />
           {leading}
           <div className="flex min-w-0 items-baseline gap-2.5">
             {typeof title === "string" ? (

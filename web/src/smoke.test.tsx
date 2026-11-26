@@ -1299,5 +1299,16 @@ test("App renders General sidebar menu (Board, Inbox, Review, Flow map) and unif
   expect(nav.textContent).toContain("Review");
   expect(nav.textContent).toContain("Flow map");
   expect(container.querySelectorAll('[data-slot="studio-page-header"]')).toHaveLength(1);
+  // Single sidebar toggle lives in the top bar only, never duplicated inside the sidebar.
+  expect(nav.querySelectorAll('[data-slot="app-sidebar-toggle"]')).toHaveLength(0);
+  const toggles = container.querySelectorAll('[data-slot="app-sidebar-toggle"]');
+  expect(toggles).toHaveLength(1);
+  const shell = container.querySelector('[data-slot="app-shell"]') as HTMLElement;
+  expect(shell.getAttribute("data-collapsed")).toBeNull();
+  fireEvent.click(toggles[0]);
+  expect(shell.getAttribute("data-collapsed")).toBe("true");
+  expect(container.querySelectorAll('[data-slot="app-sidebar-toggle"]')).toHaveLength(1);
+  fireEvent.click(container.querySelector('[data-slot="app-sidebar-toggle"]')!);
+  expect(shell.getAttribute("data-collapsed")).toBeNull();
   setToken("");
 });

@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/menu";
+import { AppSidebarToggle } from "@/components/ui/app-shell";
 import { Tip } from "@/components/ui/tooltip";
 
 export const STATUS_CHIP: Record<Status, string> = {
@@ -356,6 +357,7 @@ export function TaskHeader({
       )}
     >
       <div className="flex items-start gap-2.5">
+        {variant === "page" && <AppSidebarToggle className="mt-0.5 -ml-1" />}
         {onBack && (
           <Button
             variant="outline"
