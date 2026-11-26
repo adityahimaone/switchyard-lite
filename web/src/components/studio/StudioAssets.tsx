@@ -1,4 +1,73 @@
 import { cn } from "@/lib/utils";
+import type { Board } from "@/api";
+
+export const BOARD_EMOJI_PRESETS = [
+  "⚡",
+  "🚀",
+  "🧭",
+  "🛠️",
+  "📦",
+  "🎨",
+  "🧠",
+  "🔬",
+  "🛡️",
+  "🌊",
+  "🔥",
+  "✨",
+] as const;
+
+const BOARD_TINTS = [
+  "bg-violet-100/90 text-violet-900 dark:bg-violet-500/20 dark:text-violet-100",
+  "bg-sky-100/90 text-sky-900 dark:bg-sky-500/20 dark:text-sky-100",
+  "bg-amber-100/90 text-amber-900 dark:bg-amber-500/20 dark:text-amber-100",
+  "bg-emerald-100/90 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-100",
+  "bg-rose-100/90 text-rose-900 dark:bg-rose-500/20 dark:text-rose-100",
+] as const;
+
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+export function boardEmoji(board?: Pick<Board, "id" | "name" | "emoji"> | null): string {
+  const custom = board?.emoji?.trim();
+  if (custom) return custom;
+  const seed = board?.id || board?.name || "main";
+  return BOARD_EMOJI_PRESETS[hashStr(seed) % BOARD_EMOJI_PRESETS.length];
+}
+
+export function BoardEmojiTile({
+  board,
+  emoji,
+  size = 32,
+  className,
+}: {
+  board?: Pick<Board, "id" | "name" | "emoji"> | null;
+  emoji?: string;
+  size?: number;
+  className?: string;
+}) {
+  const glyph = emoji?.trim() || boardEmoji(board);
+  const tintIdx = hashStr(board?.id || board?.name || glyph) % BOARD_TINTS.length;
+  const fontSize = Math.max(11, Math.round(size * 0.56));
+  return (
+    <span
+      aria-hidden
+      data-testid="board-emoji-tile"
+      className={cn(
+        "inline-flex shrink-0 select-none items-center justify-center rounded-[9px] border border-black/5 dark:border-white/10",
+        BOARD_TINTS[tintIdx],
+        className
+      )}
+      style={{ width: size, height: size, fontSize, lineHeight: 1 }}
+    >
+      {glyph}
+    </span>
+  );
+}
 
 /**
  * Cohesive pastel illustrated avatars inspired by the Warm Light Tactile Studio shell.

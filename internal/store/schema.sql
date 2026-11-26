@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS boards (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  emoji TEXT NOT NULL DEFAULT '',
   default_executor TEXT NOT NULL DEFAULT '',
   default_model TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL

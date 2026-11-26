@@ -202,7 +202,7 @@ export function FactTile({
   tone?: "default" | "accent" | "success" | "danger" | "review";
 }) {
   return (
-    <div className="flex min-h-[70px] min-w-0 flex-col justify-center rounded-[16px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-3.5 py-2.5 shadow-[var(--glass-highlight),var(--glass-inner),var(--glass-shadow-sm)]">
+    <div className="flex min-h-[70px] min-w-0 flex-col justify-center rounded-[12px] border border-line bg-surface px-3.5 py-2.5">
       <div className="flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-[var(--text-muted)] uppercase">
         {icon}
         <span className="truncate">{label}</span>
@@ -350,7 +350,7 @@ export function TaskHeader({
   return (
     <header
       className={cn(
-        "shrink-0 border-b border-[var(--glass-border-soft)] bg-[var(--glass-1)] shadow-[var(--glass-highlight)] backdrop-blur-xl",
+        "shrink-0 border-b border-line bg-surface",
         sticky && "sticky top-0 z-20",
         variant === "page" ? "px-4 pt-3 pb-2.5 sm:px-5" : "px-4 py-3"
       )}

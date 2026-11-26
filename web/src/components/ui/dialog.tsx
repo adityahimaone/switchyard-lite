@@ -52,9 +52,9 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed left-1/2 top-1/2 z-overlay flex w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
-          "glass-dialog dialog-bloom rounded-[18px] outline-none",
+          "border border-line-strong bg-surface rounded-[16px] shadow-[var(--lift-float)] outline-none",
           "max-h-[calc(100dvh-2.5rem)]",
-          "transition-[transform,opacity] duration-200 ease-[var(--ease-out-expo)]",
+          "transition-[transform,opacity] duration-180 ease-[var(--ease-out)]",
           "data-[state=closed]:scale-[0.96] data-[state=closed]:opacity-0",
           "data-[state=open]:scale-100 data-[state=open]:opacity-100",
           "motion-reduce:transition-none motion-reduce:transform-none",

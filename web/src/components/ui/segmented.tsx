@@ -24,7 +24,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        "inline-flex h-8 items-center gap-0.5 rounded-[10px] border border-line bg-well p-0.5 shadow-[var(--well-inset)]",
+        "inline-flex h-8 items-center gap-0.5 rounded-[10px] border border-line/70 bg-well p-0.5",
         className
       )}
     >
@@ -38,11 +38,11 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex h-[26px] flex-1 items-center justify-center gap-1.5 rounded-[8px] px-2.5 text-xs font-semibold whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 active:scale-[0.972]",
+              "inline-flex h-[26px] flex-1 items-center justify-center gap-1.5 rounded-[8px] px-2.5 font-mono text-[11.5px] whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40 active:scale-[0.97]",
               active
-                ? "border border-line/70 bg-surface text-ink shadow-[var(--lift-1),var(--lift-inset)]"
-                : "border border-transparent text-ink-3 hover:text-ink"
+                ? "bg-surface font-medium text-ink shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                : "text-ink-3 hover:text-ink"
             )}
           >
             {opt.label}

@@ -90,36 +90,36 @@
 
 .dark {
   --bg-cloud-image: url("/clouds/clouds-dark.webp");
-  --cloud-opacity: 0.88;
-  --cloud-filter: brightness(1.08) saturate(1.16) contrast(1.05);
+  --cloud-opacity: 0.38;
+  --cloud-filter: brightness(0.82) saturate(0.95) blur(8px);
   --app-bg:
-    radial-gradient(60% 50% at 15% 10%, rgba(59, 130, 246, 0.16) 0%, transparent 70%),
-    radial-gradient(50% 45% at 85% 15%, rgba(139, 92, 246, 0.14) 0%, transparent 65%),
-    linear-gradient(135deg, #090d1a 0%, #0f172a 42%, #1e1b4b 78%, #0c1222 100%);
+    radial-gradient(65% 55% at 15% 10%, rgba(56, 152, 255, 0.12) 0%, transparent 65%),
+    radial-gradient(55% 45% at 85% 15%, rgba(139, 92, 246, 0.10) 0%, transparent 65%),
+    linear-gradient(145deg, #0b0d12 0%, #10131b 52%, #0d1016 100%);
 
-  --glass-1: rgba(15, 23, 42, 0.72);
-  --glass-2: rgba(15, 23, 42, 0.36);
-  --glass-3: rgba(30, 41, 59, 0.82);
-  --glass-4: rgba(30, 41, 59, 0.92);
+  --glass-1: #14171f;
+  --glass-2: #11141b;
+  --glass-3: #181c26;
+  --glass-4: #161922;
 
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-border-soft: rgba(255, 255, 255, 0.08);
-  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  --glass-inner: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --glass-specular: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 40%);
+  --glass-border: #242936;
+  --glass-border-soft: #1f2430;
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --glass-inner: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --glass-specular: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 40%);
 
-  --glass-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.3);
-  --glass-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
-  --glass-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45), 0 24px 48px rgba(0, 0, 0, 0.45);
+  --glass-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --glass-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --glass-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
 
-  --glass-btn-primary-bg: #f8fafc;
-  --glass-btn-primary-hover: #e2e8f0;
-  --glass-btn-primary-ink: #0f172a;
-  --glass-btn-primary-border: rgba(255, 255, 255, 0.45);
+  --glass-btn-primary-bg: #3898ff;
+  --glass-btn-primary-hover: #2584eb;
+  --glass-btn-primary-ink: #ffffff;
+  --glass-btn-primary-border: rgba(56, 152, 255, 0.35);
 
   --status-backlog: #cbd5e1;
   --status-todo: #e2e8f0;

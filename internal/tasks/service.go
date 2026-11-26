@@ -74,6 +74,7 @@ func NormalizeExecutionMode(m string) string {
 type Board struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`
+	Emoji           string `json:"emoji,omitempty"`
 	DefaultExecutor string `json:"default_executor"`
 	DefaultModel    string `json:"default_model"`
 }
@@ -193,28 +194,43 @@ func (v *Service) CreateBoard(name string) (Board, error) {
 }
 
 func (v *Service) CreateBoardWithDefaults(name, defaultExecutor, defaultModel string) (Board, error) {
+	return v.CreateBoardWithMeta(name, "", defaultExecutor, defaultModel)
+}
+
+func (v *Service) CreateBoardWithMeta(name, emoji, defaultExecutor, defaultModel string) (Board, error) {
 	if name == "" {
 		return Board{}, fmt.Errorf("%w: name required", ErrBadRequest)
 	}
-	b := Board{ID: newID("b"), Name: name, DefaultExecutor: defaultExecutor, DefaultModel: defaultModel}
-	_, err := v.S.DB.Exec(`INSERT INTO boards(id,name,default_executor,default_model,created_at) VALUES(?,?,?,?,?)`,
-		b.ID, name, defaultExecutor, defaultModel, v.Now().Unix())
+	emoji = strings.TrimSpace(emoji)
+	b := Board{ID: newID("b"), Name: name, Emoji: emoji, DefaultExecutor: defaultExecutor, DefaultModel: defaultModel}
+	_, err := v.S.DB.Exec(`INSERT INTO boards(id,name,emoji,default_executor,default_model,created_at) VALUES(?,?,?,?,?,?)`,
+		b.ID, name, emoji, defaultExecutor, defaultModel, v.Now().Unix())
 	return b, err
 }
 
 func (v *Service) UpdateBoard(id, name, defaultExecutor, defaultModel string) (Board, error) {
+	return v.UpdateBoardWithMeta(id, name, nil, defaultExecutor, defaultModel)
+}
+
+func (v *Service) UpdateBoardWithMeta(id, name string, emoji *string, defaultExecutor, defaultModel string) (Board, error) {
 	if name == "" {
 		return Board{}, fmt.Errorf("%w: name required", ErrBadRequest)
 	}
-	res, err := v.S.DB.Exec(`UPDATE boards SET name=?, default_executor=?, default_model=? WHERE id=?`,
-		name, defaultExecutor, defaultModel, id)
+	var nextEmoji string
+	if emoji != nil {
+		nextEmoji = strings.TrimSpace(*emoji)
+	} else {
+		_ = v.S.DB.QueryRow(`SELECT COALESCE(emoji,'') FROM boards WHERE id=?`, id).Scan(&nextEmoji)
+	}
+	res, err := v.S.DB.Exec(`UPDATE boards SET name=?, emoji=?, default_executor=?, default_model=? WHERE id=?`,
+		name, nextEmoji, defaultExecutor, defaultModel, id)
 	if err != nil {
 		return Board{}, err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return Board{}, fmt.Errorf("%w: board", ErrNotFound)
 	}
-	return Board{ID: id, Name: name, DefaultExecutor: defaultExecutor, DefaultModel: defaultModel}, nil
+	return Board{ID: id, Name: name, Emoji: nextEmoji, DefaultExecutor: defaultExecutor, DefaultModel: defaultModel}, nil
 }
 
 func (v *Service) DeleteBoard(id string) error {
@@ -229,7 +245,7 @@ func (v *Service) DeleteBoard(id string) error {
 }
 
 func (v *Service) ListBoards() ([]Board, error) {
-	rows, err := v.S.DB.Query(`SELECT id,name,default_executor,default_model FROM boards ORDER BY created_at`)
+	rows, err := v.S.DB.Query(`SELECT id,name,COALESCE(emoji,''),default_executor,default_model FROM boards ORDER BY created_at`)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +253,7 @@ func (v *Service) ListBoards() ([]Board, error) {
 	out := []Board{}
 	for rows.Next() {
 		var b Board
-		if err := rows.Scan(&b.ID, &b.Name, &b.DefaultExecutor, &b.DefaultModel); err != nil {
+		if err := rows.Scan(&b.ID, &b.Name, &b.Emoji, &b.DefaultExecutor, &b.DefaultModel); err != nil {
 			return nil, err
 		}
 		out = append(out, b)

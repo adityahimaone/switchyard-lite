@@ -162,21 +162,21 @@ code, pre, .mono {
 }
 
 /* ==========================================================================
-   App Shell (Floating Left Capsule Sidebar Dock + Double-Framed Stage)
+   App Shell (Unified 2-Zone Framed Editorial Window)
    ========================================================================== */
 .shell {
   position: relative;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 0;
   height: 100vh;
-  padding: 10px;
+  padding: 8px;
   overflow: hidden;
   background-color: var(--c-canvas);
   background-image: var(--app-bg);
   background-repeat: no-repeat;
   background-size: 100% 100%;
-  transition: grid-template-columns 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: grid-template-columns 220ms var(--ease-out);
 }
 
 .shell::before {
@@ -219,18 +219,17 @@ code, pre, .mono {
   }
 }
 
-/* Floating Left Sidebar Dock — Level 1 Glass (most solid) */
+/* Left Zone — Pure Flat Editorial Navigation Rail */
 nav.side {
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur-1);
-  -webkit-backdrop-filter: var(--glass-blur-1);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sidebar);
-  padding: 6px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-right: 1px solid var(--c-line);
+  border-radius: 18px 0 0 18px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-sm);
+  gap: 8px;
+  box-shadow: var(--lift-2);
   min-height: 0;
   overflow: hidden;
   z-index: 20;
@@ -238,14 +237,15 @@ nav.side {
 }
 
 .side-top-pod {
-  background: color-mix(in srgb, var(--c-surface) 62%, transparent);
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 14px;
-  padding: 6px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--c-line);
+  border-radius: 0;
+  padding: 0 0 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: var(--glass-highlight);
+  gap: 8px;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -340,31 +340,31 @@ nav.side h1 {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: color-mix(in srgb, var(--c-surface) 45%, transparent);
-  padding: 5px;
-  border-radius: 14px;
-  border: 1px solid var(--glass-border-soft);
+  background: transparent;
+  padding: 2px 0 6px;
+  border-radius: 0;
+  border: 0;
   flex-shrink: 0;
 }
 
 .nav-group-label {
   font-family: var(--mono);
-  font-size: 9.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: -0.01em;
   color: var(--text-muted);
-  padding: 2px 8px 4px;
+  padding: 2px 10px 4px;
   white-space: nowrap;
-  height: 18px;
+  height: 22px;
   overflow: hidden;
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1) 40ms,
-    transform 160ms cubic-bezier(0.22, 1, 0.36, 1) 40ms,
-    height 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    padding 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 160ms var(--ease-out) 30ms,
+    transform 160ms var(--ease-out) 30ms,
+    height 220ms var(--ease-out),
+    padding 220ms var(--ease-out);
 }
 
 /* 标签宽度恒定，切换态只做淡出/位移；溢出交给父级 clip。
@@ -459,23 +459,15 @@ nav.side a:active {
 }
 
 nav.side a[aria-current="page"] {
-  background: var(--glass-3);
-  border-color: var(--glass-border);
+  background: var(--c-well);
+  border-color: transparent;
   color: var(--text-primary);
-  font-weight: 600;
-  box-shadow: var(--glass-highlight), var(--glass-shadow-sm);
+  font-weight: 500;
+  box-shadow: none;
 }
 
 nav.side a[aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 16px;
-  border-radius: 0 3px 3px 0;
-  background: var(--status-progress);
+  display: none;
 }
 
 .nav-icon-wrap {
@@ -533,11 +525,12 @@ nav.side a[aria-current="page"]::before {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: color-mix(in srgb, var(--c-surface) 62%, transparent);
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 14px;
-  padding: 6px;
-  box-shadow: var(--glass-highlight);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--c-line);
+  border-radius: 0;
+  padding: 8px 0 0;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -546,8 +539,8 @@ nav.side a[aria-current="page"]::before {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--c-line) 70%, transparent);
-  padding: 6px 4px 0 4px;
+  border-top: 0;
+  padding: 2px 4px 0 4px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -558,18 +551,19 @@ nav.side a[aria-current="page"]::before {
   flex: 0 0 auto;
 }
 
-/* Liquid Glass Workspace Stage (transparent bezel so mesh gradient shines behind columns) */
+/* Right Zone — Unified Crisp Stage */
 .shell-inset {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  border-radius: var(--radius-column);
-  border: 1px solid var(--glass-border-soft);
-  background: transparent;
+  border-radius: 0 18px 18px 0;
+  border: 1px solid var(--c-line);
+  border-left: 0;
+  background: var(--c-surface);
   padding: 0;
-  box-shadow: var(--glass-inner);
+  box-shadow: var(--lift-2);
   overflow: hidden;
   position: relative;
   z-index: 1;
@@ -584,19 +578,17 @@ nav.side a[aria-current="page"]::before {
 header.top-header {
   position: relative;
   overflow: hidden;
-  height: 44px;
+  height: 46px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 14px;
-  border-radius: var(--radius-column) var(--radius-column) 0 0;
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur-1);
-  -webkit-backdrop-filter: var(--glass-blur-1);
-  border-bottom: 1px solid var(--glass-border-soft);
-  box-shadow: var(--glass-highlight);
+  padding: 0 16px;
+  border-radius: 0 18px 0 0;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-line);
+  box-shadow: none;
   z-index: 15;
 }
 
@@ -1456,17 +1448,13 @@ label.f {
 
 .cmd-dialog {
   width: min(580px, 94vw);
-  background: var(--glass-tint-dialog);
-  backdrop-filter: blur(28px) saturate(1.7);
-  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+  background: var(--c-surface);
   border: 1px solid var(--c-line-strong);
   border-radius: var(--radius-panel);
-  box-shadow: var(--glass-lift-dialog);
+  box-shadow: var(--lift-float);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: cmd-scale-in 160ms var(--ease-out);
-  will-change: transform, opacity;
   outline: none;
 }
 
@@ -1548,29 +1536,27 @@ label.f {
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.32);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 50;
   display: flex;
   justify-content: flex-end;
-  padding: 10px;
-  animation: fade-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  padding: 0;
+  animation: fade-in 160ms var(--ease-out);
 }
 
 .drawer-panel {
   display: flex;
   height: 100%;
-  width: min(600px, 100%);
+  width: min(620px, 100%);
   flex-direction: column;
-  border-radius: var(--radius-column);
-  border: 1px solid var(--glass-border);
-  background: var(--glass-4);
-  backdrop-filter: var(--glass-blur-4);
-  -webkit-backdrop-filter: var(--glass-blur-4);
-  box-shadow: var(--glass-highlight), var(--glass-inner), var(--glass-shadow-lg);
+  border-radius: 0;
+  border-left: 1px solid var(--c-line);
+  background: var(--c-surface);
+  box-shadow: -12px 0 36px rgb(0 0 0 / 0.14);
   overflow: hidden;
-  animation: drawer-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: drawer-slide-in 220ms var(--ease-drawer);
   will-change: transform, opacity;
 }
 

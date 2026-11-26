@@ -5,7 +5,7 @@ import { Dag, FlowScreen, layers, SettingsScreen } from "./Screens";
 import { Login } from "./Login";
 import { BoardScreen } from "./Board";
 import { TaskDrawer } from "./Drawer";
-import { TaskDialog } from "@/components/board/TaskDialog";
+import { TaskDialog, BoardDialog } from "./Board";
 import { InboxScreen } from "@/components/studio/InboxScreen";
 import { WorkflowTree } from "@/components/studio/WorkflowTree";
 import { PreviewBrowserTab, WorktreeTerminalTab } from "@/components/studio/WorktreeStudioTabs";
@@ -1229,4 +1229,36 @@ test("Wave 2 & 3 Studio: InboxScreen grouped triage, WorkflowTree dot-grid, Term
   );
   expect(screen.getByTestId("preview-browser-tab")).toBeTruthy();
   expect(screen.getByTitle("Preview localhost:5173")).toBeTruthy();
+});
+
+test("BoardDialog persists board emoji, BoardEmojiTile renders it, and Dark Mode renders without native selects", async () => {
+  let createdBoard: Record<string, unknown> | null = null;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/boards") && init?.method === "POST") {
+      createdBoard = JSON.parse(String(init.body ?? "{}"));
+      return new Response(
+        JSON.stringify({ id: "b_emoji", name: createdBoard?.name, emoji: createdBoard?.emoji }),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  document.documentElement.classList.add("dark");
+  const { container } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <BoardDialog mode="new" onClose={() => {}} onSaved={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(container.querySelectorAll("select")).toHaveLength(0);
+  fireEvent.change(screen.getByLabelText("Board name"), { target: { value: "Design System" } });
+  fireEvent.click(screen.getByRole("button", { name: "Select emoji 🚀" }));
+  expect(screen.getByTestId("board-emoji-tile").textContent).toBe("🚀");
+
+  fireEvent.click(screen.getByRole("button", { name: "Create board" }));
+  await waitFor(() => expect(createdBoard).not.toBeNull());
+  expect(createdBoard).toMatchObject({ name: "Design System", emoji: "🚀" });
+  document.documentElement.classList.remove("dark");
 });

@@ -50,6 +50,7 @@ import { RunningIndicator } from "@/components/board/AgentStatus";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
 import { WorkflowTree } from "@/components/studio/WorkflowTree";
+import { BOARD_EMOJI_PRESETS, BoardEmojiTile } from "@/components/studio/StudioAssets";
 import { ErrorBox, LABEL, StatusHeaderPill, statusColor } from "./ui";
 import { fmtDateTime, initials, relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -611,6 +612,7 @@ export function BoardScreen({
         {/* Topbar row: Left = board switcher + auto badge + settings, Center = Board/Table/Lanes, Right = Run board + single primary New task */}
         <div className="grid w-full grid-cols-1 items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {activeBoard && <BoardEmojiTile board={activeBoard} size={28} />}
             {(boards.data?.length ?? 0) > 0 ? (
               <BoardSwitcher
                 boards={boards.data}
@@ -623,6 +625,9 @@ export function BoardScreen({
                 {activeBoard ? activeBoard.name : "Board"}
               </h2>
             )}
+            <span className="font-mono text-[11.5px] tabular-nums text-ink-4">
+              {allTasks.length} {allTasks.length === 1 ? "task" : "tasks"}
+            </span>
 
             {activeBoard?.default_executor && (
               <Tip label="Board default executor & model">
@@ -1493,6 +1498,7 @@ export function BoardDialog({
   const qc = useQueryClient();
   const { visibleExecutors } = useExecutorConfig();
   const [name, setName] = useState(board?.name ?? "");
+  const [emoji, setEmoji] = useState(board?.emoji ?? "");
   const [defaultExecutor, setDefaultExecutor] = useState(board?.default_executor ?? "");
   const [defaultModel, setDefaultModel] = useState(board?.default_model ?? "");
   const selectableExecutors =
@@ -1512,11 +1518,13 @@ export function BoardDialog({
       mode === "new"
         ? post<Board>("/api/v1/boards", {
             name: name.trim(),
+            emoji: emoji.trim(),
             default_executor: defaultExecutor,
             default_model: defaultModel,
           })
         : patch<Board>(`/api/v1/boards/${board!.id}`, {
             name: name.trim(),
+            emoji: emoji.trim(),
             default_executor: defaultExecutor,
             default_model: defaultModel,
           }),
@@ -1576,6 +1584,38 @@ export function BoardDialog({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. f8-saas, switchyard-core"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="board-emoji">Board emoji</Label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <BoardEmojiTile board={{ id: board?.id ?? "new", name: name || "Board", emoji }} size={32} />
+                {BOARD_EMOJI_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setEmoji(preset)}
+                    aria-label={`Select emoji ${preset}`}
+                    className={cn(
+                      "inline-flex size-8 items-center justify-center rounded-[8px] border text-[15px] transition-colors",
+                      emoji === preset
+                        ? "border-accent bg-accent-tint"
+                        : "border-line bg-well/60 hover:border-line-strong hover:bg-well"
+                    )}
+                  >
+                    {preset}
+                  </button>
+                ))}
+                <Input
+                  id="board-emoji"
+                  aria-label="Board emoji"
+                  value={emoji}
+                  onChange={(e) => setEmoji(e.target.value)}
+                  placeholder="Custom"
+                  maxLength={8}
+                  className="ml-auto h-8 w-20 text-center"
+                />
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

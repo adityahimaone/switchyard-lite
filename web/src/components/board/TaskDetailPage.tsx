@@ -107,7 +107,7 @@ export function TaskDetailPage({
         )}
 
         {t && (
-          <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-[16px] border border-[var(--glass-border)] bg-[var(--glass-3)] px-3.5 py-2 shadow-[var(--glass-highlight),var(--glass-inner),var(--glass-shadow-sm)] backdrop-blur-md">
+          <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-line bg-surface px-3.5 py-2 shadow-[var(--lift-1)]">
             <TaskActions
               task={t}
               onDispatch={() => dispatch.mutate()}

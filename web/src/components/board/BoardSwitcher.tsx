@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { LayoutGrid } from "@/components/ui/icons";
 import type { Board } from "@/api";
 import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
+import { BoardEmojiTile } from "@/components/studio/StudioAssets";
 
 /**
  * Single source of truth for "which board am I looking at".
@@ -33,7 +33,7 @@ export function BoardSwitcher({
         value: b.id,
         label: b.name,
         sublabel: b.id,
-        icon: <LayoutGrid className="size-3.5" />,
+        icon: <BoardEmojiTile board={b} size={18} className="rounded-[5px]" />,
         badge: b.default_executor || undefined,
         keywords: [b.name, b.id, b.default_executor ?? "", b.default_model ?? ""],
       })),

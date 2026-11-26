@@ -8,6 +8,7 @@ import {
   GitPullRequest,
   Inbox,
   Kanban,
+  MoreHorizontal,
   Network,
   PanelLeft,
   PanelLeftClose,
@@ -53,16 +54,16 @@ import {
 } from "./Screens";
 import { KnowledgeScreen } from "@/components/knowledge/KnowledgeScreen";
 import { InboxScreen } from "@/components/studio/InboxScreen";
-import { HarnessAvatar } from "@/components/studio/StudioAssets";
+import { BoardEmojiTile } from "@/components/studio/StudioAssets";
 import { isPipelinesEnabled } from "@/lib/features";
 import { navigate, useRoute } from "@/lib/router";
 
 const NAV = [
-  { id: "board", label: "Board", group: "Work", icon: Kanban },
-  { id: "inbox", label: "Inbox", group: "Work", icon: Inbox },
-  { id: "review", label: "Review", group: "Work", icon: GitPullRequest },
-  { id: "pipelines", label: "Pipelines", group: "Work", icon: Workflow },
-  { id: "flow", label: "Flow map", group: "Work", icon: Network },
+  { id: "board", label: "Board", group: "General", icon: Kanban },
+  { id: "inbox", label: "Inbox", group: "General", icon: Inbox },
+  { id: "review", label: "Review", group: "General", icon: GitPullRequest },
+  { id: "pipelines", label: "Pipelines", group: "General", icon: Workflow },
+  { id: "flow", label: "Flow map", group: "General", icon: Network },
   { id: "workspaces", label: "Workspaces", group: "Infrastructure", icon: FolderGit2 },
   { id: "workers", label: "Workers", group: "Infrastructure", icon: Cpu },
   { id: "overview", label: "Overview", group: "Observe", icon: Activity },
@@ -163,27 +164,37 @@ export function App() {
           <div className="side-top-row">
             <AppSidebarBrand name="Switchyard" tag="STUDIO" markSize={26} />
           </div>
-          <div className="mt-2.5 space-y-2 px-1">
+          <div className="side-board-box mt-2 space-y-2">
             {activeBoard && (
-              <div className="flex items-center gap-2.5 rounded-[12px] border border-line bg-surface px-2.5 py-2 shadow-2xs">
-                <HarnessAvatar harness={activeBoard.default_executor || "studio"} size={30} />
+              <div className="flex items-center gap-2.5 rounded-[12px] border border-line bg-surface px-2.5 py-2">
+                <BoardEmojiTile board={activeBoard} size={34} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12.5px] font-semibold text-ink">{activeBoard.name}</div>
+                  <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-ink">
+                    {activeBoard.name}
+                  </div>
                   <div className="truncate font-mono text-[10.5px] text-ink-4">
-                    {activeBoard.default_executor || "auto"}
-                    {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
+                    {activeBoard.default_executor || "auto"} · {(tasks.data ?? []).length} tasks
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setBoardDialog({ mode: "edit", board: activeBoard })}
+                  aria-label="Edit active board"
+                  title="Edit board & emoji"
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-ink-4 transition-colors hover:bg-well hover:text-ink"
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </button>
               </div>
             )}
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="flex h-8 w-full items-center justify-between rounded-[10px] border border-line bg-well/65 px-2.5 text-[12px] text-ink-3 transition-colors hover:border-line-strong hover:text-ink"
+              className="flex h-9 w-full items-center justify-between rounded-[10px] border border-line/70 bg-well px-3 text-[12.5px] text-ink-3 transition-colors hover:border-line-strong hover:text-ink"
               aria-label="Search tasks and boards"
             >
-              <span className="inline-flex items-center gap-1.5">
-                <Search className="size-3.5" />
+              <span className="inline-flex items-center gap-2">
+                <Search className="size-3.5 text-ink-4" />
                 <span>Search</span>
               </span>
               <Kbd>⌘K</Kbd>
@@ -192,7 +203,7 @@ export function App() {
               type="button"
               disabled={!boardId}
               onClick={() => setTaskDialogOpen(true)}
-              className="studio-scenic-cta flex h-9 w-full items-center gap-2 rounded-[11px] px-3 text-[12.5px] font-semibold disabled:opacity-50"
+              className="studio-scenic-cta flex h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[12.5px] font-semibold disabled:opacity-50"
             >
               <Plus className="size-3.5" />
               <span>Compose task</span>

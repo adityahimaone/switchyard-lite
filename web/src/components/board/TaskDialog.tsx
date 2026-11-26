@@ -62,6 +62,7 @@ import {
 import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { Textarea } from "@/components/ui/textarea";
 import { MetaChip } from "@/components/board/taskDetailParts";
+import { BoardEmojiTile } from "@/components/studio/StudioAssets";
 import {
   BranchField,
   Chip,
@@ -556,7 +557,7 @@ export function TaskDialog({
         if (!nextOpen) onClose();
       }}
     >
-      <DialogContent className="max-w-4xl p-0" showClose>
+      <DialogContent className="max-w-2xl p-0" showClose>
         <form
           onSubmit={submit}
           onPaste={(e) => {
@@ -600,41 +601,47 @@ export function TaskDialog({
           }}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <DialogHeader className="border-b border-line bg-surface/80 px-5 py-3.5">
-            <div className="flex flex-wrap items-center gap-2 pr-8">
-              <DialogTitle id="task-dialog-title" className="text-[16px] font-bold tracking-[-0.02em]">
-                New task
-              </DialogTitle>
-              {board && (
-                <Badge variant="default" className="font-mono text-[10.5px]">
-                  {board.name}
-                </Badge>
-              )}
-              {wsExecutorProbe.machineLabel && (
-                <Badge variant="outline" className="font-mono text-[10.5px] text-ink-3">
-                  {wsExecutorProbe.machineLabel}
-                </Badge>
-              )}
-              <Badge
-                variant={startMode === "now" ? "default" : "secondary"}
-                className="font-mono text-[10.5px]"
-              >
-                {startLabel}
-              </Badge>
+          <DialogHeader className="border-b border-line bg-surface px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 pr-8">
+              <div className="flex flex-wrap items-center gap-2">
+                {board && <BoardEmojiTile board={board} size={24} className="rounded-[7px]" />}
+                <DialogTitle id="task-dialog-title" className="text-[15.5px] font-semibold tracking-[-0.02em]">
+                  New task
+                </DialogTitle>
+                {board && (
+                  <span className="font-mono text-[11px] text-ink-4">{board.name}</span>
+                )}
+                {wsExecutorProbe.machineLabel && (
+                  <Badge variant="outline" className="font-mono text-[10.5px] text-ink-3">
+                    {wsExecutorProbe.machineLabel}
+                  </Badge>
+                )}
+              </div>
+              <Segmented
+                label="Start mode"
+                value={startMode}
+                onChange={setStartMode}
+                options={[
+                  { value: "manual", label: "Manual" },
+                  { value: "queue", label: "Todo" },
+                  { value: "now", label: "Now" },
+                  { value: "tracker", label: "Monitor" },
+                  ...(isPipelinesEnabled() ? [{ value: "meta7" as const, label: "meta7" }] : []),
+                ]}
+                className="h-7 [&>button]:h-[22px] [&>button]:px-2 [&>button]:text-[11px]"
+              />
             </div>
             <DialogDescription className="text-xs text-ink-3">
-              Draft the task brief, mention <span className="font-mono text-blue-700 dark:text-blue-200">@files</span> or{" "}
-              <span className="font-mono text-violet-700 dark:text-violet-200">$skills</span> inline, bind target &amp; agent, and press ⌘↵.
+              Mention <span className="font-mono text-accent-text">@files</span> or{" "}
+              <span className="font-mono text-violet-600 dark:text-violet-300">$skills</span>, paste images with ⌘V, and press ⌘↵ to submit.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogBody className="flex flex-col gap-3 bg-canvas/35 p-4 sm:p-5">
+          <DialogBody className="flex flex-col gap-4 bg-surface p-4 sm:p-5">
             <ErrorBox error={create.error} />
             <SaasRulesBanner active={saasActive} />
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_304px]">
-              {/* ------------------------------------------ left composer brief */}
-              <div className="min-w-0 space-y-4">
+            <div className="min-w-0 space-y-3.5">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="task-title" className="text-xs font-semibold text-ink-2">
@@ -880,13 +887,13 @@ export function TaskDialog({
                 </div>
               </div>
 
-              {/* ------------------------------------------ right routing rail */}
-              <aside
-                className="space-y-3.5 rounded-[14px] border border-line bg-surface p-3.5 shadow-[var(--lift-1),var(--lift-inset)] self-start"
+              {/* ------------------------------------------ bottom inline routing dock */}
+              <div
+                className="space-y-3 border-t border-line pt-3.5"
                 aria-label="Task routing"
               >
-                <RailGroup label="Target Workspace">
-                  <RailField label="Repository / Checkout">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <RailField label="Target Workspace">
                     <SearchSelect
                       id="task-workspace"
                       value={selectValue}
@@ -905,25 +912,6 @@ export function TaskDialog({
                     />
                   </RailField>
 
-                  {selectedWsObj ? (
-                    <div className="flex flex-wrap items-center gap-1.5 rounded-[8px] border border-line bg-well/70 px-2.5 py-1 text-[10px] text-ink-3">
-                      <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
-                      <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
-                        {selectedWsObj.path}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                      {(savedWorkspaces.data?.length ?? 0) === 0
-                        ? "No saved workspaces yet — add one from the Workspaces page."
-                        : "Scratch runs have no repository, branch, or diff."}
-                      {" "}
-                      <Link href="/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
-                        Manage workspaces
-                      </Link>
-                    </p>
-                  )}
-
                   <BranchField
                     workspace={workspace.trim()}
                     isGit={isGit}
@@ -937,214 +925,195 @@ export function TaskDialog({
                       qc.invalidateQueries({ queryKey: ["ws-symbols", workspace.trim()] });
                     }}
                   />
-                </RailGroup>
-
-                <div className="border-t border-line/70 pt-3">
-                  <RailGroup label="Agent Execution">
-                    <RailField label="Executor" htmlFor="task-executor">
-                      {wsExecutorProbe.machineLabel && (
-                        <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]" data-testid="task-executor-machine-badge">
-                          <span>Target: {wsExecutorProbe.machineLabel}</span>
-                          <span className="font-mono tabular-nums">
-                            {wsExecutorProbe.probed
-                              ? `${wsInstalledCount}/${wsExecutorTotal} installed`
-                              : "offline / unprobed"}
-                          </span>
-                        </div>
-                      )}
-                      <Select
-                        value={executor || DEFAULT_SENTINEL}
-                        onValueChange={(v) => {
-                          const nextExec = v === DEFAULT_SENTINEL ? "" : v;
-                          setExecutor(nextExec);
-                          setModel("");
-                          const nextChoices = effortsForExecutor(nextExec || board?.default_executor);
-                          if (effort && !nextChoices.includes(effort)) {
-                            setEffort("");
-                          }
-                        }}
-                      >
-                        <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={DEFAULT_SENTINEL}>
-                            {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
-                          </SelectItem>
-                          {selectableExecutors.map((ex) => {
-                            const installed = isExecutorInstalled(ex);
-                            return (
-                              <SelectItem key={ex} value={ex} disabled={!installed}>
-                                {EXECUTOR_LABELS[ex] ?? ex}
-                                {!installed
-                                  ? ` (not installed on ${wsExecutorProbe.machineLabel || "machine"})`
-                                  : ""}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </RailField>
-
-                    {isAgyExecutor(effectiveExecutor) && (
-                      <AgyAccountPicker id="task-agy-account" workspace={workspace} compact />
-                    )}
-
-                    <RailField label="Model" htmlFor="task-model">
-                      {modelList.length > 0 ? (
-                        <SearchSelect
-                          id="task-model"
-                          value={model || DEFAULT_SENTINEL}
-                          onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
-                          disabled={!effectiveExecutor}
-                          options={[
-                            {
-                              value: DEFAULT_SENTINEL,
-                              label: "(executor default)",
-                              sublabel: board?.default_model || undefined,
-                            },
-                            ...modelList.map((m) => ({
-                              value: m.id,
-                              label: m.name,
-                              sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
-                              badge: m.badge,
-                              keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
-                            })),
-                          ]}
-                          placeholder="Select model…"
-                          searchPlaceholder="Search models…"
-                          ariaLabel="Model"
-                          size="sm"
-                          contentClassName="min-w-[22rem]"
-                        />
-                      ) : (
-                        <Input
-                          id="task-model"
-                          value={model}
-                          onChange={(e) => setModel(e.target.value)}
-                          disabled={!effectiveExecutor}
-                          placeholder="(executor default)"
-                          className="font-mono text-xs"
-                          aria-label="Model"
-                        />
-                      )}
-                    </RailField>
-
-                    {effectiveExecutor && modelList.length === 0 && (
-                      <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                        {modelHint
-                          ? `No catalog yet — ${modelHint}`
-                          : `No model catalog reported for ${EXECUTOR_LABELS[effectiveExecutor] ?? effectiveExecutor}. Type a model id, or leave blank for the executor default.`}
-                      </p>
-                    )}
-
-                    <RailField
-                      label={isAgyExecutor(effectiveExecutor) ? "Thinking Effort" : "Reasoning Effort"}
-                      htmlFor="task-effort"
-                    >
-                      <Select
-                        value={effort || DEFAULT_SENTINEL}
-                        onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
-                      >
-                        <SelectTrigger id="task-effort" size="sm" aria-label="Effort">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
-                          {effortChoices.map((ef) => (
-                            <SelectItem key={ef} value={ef}>
-                              {EFFORT_LABELS[ef] ?? (ef.charAt(0).toUpperCase() + ef.slice(1))}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </RailField>
-                  </RailGroup>
                 </div>
 
-                <div className="border-t border-line/70 pt-3">
-                  <RailGroup label="Dispatch Mode">
-                    <Segmented
-                      label="Start mode"
-                      value={startMode}
-                      onChange={setStartMode}
-                      options={[
-                        { value: "manual", label: "Manual" },
-                        { value: "queue", label: "Todo" },
-                        { value: "now", label: "Now" },
-                        { value: "tracker", label: "Monitor" },
-                        ...(isPipelinesEnabled() ? [{ value: "meta7" as const, label: "meta7" }] : []),
-                      ]}
-                      className="w-full justify-between [&>button]:px-1.5 [&>button]:text-[11px]"
-                    />
-                    {startMode !== "tracker" && startMode !== "meta7" && (
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={grillMe}
-                        onClick={() => setGrillMe((v) => !v)}
-                        className={cn(
-                          "flex w-full items-center justify-between rounded-md border px-2.5 py-1.5 text-left text-[11px] transition-colors",
-                          grillMe
-                            ? "border-[var(--status-waiting)]/50 bg-[var(--status-waiting-soft)] text-ink"
-                            : "border-line bg-surface-2/50 text-ink-3 hover:border-line-strong hover:text-ink"
-                        )}
-                      >
-                        <span className="font-medium">Grill-Me First</span>
-                        <span className="font-mono text-[10px] uppercase tracking-wider">
-                          {grillMe ? "ON" : "OFF"}
+                {selectedWsObj ? (
+                  <div className="flex flex-wrap items-center gap-1.5 rounded-[8px] border border-line bg-well/60 px-2.5 py-1 text-[10px] text-ink-3">
+                    <PlatformIcon platform={platformOfWorkspace(selectedWsObj)} className="size-3" />
+                    <span className="min-w-0 flex-1 truncate font-mono" title={selectedWsObj.path}>
+                      {selectedWsObj.path}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="m-0 text-[10.5px] leading-relaxed text-ink-4">
+                    {(savedWorkspaces.data?.length ?? 0) === 0
+                      ? "No saved workspaces yet — add one from the Workspaces page."
+                      : "Scratch runs have no repository, branch, or diff."}
+                    {" "}
+                    <Link href="/workspaces" className="font-medium text-accent-text underline-offset-2 hover:underline">
+                      Manage workspaces
+                    </Link>
+                  </p>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <RailField label="Executor" htmlFor="task-executor">
+                    {wsExecutorProbe.machineLabel && (
+                      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]" data-testid="task-executor-machine-badge">
+                        <span>{wsExecutorProbe.machineLabel}</span>
+                        <span className="font-mono tabular-nums">
+                          {wsExecutorProbe.probed
+                            ? `${wsInstalledCount}/${wsExecutorTotal} installed`
+                            : "offline"}
                         </span>
-                      </button>
-                    )}
-                    {(savedMcps.data ?? []).filter((m) => m.enabled).length > 0 && (
-                      <div className="space-y-1 pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-4">MCP Servers</div>
-                        <div className="flex flex-wrap gap-1">
-                          {(savedMcps.data ?? [])
-                            .filter((m) => m.enabled)
-                            .map((m) => {
-                              const active = mcps.includes(m.id);
-                              return (
-                                <button
-                                  key={m.id}
-                                  type="button"
-                                  onClick={() =>
-                                    setMcps((prev) =>
-                                      prev.includes(m.id) ? prev.filter((x) => x !== m.id) : [...prev, m.id]
-                                    )
-                                  }
-                                  className={cn(
-                                    "rounded-md border px-2 py-0.5 font-mono text-[10.5px] transition-colors",
-                                    active
-                                      ? "border-accent bg-accent-tint text-accent-text font-semibold"
-                                      : "border-line bg-surface text-ink-3 hover:border-line-strong hover:text-ink"
-                                  )}
-                                >
-                                  {m.name}
-                                </button>
-                              );
-                            })}
-                        </div>
                       </div>
                     )}
-                    <p className="m-0 text-[10px] leading-relaxed text-ink-4">
-                      {startMode === "meta7"
-                        ? "Runs the autonomous 7-stage coordinator (explore → cross_examine → synthesize → design → verify → review → impl + gate:*) on this board."
-                        : startMode === "tracker"
-                          ? "Passive monitor card — skipped by worker dispatch so external agents (dsh, commandcode, Antigravity) update status via MCP."
-                          : startMode === "now"
-                            ? "Created in Todo and dispatched immediately."
-                            : startMode === "manual"
-                              ? "Parked in Backlog until you triage it."
-                              : "Queued in Todo for the next worker poll."}
-                    </p>
-                  </RailGroup>
+                    <Select
+                      value={executor || DEFAULT_SENTINEL}
+                      onValueChange={(v) => {
+                        const nextExec = v === DEFAULT_SENTINEL ? "" : v;
+                        setExecutor(nextExec);
+                        setModel("");
+                        const nextChoices = effortsForExecutor(nextExec || board?.default_executor);
+                        if (effort && !nextChoices.includes(effort)) {
+                          setEffort("");
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="task-executor" size="sm" aria-label="Executor">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DEFAULT_SENTINEL}>
+                          {board?.default_executor ? `Board default (${board.default_executor})` : "(board default)"}
+                        </SelectItem>
+                        {selectableExecutors.map((ex) => {
+                          const installed = isExecutorInstalled(ex);
+                          return (
+                            <SelectItem key={ex} value={ex} disabled={!installed}>
+                              {EXECUTOR_LABELS[ex] ?? ex}
+                              {!installed
+                                ? ` (not installed on ${wsExecutorProbe.machineLabel || "machine"})`
+                                : ""}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </RailField>
+
+                  <RailField label="Model" htmlFor="task-model">
+                    {modelList.length > 0 ? (
+                      <SearchSelect
+                        id="task-model"
+                        value={model || DEFAULT_SENTINEL}
+                        onValueChange={(v) => setModel(v === DEFAULT_SENTINEL ? "" : v)}
+                        disabled={!effectiveExecutor}
+                        options={[
+                          {
+                            value: DEFAULT_SENTINEL,
+                            label: "(executor default)",
+                            sublabel: board?.default_model || undefined,
+                          },
+                          ...modelList.map((m) => ({
+                            value: m.id,
+                            label: m.name,
+                            sublabel: m.sublabel ?? (m.id === m.name ? undefined : m.id),
+                            badge: m.badge,
+                            keywords: [m.id, m.name, m.badge ?? "", m.sublabel ?? ""],
+                          })),
+                        ]}
+                        placeholder="Select model…"
+                        searchPlaceholder="Search models…"
+                        ariaLabel="Model"
+                        size="sm"
+                        contentClassName="min-w-[22rem]"
+                      />
+                    ) : (
+                      <Input
+                        id="task-model"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        disabled={!effectiveExecutor}
+                        placeholder="(executor default)"
+                        className="font-mono text-xs"
+                        aria-label="Model"
+                      />
+                    )}
+                  </RailField>
+
+                  <RailField
+                    label={isAgyExecutor(effectiveExecutor) ? "Thinking Effort" : "Reasoning Effort"}
+                    htmlFor="task-effort"
+                  >
+                    <Select
+                      value={effort || DEFAULT_SENTINEL}
+                      onValueChange={(v) => setEffort(v === DEFAULT_SENTINEL ? "" : v)}
+                    >
+                      <SelectTrigger id="task-effort" size="sm" aria-label="Effort">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DEFAULT_SENTINEL}>(default effort)</SelectItem>
+                        {effortChoices.map((ef) => (
+                          <SelectItem key={ef} value={ef}>
+                            {EFFORT_LABELS[ef] ?? (ef.charAt(0).toUpperCase() + ef.slice(1))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </RailField>
                 </div>
-              </aside>
-            </div>
+
+                {isAgyExecutor(effectiveExecutor) && (
+                  <AgyAccountPicker id="task-agy-account" workspace={workspace} compact />
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  {startMode !== "tracker" && startMode !== "meta7" && (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={grillMe}
+                      onClick={() => setGrillMe((v) => !v)}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-[8px] border px-2.5 py-1 text-[11px] transition-colors",
+                        grillMe
+                          ? "border-[var(--status-waiting)]/50 bg-[var(--status-waiting-soft)] text-ink"
+                          : "border-line bg-well/60 text-ink-3 hover:border-line-strong hover:text-ink"
+                      )}
+                    >
+                      <span className="font-medium">Grill-Me First</span>
+                      <span className="font-mono text-[10px] uppercase tracking-wider">
+                        {grillMe ? "ON" : "OFF"}
+                      </span>
+                    </button>
+                  )}
+
+                  {(savedMcps.data ?? []).filter((m) => m.enabled).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-ink-4">MCPs</span>
+                      {(savedMcps.data ?? [])
+                        .filter((m) => m.enabled)
+                        .map((m) => {
+                          const active = mcps.includes(m.id);
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() =>
+                                setMcps((prev) =>
+                                  prev.includes(m.id) ? prev.filter((x) => x !== m.id) : [...prev, m.id]
+                                )
+                              }
+                              className={cn(
+                                "rounded-md border px-2 py-0.5 font-mono text-[10.5px] transition-colors",
+                                active
+                                  ? "border-accent bg-accent-tint text-accent-text font-semibold"
+                                  : "border-line bg-surface text-ink-3 hover:border-line-strong hover:text-ink"
+                              )}
+                            >
+                              {m.name}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </div>
           </DialogBody>
 
-          <DialogFooter className="border-t border-line bg-surface/85 px-5 py-3 sm:items-center">
+          <DialogFooter className="border-t border-line bg-well/40 px-5 py-3 sm:items-center">
             <div className="mr-auto hidden flex-wrap items-center gap-1.5 text-[11px] text-ink-3 sm:flex">
               <MetaChip title="Board">{board?.name ?? "board"}</MetaChip>
               <ChevronRight className="size-3 text-ink-4" />

@@ -57,11 +57,12 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("POST /api/v1/boards", a.require("write", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Name            string `json:"name"`
+			Emoji           string `json:"emoji"`
 			DefaultExecutor string `json:"default_executor"`
 			DefaultModel    string `json:"default_model"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&in)
-		b, err := a.Tasks.CreateBoardWithDefaults(in.Name, in.DefaultExecutor, in.DefaultModel)
+		b, err := a.Tasks.CreateBoardWithMeta(in.Name, in.Emoji, in.DefaultExecutor, in.DefaultModel)
 		if err != nil {
 			fromErr(w, err)
 			return
@@ -71,15 +72,16 @@ func (a *API) Handler() http.Handler {
 	}))
 	m.HandleFunc("PATCH /api/v1/boards/{id}", a.require("write", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
-			Name            string `json:"name"`
-			DefaultExecutor string `json:"default_executor"`
-			DefaultModel    string `json:"default_model"`
+			Name            string  `json:"name"`
+			Emoji           *string `json:"emoji"`
+			DefaultExecutor string  `json:"default_executor"`
+			DefaultModel    string  `json:"default_model"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 			fail(w, 400, "invalid json")
 			return
 		}
-		b, err := a.Tasks.UpdateBoard(r.PathValue("id"), in.Name, in.DefaultExecutor, in.DefaultModel)
+		b, err := a.Tasks.UpdateBoardWithMeta(r.PathValue("id"), in.Name, in.Emoji, in.DefaultExecutor, in.DefaultModel)
 		if err != nil {
 			fromErr(w, err)
 			return

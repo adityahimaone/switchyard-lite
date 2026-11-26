@@ -84,7 +84,7 @@ export function TaskDrawer({
           onOpenPage={openFullPage}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--glass-2)] px-4 py-3.5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-well/25 px-4 py-3.5">
           <TaskDetailPanels
             id={id}
             variant="drawer"
@@ -98,7 +98,7 @@ export function TaskDrawer({
           />
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-2.5 border-t border-[var(--glass-border-soft)] bg-[var(--glass-1)] px-4 py-2.5 backdrop-blur-xl">
+        <footer className="flex shrink-0 items-center justify-between gap-2.5 border-t border-line bg-surface px-4 py-2.5">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)]">
             <Kbd>esc</Kbd>
             <span>close</span>

@@ -73,6 +73,7 @@ export interface Task {
 export interface Board {
   id: string;
   name: string;
+  emoji?: string;
   default_executor?: string;
   default_model?: string;
 }

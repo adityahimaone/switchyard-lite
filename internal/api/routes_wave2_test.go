@@ -59,9 +59,20 @@ func TestWave2MCPRegistryAndTerminalExec(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(wsDir, "hello.txt"), []byte("studio"), 0o644)
 
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, req(http.MethodPost, "/api/v1/boards", bytes.NewBufferString(`{"name":"Studio"}`)))
-	var board struct{ ID string }
+	h.ServeHTTP(rec, req(http.MethodPost, "/api/v1/boards", bytes.NewBufferString(`{"name":"Studio","emoji":"🚀"}`)))
+	var board struct {
+		ID    string `json:"id"`
+		Emoji string `json:"emoji"`
+	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &board)
+	if board.Emoji != "🚀" {
+		t.Fatalf("expected board emoji 🚀, got %q", board.Emoji)
+	}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req(http.MethodPatch, "/api/v1/boards/"+board.ID, bytes.NewBufferString(`{"name":"Studio","emoji":"⚡"}`)))
+	if rec.Code != 200 || !bytes.Contains(rec.Body.Bytes(), []byte("⚡")) {
+		t.Fatalf("patch board emoji failed: %d %s", rec.Code, rec.Body.String())
+	}
 
 	taskPayload, _ := json.Marshal(map[string]any{
 		"board_id":  board.ID,

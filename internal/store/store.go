@@ -40,6 +40,7 @@ func Open(path string) (*Store, error) {
 		}
 	}
 	for _, col := range []string{
+		`ALTER TABLE boards ADD COLUMN emoji TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE tasks ADD COLUMN paths TEXT NOT NULL DEFAULT '[]'`,
 		`ALTER TABLE tasks ADD COLUMN skills TEXT NOT NULL DEFAULT '[]'`,
 		`ALTER TABLE tasks ADD COLUMN mcps TEXT NOT NULL DEFAULT '[]'`,

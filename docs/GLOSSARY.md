@@ -15,3 +15,5 @@
 | **Inbox / Triage View** | Grouped editorial feed (Waiting Input · Today · Review · Earlier) styled in the Warm Light Tactile design system alongside the primary Kanban Studio board. |
 | **PTY Terminal** | Interactive pseudo-terminal multiplexed through `node-agent` into the Task Drawer, scoped directly to the task's git worktree (`sy/<task-id>`). |
 | **Preview Tunnel** | Authenticated reverse proxy (`/api/v1/preview/{taskId}/{port}/*`) tunneling a worker's `localhost:<port>` dev server into the Task Drawer Preview Browser. |
+| **Board Emoji** | Persisted per-board emoji (`boards.emoji`) rendered inside a pastel rounded-square `BoardEmojiTile` in the sidebar board card, `BoardSwitcher`, and Board header. |
+| **Unified 2-Zone Studio Shell** | Framed single-window layout dividing a flat `244px` navigation sidebar (`64px` collapsed) and main stage with a `1px` vertical hairline across Light and Dark modes. |
