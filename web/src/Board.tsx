@@ -49,6 +49,7 @@ import { OsIcon, StatusBadge } from "@/components/board/taskDetailParts";
 import { RunningIndicator } from "@/components/board/AgentStatus";
 import { BoardSwitcher } from "@/components/board/BoardSwitcher";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
+import { WorkflowTree } from "@/components/studio/WorkflowTree";
 import { ErrorBox, LABEL, StatusHeaderPill, statusColor } from "./ui";
 import { fmtDateTime, initials, relativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -83,14 +84,18 @@ import {
 } from "@/components/ui/select";
 import { EXECUTORS, TaskDialog, type StartMode } from "@/components/board/TaskDialog";
 import { EXECUTOR_LABELS, useExecutorConfig } from "@/lib/executors";
+import { isPipelinesEnabled } from "@/lib/features";
 
 export { EXECUTORS, TaskDialog, TaskDialog as CreateTask };
+
+const COLLAPSIBLE_EMPTY_STATUSES = new Set<Status>(["backlog", "blocked", "failed"]);
 
 const EMPTY_COPY: Record<Status, { title: string; hint: string }> = {
   backlog: { title: "Backlog is clear", hint: "Triaged ideas and low-priority items park here." },
   todo: { title: "Nothing queued", hint: "Tasks in Todo are ready for agent dispatch." },
   blocked: { title: "Nothing blocked", hint: "Tasks waiting on dependencies land here." },
   in_progress: { title: "No active runs", hint: "Dispatched tasks appear here while a worker executes." },
+  waiting_input: { title: "No open questions", hint: "Tasks waiting on your Grill-Me or clarification answer appear here." },
   review: { title: "Nothing in review", hint: "Completed runs wait here for diff approval." },
   done: { title: "Nothing done yet", hint: "Approved tasks are collected here." },
   failed: { title: "No failed tasks", hint: "Tasks exceeding max retries stop here." },
@@ -101,6 +106,7 @@ const EMPTY_ICONS: Record<Status, React.ComponentType<{ className?: string }>> =
   todo: ListTodo,
   blocked: ShieldAlert,
   in_progress: Cpu,
+  waiting_input: HelpCircle,
   review: GitPullRequest,
   done: CheckCircle2,
   failed: AlertCircle,
@@ -265,6 +271,19 @@ export function BoardScreen({
     onError: (e) => toastError(e, "Retry failed"),
   });
 
+  const runBoardTasks = useMutation({
+    mutationFn: async (taskIds: string[]) => {
+      await Promise.all(taskIds.map((id) => post(`/api/v1/tasks/${id}/dispatch`)));
+      return taskIds.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+      toast(`Dispatched ${count} queued task${count === 1 ? "" : "s"}`, { tone: "success" });
+    },
+    onError: (e) => toastError(e, "Failed to dispatch board tasks"),
+  });
+
   const runBoardMeta7 = useMutation({
     mutationFn: () =>
       post<{ id: string }>("/api/v1/pipelines", {
@@ -338,6 +357,14 @@ export function BoardScreen({
   const [filters, setFilters] = useState<Filter[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expandedCols, setExpandedCols] = useState<Set<Status>>(() => new Set());
+  const toggleColExpanded = (s: Status) =>
+    setExpandedCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
 
   const mk = useMutation({
     mutationFn: () => post<Board>("/api/v1/boards", { name: "Main" }),
@@ -370,6 +397,19 @@ export function BoardScreen({
     window.addEventListener("resize", updateBoardScrollEnd);
     return () => window.removeEventListener("resize", updateBoardScrollEnd);
   }, [viewMode, allTasks.length]);
+
+  const eligibleDispatchTasks = useMemo(
+    () =>
+      allTasks.filter(
+        (t) =>
+          t.status === "todo" &&
+          t.execution_mode !== "tracker" &&
+          !t.run_id &&
+          !t.parent_id &&
+          !t.title.startsWith("[pipeline]")
+      ),
+    [allTasks]
+  );
 
   const eligibleMeta7Tasks = useMemo(
     () =>
@@ -656,22 +696,36 @@ export function BoardScreen({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 justify-self-start lg:justify-self-end">
-            {eligibleMeta7Tasks.length > 0 && (
-              <Tip label="Coordinate all eligible todo/backlog tasks on this board into a meta7 pipeline">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => runBoardMeta7.mutate()}
-                  disabled={!boardId || runBoardMeta7.isPending}
-                >
-                  <Workflow className="size-3.5 text-[var(--status-progress)]" />
-                  <span>Run board ({eligibleMeta7Tasks.length})</span>
-                </button>
-              </Tip>
-            )}
+            {isPipelinesEnabled()
+              ? eligibleMeta7Tasks.length > 0 && (
+                  <Tip label="Coordinate all eligible todo/backlog tasks on this board into a meta7 pipeline">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => runBoardMeta7.mutate()}
+                      disabled={!boardId || runBoardMeta7.isPending}
+                    >
+                      <Workflow className="size-3.5 text-[var(--status-progress)]" />
+                      <span>Run board ({eligibleMeta7Tasks.length})</span>
+                    </button>
+                  </Tip>
+                )
+              : eligibleDispatchTasks.length > 0 && (
+                  <Tip label="Dispatch all queued Todo tasks on this board to active workers">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => runBoardTasks.mutate(eligibleDispatchTasks.map((t) => t.id))}
+                      disabled={!boardId || runBoardTasks.isPending}
+                    >
+                      <Play className="size-3.5 text-[var(--status-progress)]" />
+                      <span>Run board ({eligibleDispatchTasks.length})</span>
+                    </button>
+                  </Tip>
+                )}
 
             <button
-              className="btn primary"
+              className="btn studio-scenic-cta"
               onClick={() => setCreating({ startMode: "queue" })}
               disabled={!boardId}
             >
@@ -843,6 +897,48 @@ export function BoardScreen({
               const copy = EMPTY_COPY[s];
               const quickAdd = QUICK_ADD[s];
               const isReviewBottleneck = s === "review" && colTasks.length >= REVIEW_WIP_LIMIT;
+              const isCollapsibleEmpty = COLLAPSIBLE_EMPTY_STATUSES.has(s) && colTasks.length === 0;
+              const isCollapsed = isCollapsibleEmpty && !expandedCols.has(s);
+              if (isCollapsed) {
+                return (
+                  <div
+                    key={s}
+                    className={cn("col glass-column items-center justify-start px-1.5 py-3", over === s && "over")}
+                    data-status={s}
+                    data-collapsed="true"
+                    style={{ ["--lamp" as string]: statusColor(s), width: "44px", minWidth: "44px", maxWidth: "44px" }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setOver(s);
+                    }}
+                    onDragLeave={() => setOver("")}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setOver("");
+                      setDraggingId(null);
+                      const id = e.dataTransfer.getData("text/plain");
+                      if (id) move.mutate({ id, to: s });
+                    }}
+                  >
+                    <Tip label={`Expand ${LABEL[s]} column (empty)`}>
+                      <button
+                        type="button"
+                        onClick={() => toggleColExpanded(s)}
+                        aria-label={`Expand ${LABEL[s]} column`}
+                        className="flex h-full w-full flex-col items-center gap-2 rounded-lg py-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--glass-2)] hover:text-[var(--text-primary)]"
+                      >
+                        <span className="col-count">0</span>
+                        <span
+                          className="select-none text-[11px] font-semibold tracking-wide"
+                          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+                        >
+                          <StatusHeaderPill status={s} />
+                        </span>
+                      </button>
+                    </Tip>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={s}
@@ -867,6 +963,18 @@ export function BoardScreen({
                     <h3>
                       <StatusHeaderPill status={s} />
                       <span className="col-count">{colTasks.length}</span>
+                      {isCollapsibleEmpty && (
+                        <Tip label={`Collapse ${LABEL[s]} column`}>
+                          <button
+                            type="button"
+                            onClick={() => toggleColExpanded(s)}
+                            aria-label={`Collapse ${LABEL[s]} column`}
+                            className="ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--glass-3)] hover:text-[var(--text-primary)]"
+                          >
+                            Hide
+                          </button>
+                        </Tip>
+                      )}
                       {s === "review" && (
                         <Tip
                           label={
@@ -1064,7 +1172,8 @@ export function BoardScreen({
                                       Retry now
                                     </MenuItem>
                                   )}
-                                  {(t.status === "todo" || t.status === "backlog") &&
+                                  {isPipelinesEnabled() &&
+                                    (t.status === "todo" || t.status === "backlog") &&
                                     !t.run_id &&
                                     !t.parent_id &&
                                     !t.title.startsWith("[pipeline]") && (
@@ -1144,6 +1253,12 @@ export function BoardScreen({
                             </div>
 
                             {t.question?.status === "pending" && <TaskQuestionCard task={t} variant="card" />}
+
+                            <WorkflowTree
+                              task={t}
+                              subtasks={allTasks.filter((sub) => sub.parent_id === t.id)}
+                              variant="card"
+                            />
 
                             <div className="card-footer">
                               <div className="flex min-w-0 items-center gap-1.5">

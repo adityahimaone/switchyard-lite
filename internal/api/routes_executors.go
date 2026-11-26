@@ -24,7 +24,8 @@ const (
 	executorProbeTTL          = 60 * time.Second
 )
 
-var defaultExecutorOrder = slices.Clone(models.AllExecutorIDs)
+var defaultExecutorOrder = []string{"agy", "dsh", "commandcode", "claude", "codex", "omp"}
+var defaultHiddenExecutors = []string{"claude", "codex", "omp"}
 
 // ExecutorsConfig holds the user-defined executor dropdown order and hidden IDs.
 type ExecutorsConfig struct {
@@ -292,8 +293,11 @@ func loadExecutorsConfig(s *store.Store) ExecutorsConfig {
 	var raw string
 	_ = s.DB.QueryRow(`SELECT value FROM dispatch_settings WHERE key=?`, executorsConfigSettingKey).Scan(&raw)
 	var cfg ExecutorsConfig
-	if strings.TrimSpace(raw) != "" {
+	hasSaved := strings.TrimSpace(raw) != ""
+	if hasSaved {
 		_ = json.Unmarshal([]byte(raw), &cfg)
+	} else {
+		cfg.Hidden = slices.Clone(defaultHiddenExecutors)
 	}
 	normalized, _ := normalizeExecutorsConfig(cfg)
 	return normalized

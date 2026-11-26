@@ -9,21 +9,21 @@
 :root {
   color-scheme: light;
 
-  /* ---- Layer 1 · Primitives (Physical Material — Never Flip in Night Scope) ---- */
-  --sy-ground: #f1f4fb;
+  /* ---- Layer 1 · Primitives (Warm Light Tactile Studio) ---- */
+  --sy-ground: #f5f5f7;
   --sy-plate: #ffffff;
-  --sy-well: #e4eaf7;
-  --sy-ink: #0f172a;
-  --sy-slate: #475569;
-  --sy-muted: #64748b;
-  --sy-line: #dce3f4;
-  --sy-line-strong: #c2cde8;
-  --sy-accent: #2f5bff;
+  --sy-well: #f2f3f6;
+  --sy-ink: #111827;
+  --sy-slate: #4b5563;
+  --sy-muted: #6b7280;
+  --sy-line: #eceef2;
+  --sy-line-strong: #dde1e8;
+  --sy-accent: #0a84ff;
   --sy-coral: #ff8b6a;
-  --sy-orchid: #d966ff;
+  --sy-orchid: #a78bfa;
   --sy-success: #059669;
-  --sy-mint: #bcefd4;
-  --sy-warning: #b45309;
+  --sy-mint: #d1fae5;
+  --sy-warning: #d97706;
   --sy-danger: #dc2626;
   --sy-night: #080d1a;
 
@@ -69,6 +69,7 @@
   --c-st-todo: #3b4b6b;
   --c-st-blocked: var(--sy-danger);
   --c-st-in_progress: var(--sy-accent);
+  --c-st-waiting_input: #7c3aed;
   --c-st-review: var(--sy-warning);
   --c-st-done: var(--sy-success);
   --c-st-failed: var(--sy-danger);
@@ -218,6 +219,7 @@
   --c-st-todo: #c8d2ea;
   --c-st-blocked: #ff7b73;
   --c-st-in_progress: #6688ff;
+  --c-st-waiting_input: #a78bfa;
   --c-st-review: #f5b759;
   --c-st-done: #4ce09b;
   --c-st-failed: #ff7b73;

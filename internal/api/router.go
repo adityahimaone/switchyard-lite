@@ -115,9 +115,11 @@ func (a *API) Handler() http.Handler {
 			Effort        string   `json:"effort"`
 			Branch        string   `json:"branch"`
 			ExecutionMode string   `json:"execution_mode"`
+			GrillMe       bool     `json:"grill_me"`
 			SessionID     string   `json:"session_id"`
 			Paths         []string `json:"paths"`
 			Skills        []string `json:"skills"`
+			MCPs          []string `json:"mcps"`
 			BlockedBy     []string `json:"blocked_by"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
@@ -126,7 +128,7 @@ func (a *API) Handler() http.Handler {
 		}
 		t, err := a.Tasks.Create(tasks.NewTask{BoardID: in.BoardID, ParentID: in.ParentID, Title: in.Title, Prompt: in.Prompt,
 			Acceptance: in.Acceptance, Status: in.Status, Workspace: in.Workspace, Executor: in.Executor, Model: in.Model, Effort: in.Effort,
-			Branch: in.Branch, ExecutionMode: in.ExecutionMode, SessionID: in.SessionID, Paths: in.Paths, Skills: in.Skills, BlockedBy: in.BlockedBy})
+			Branch: in.Branch, ExecutionMode: in.ExecutionMode, GrillMe: in.GrillMe, SessionID: in.SessionID, Paths: in.Paths, Skills: in.Skills, MCPs: in.MCPs, BlockedBy: in.BlockedBy})
 		if err != nil {
 			fromErr(w, err)
 			return

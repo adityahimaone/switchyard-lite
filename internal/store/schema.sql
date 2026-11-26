@@ -20,9 +20,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   executor TEXT NOT NULL DEFAULT '',
   model TEXT NOT NULL DEFAULT '',
   effort TEXT NOT NULL DEFAULT '',
-  -- JSON arrays of @file references and $skill names attached at creation.
+  -- JSON arrays of @file references, $skill names, and MCP server IDs attached at creation.
   paths TEXT NOT NULL DEFAULT '[]',
   skills TEXT NOT NULL DEFAULT '[]',
+  mcps TEXT NOT NULL DEFAULT '[]',
   -- Base branch used when creating the isolated worktree (empty = HEAD).
   branch TEXT NOT NULL DEFAULT '',
   retry_count INTEGER NOT NULL DEFAULT 0,
@@ -31,8 +32,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   started_at INTEGER NOT NULL DEFAULT 0,
   completed_at INTEGER NOT NULL DEFAULT 0,
   execution_mode TEXT NOT NULL DEFAULT 'managed',
+  grill_me INTEGER NOT NULL DEFAULT 0,
   question_json TEXT NOT NULL DEFAULT '',
   session_id TEXT NOT NULL DEFAULT '',
+  harness_sessions TEXT NOT NULL DEFAULT '{}',
   dsh_workspace_id TEXT NOT NULL DEFAULT '',
   last_turn_seq INTEGER NOT NULL DEFAULT -1,
   created_at INTEGER NOT NULL,
@@ -109,4 +112,17 @@ CREATE TABLE IF NOT EXISTS attachments (
   mime TEXT NOT NULL DEFAULT 'application/octet-stream',
   content BLOB NOT NULL,
   created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS mcp_servers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  transport TEXT NOT NULL DEFAULT 'stdio',
+  command TEXT NOT NULL DEFAULT '',
+  args_json TEXT NOT NULL DEFAULT '[]',
+  url TEXT NOT NULL DEFAULT '',
+  env_json TEXT NOT NULL DEFAULT '{}',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
 );

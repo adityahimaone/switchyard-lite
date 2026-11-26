@@ -24,6 +24,7 @@ import {
   platformOfWorkspace,
   post,
   type Board,
+  type MCPServer,
   type PipelineRun,
   type PlatformKey,
   type Task,
@@ -81,6 +82,7 @@ import {
   useExecutorConfig,
   useWorkspaceExecutors,
 } from "@/lib/executors";
+import { isPipelinesEnabled } from "@/lib/features";
 
 export {
   AGY_EFFORTS,
@@ -187,11 +189,13 @@ export function TaskDialog({
   const [model, setModel] = useState("");
   const [effort, setEffort] = useState("");
   const [startMode, setStartMode] = useState<StartMode>(initialStartMode);
+  const [grillMe, setGrillMe] = useState(false);
   const [blockedBy, setBlockedBy] = useState<string[]>([]);
   const [depId, setDepId] = useState("");
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [paths, setPaths] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
+  const [mcps, setMcps] = useState<string[]>([]);
   const [depsOpen, setDepsOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
 
@@ -201,6 +205,11 @@ export function TaskDialog({
   const savedWorkspaces = useQuery({
     queryKey: ["workspaces"],
     queryFn: () => apiOr<Workspace[]>("/api/v1/workspaces", []),
+  });
+
+  const savedMcps = useQuery({
+    queryKey: ["mcps"],
+    queryFn: () => apiOr<MCPServer[]>("/api/v1/mcps", []),
   });
 
   // Match kanban-board: auto-default workspace from the most recent task on this board
@@ -418,6 +427,7 @@ export function TaskDialog({
         acceptance,
         status: startMode === "manual" ? "backlog" : startMode === "tracker" ? "in_progress" : "todo",
         execution_mode: startMode === "tracker" ? "tracker" : "managed",
+        grill_me: grillMe,
         workspace: workspace.trim(),
         executor,
         model: model.trim(),
@@ -425,6 +435,7 @@ export function TaskDialog({
         branch: branch.trim(),
         paths: paths.length ? paths : undefined,
         skills: skills.length ? skills : undefined,
+        mcps: mcps.length ? mcps : undefined,
         blocked_by: blockedBy.length ? blockedBy : undefined,
       });
 
@@ -548,6 +559,39 @@ export function TaskDialog({
       <DialogContent className="max-w-4xl p-0" showClose>
         <form
           onSubmit={submit}
+          onPaste={(e) => {
+            const items = Array.from(e.clipboardData?.items ?? []);
+            const imgFiles: File[] = [];
+            for (const it of items) {
+              if (it.kind === "file" && it.type.startsWith("image/")) {
+                const f = it.getAsFile();
+                if (f) imgFiles.push(f);
+              }
+            }
+            if (imgFiles.length > 0) {
+              e.preventDefault();
+              void (async () => {
+                const added: PendingFile[] = [];
+                for (const f of imgFiles) {
+                  const buf = await f.arrayBuffer();
+                  const bytes = new Uint8Array(buf);
+                  let bin = "";
+                  for (let i = 0; i < bytes.length; i += 0x8000) {
+                    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+                  }
+                  added.push({
+                    id: `paste_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                    name: f.name && f.name !== "image.png" ? f.name : `paste-${Date.now()}.png`,
+                    mime: f.type || "image/png",
+                    size: f.size,
+                    dataBase64: btoa(bin),
+                  });
+                }
+                setPendingFiles((prev) => [...prev, ...added]);
+                toast(`Pasted ${added.length} image${added.length === 1 ? "" : "s"} to task attachments`, { tone: "info" });
+              })();
+            }
+          }}
           onKeyDown={(e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && submitReady) {
               e.preventDefault();
@@ -1029,10 +1073,60 @@ export function TaskDialog({
                         { value: "queue", label: "Todo" },
                         { value: "now", label: "Now" },
                         { value: "tracker", label: "Monitor" },
-                        { value: "meta7", label: "meta7" },
+                        ...(isPipelinesEnabled() ? [{ value: "meta7" as const, label: "meta7" }] : []),
                       ]}
                       className="w-full justify-between [&>button]:px-1.5 [&>button]:text-[11px]"
                     />
+                    {startMode !== "tracker" && startMode !== "meta7" && (
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={grillMe}
+                        onClick={() => setGrillMe((v) => !v)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-md border px-2.5 py-1.5 text-left text-[11px] transition-colors",
+                          grillMe
+                            ? "border-[var(--status-waiting)]/50 bg-[var(--status-waiting-soft)] text-ink"
+                            : "border-line bg-surface-2/50 text-ink-3 hover:border-line-strong hover:text-ink"
+                        )}
+                      >
+                        <span className="font-medium">Grill-Me First</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider">
+                          {grillMe ? "ON" : "OFF"}
+                        </span>
+                      </button>
+                    )}
+                    {(savedMcps.data ?? []).filter((m) => m.enabled).length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-4">MCP Servers</div>
+                        <div className="flex flex-wrap gap-1">
+                          {(savedMcps.data ?? [])
+                            .filter((m) => m.enabled)
+                            .map((m) => {
+                              const active = mcps.includes(m.id);
+                              return (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setMcps((prev) =>
+                                      prev.includes(m.id) ? prev.filter((x) => x !== m.id) : [...prev, m.id]
+                                    )
+                                  }
+                                  className={cn(
+                                    "rounded-md border px-2 py-0.5 font-mono text-[10.5px] transition-colors",
+                                    active
+                                      ? "border-accent bg-accent-tint text-accent-text font-semibold"
+                                      : "border-line bg-surface text-ink-3 hover:border-line-strong hover:text-ink"
+                                  )}
+                                >
+                                  {m.name}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
                     <p className="m-0 text-[10px] leading-relaxed text-ink-4">
                       {startMode === "meta7"
                         ? "Runs the autonomous 7-stage coordinator (explore → cross_examine → synthesize → design → verify → review → impl + gate:*) on this board."

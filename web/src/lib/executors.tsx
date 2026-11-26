@@ -14,23 +14,25 @@ import { toast, toastError } from "@/components/ui/toast";
 
 export const ALL_EXECUTORS = [
   "agy",
+  "dsh",
+  "commandcode",
   "claude",
   "codex",
-  "commandcode",
   "omp",
-  "dsh",
 ] as const;
+
+export const DEFAULT_HIDDEN_EXECUTORS = ["claude", "codex", "omp"] as const;
 
 export const EFFORTS = ["low", "medium", "high"] as const;
 export const AGY_EFFORTS = ["minimal", "low", "medium", "high", "xhigh", "max"] as const;
 
 export const EXECUTOR_LABELS: Record<string, string> = {
   agy: "Antigravity CLI (agy)",
+  dsh: "DeepSeek Harness (dsh)",
+  commandcode: "Command Code (cmd)",
   claude: "Claude Code",
   codex: "Codex",
-  commandcode: "Command Code",
   omp: "omp (oh-my-pi)",
-  dsh: "DeepSeek Harness",
 };
 
 export const EXECUTOR_DESCRIPTIONS: Record<string, string> = {
@@ -70,7 +72,7 @@ export const EXECUTORS_STORAGE_KEY = "switchyard.executors.config";
 export function normalizeExecutorConfig(raw: unknown): ExecutorConfig {
   const known = new Set<string>(ALL_EXECUTORS);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { order: [...ALL_EXECUTORS], hidden: [] };
+    return { order: [...ALL_EXECUTORS], hidden: [...DEFAULT_HIDDEN_EXECUTORS] };
   }
   const obj = raw as { order?: unknown; hidden?: unknown };
   const rawOrder = Array.isArray(obj.order) ? obj.order : [];

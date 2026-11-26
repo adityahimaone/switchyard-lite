@@ -59,6 +59,8 @@ func flowStage(status string, claimed bool) string {
 			return "running"
 		}
 		return "dispatched"
+	case "waiting_input":
+		return "waiting_input"
 	case "review":
 		return "review"
 	case "done":
@@ -162,7 +164,7 @@ func queryFlowTasks(db *sql.DB, boardID, window string, now time.Time) ([]flowTa
 		return runQuery("", nil, 200)
 	default: // "" / "smart": active tasks or updated recently, falling back to recent tasks if empty.
 		tasks, err := runQuery(
-			`(t.updated_at >= ? OR t.status IN ('in_progress','review','todo','blocked'))`,
+			`(t.updated_at >= ? OR t.status IN ('in_progress','waiting_input','review','todo','blocked'))`,
 			[]any{now.Add(-flowRetention).Unix()},
 			200,
 		)
@@ -177,7 +179,7 @@ func queryFlowBoards(db *sql.DB) []flowBoardSummary {
 	out := []flowBoardSummary{}
 	rows, err := db.Query(`
 		SELECT b.id, b.name, COUNT(t.id),
-		       COALESCE(SUM(CASE WHEN t.status IN ('in_progress','review','todo','blocked') THEN 1 ELSE 0 END), 0)
+		       COALESCE(SUM(CASE WHEN t.status IN ('in_progress','waiting_input','review','todo','blocked') THEN 1 ELSE 0 END), 0)
 		FROM boards b
 		LEFT JOIN tasks t ON t.board_id = b.id
 		GROUP BY b.id, b.name

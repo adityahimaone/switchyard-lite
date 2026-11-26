@@ -16,13 +16,14 @@ import (
 )
 
 const (
-	Backlog    = "backlog"
-	Todo       = "todo"
-	Blocked    = "blocked"
-	InProgress = "in_progress"
-	Review     = "review"
-	Done       = "done"
-	Failed     = "failed"
+	Backlog      = "backlog"
+	Todo         = "todo"
+	Blocked      = "blocked"
+	InProgress   = "in_progress"
+	WaitingInput = "waiting_input"
+	Review       = "review"
+	Done         = "done"
+	Failed       = "failed"
 )
 
 var (
@@ -40,18 +41,19 @@ const (
 // allowed lists legal manual/engine transitions for managed tasks.
 // Passive tracker tasks can transition freely across operational statuses.
 var allowed = map[string][]string{
-	Backlog:    {Todo},
-	Todo:       {Backlog, Blocked, InProgress},
-	Blocked:    {Todo},
-	InProgress: {Review, Todo, Blocked, Failed},
-	Review:     {Done, Todo},
-	Failed:     {Todo},
-	Done:       {},
+	Backlog:      {Todo},
+	Todo:         {Backlog, Blocked, WaitingInput, InProgress},
+	Blocked:      {Todo, WaitingInput},
+	InProgress:   {Review, WaitingInput, Todo, Blocked, Failed},
+	WaitingInput: {Todo, InProgress, Blocked, Review, Failed},
+	Review:       {Done, Todo, WaitingInput},
+	Failed:       {Todo, WaitingInput},
+	Done:         {},
 }
 
 func validStatus(s string) bool {
 	switch s {
-	case Backlog, Todo, Blocked, InProgress, Review, Done, Failed:
+	case Backlog, Todo, Blocked, InProgress, WaitingInput, Review, Done, Failed:
 		return true
 	default:
 		return false
@@ -90,15 +92,18 @@ type Task struct {
 	Executor   string `json:"executor,omitempty"`
 	Model      string `json:"model,omitempty"`
 	Effort     string `json:"effort,omitempty"`
-	// Paths / Skills are the @file and $skill references attached in the
-	// composer. Branch is the base branch for the isolated worktree.
-	Paths          []string      `json:"paths"`
-	Skills         []string      `json:"skills"`
-	Branch         string        `json:"branch,omitempty"`
-	ExecutionMode  string        `json:"execution_mode,omitempty"`
-	Question       *TaskQuestion `json:"question,omitempty"`
-	SessionID      string        `json:"session_id,omitempty"`
-	DSHWorkspaceID string        `json:"dsh_workspace_id,omitempty"`
+	// Paths / Skills / MCPs are the @file, $skill, and MCP server references
+	// attached in the composer. Branch is the base branch for the isolated worktree.
+	Paths           []string          `json:"paths"`
+	Skills          []string          `json:"skills"`
+	MCPs            []string          `json:"mcps"`
+	Branch          string            `json:"branch,omitempty"`
+	ExecutionMode   string            `json:"execution_mode,omitempty"`
+	GrillMe         bool              `json:"grill_me,omitempty"`
+	Question        *TaskQuestion     `json:"question,omitempty"`
+	SessionID       string            `json:"session_id,omitempty"`
+	HarnessSessions map[string]string `json:"harness_sessions,omitempty"`
+	DSHWorkspaceID  string            `json:"dsh_workspace_id,omitempty"`
 	LastTurnSeq    *int64        `json:"last_turn_seq,omitempty"`
 	RetryCount     int           `json:"retry_count"`
 	ErrorSig       string        `json:"error_sig,omitempty"`
@@ -113,7 +118,8 @@ type Task struct {
 type NewTask struct {
 	BoardID, ParentID, Title, Prompt, Acceptance, Status, Workspace, Executor, Model, Effort string
 	Branch, ExecutionMode, SessionID                                                         string
-	Paths, Skills, BlockedBy                                                                 []string
+	GrillMe                                                                                  bool
+	Paths, Skills, MCPs, BlockedBy                                                           []string
 }
 
 // encodeList stores a string slice as a compact JSON array; nil becomes [].
@@ -276,10 +282,14 @@ func (v *Service) Create(n NewTask) (Task, error) {
 	if initialStatus == InProgress {
 		startedAt = now
 	}
-	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,paths,skills,branch,execution_mode,session_id,started_at,created_at,updated_at)
-		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	grillInt := 0
+	if n.GrillMe {
+		grillInt = 1
+	}
+	_, err = tx.Exec(`INSERT INTO tasks(id,board_id,parent_id,title,prompt,acceptance,status,workspace,executor,model,effort,paths,skills,mcps,branch,execution_mode,grill_me,session_id,started_at,created_at,updated_at)
+		VALUES(?,?,NULLIF(?,''),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		id, n.BoardID, n.ParentID, n.Title, n.Prompt, n.Acceptance, initialStatus, n.Workspace, n.Executor, n.Model, n.Effort,
-		encodeList(n.Paths), encodeList(n.Skills), strings.TrimSpace(n.Branch), execMode, strings.TrimSpace(n.SessionID), startedAt, now, now)
+		encodeList(n.Paths), encodeList(n.Skills), encodeList(n.MCPs), strings.TrimSpace(n.Branch), execMode, grillInt, strings.TrimSpace(n.SessionID), startedAt, now, now)
 	if err != nil {
 		return Task{}, err
 	}
@@ -301,19 +311,27 @@ func (v *Service) Create(n NewTask) (Task, error) {
 }
 
 const cols = `id,board_id,COALESCE(parent_id,''),run_id,stage_id,title,prompt,acceptance,status,workspace,executor,model,effort,
-	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(branch,''),COALESCE(execution_mode,'managed'),COALESCE(question_json,''),COALESCE(session_id,''),COALESCE(dsh_workspace_id,''),COALESCE(last_turn_seq,-1),
+	COALESCE(paths,'[]'),COALESCE(skills,'[]'),COALESCE(mcps,'[]'),COALESCE(branch,''),COALESCE(execution_mode,'managed'),COALESCE(grill_me,0),COALESCE(question_json,''),COALESCE(session_id,''),COALESCE(harness_sessions,'{}'),COALESCE(dsh_workspace_id,''),COALESCE(last_turn_seq,-1),
 	retry_count,COALESCE(error_sig,''),COALESCE(result,''),COALESCE(started_at,0),COALESCE(completed_at,0),created_at,updated_at`
 
 func scan(r interface{ Scan(...any) error }) (Task, error) {
 	var t Task
-	var pathsRaw, skillsRaw, qRaw string
+	var pathsRaw, skillsRaw, mcpsRaw, qRaw, hsRaw string
+	var grillInt int
 	var turnSeq int64
 	err := r.Scan(&t.ID, &t.BoardID, &t.ParentID, &t.RunID, &t.StageID, &t.Title, &t.Prompt, &t.Acceptance,
-		&t.Status, &t.Workspace, &t.Executor, &t.Model, &t.Effort, &pathsRaw, &skillsRaw, &t.Branch,
-		&t.ExecutionMode, &qRaw, &t.SessionID, &t.DSHWorkspaceID, &turnSeq,
+		&t.Status, &t.Workspace, &t.Executor, &t.Model, &t.Effort, &pathsRaw, &skillsRaw, &mcpsRaw, &t.Branch,
+		&t.ExecutionMode, &grillInt, &qRaw, &t.SessionID, &hsRaw, &t.DSHWorkspaceID, &turnSeq,
 		&t.RetryCount, &t.ErrorSig, &t.Result, &t.StartedAt, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt)
+	t.GrillMe = grillInt == 1
 	if t.ExecutionMode == "" {
 		t.ExecutionMode = ExecManaged
+	}
+	if strings.TrimSpace(hsRaw) != "" {
+		var hs map[string]string
+		if json.Unmarshal([]byte(hsRaw), &hs) == nil && len(hs) > 0 {
+			t.HarnessSessions = hs
+		}
 	}
 	if turnSeq >= 0 {
 		v := turnSeq
@@ -328,6 +346,7 @@ func scan(r interface{ Scan(...any) error }) (Task, error) {
 	t.BlockedBy = []string{}
 	t.Paths = decodeList(pathsRaw)
 	t.Skills = decodeList(skillsRaw)
+	t.MCPs = decodeList(mcpsRaw)
 	return t, err
 }
 
@@ -400,6 +419,28 @@ func (v *Service) List(boardID, status string) ([]Task, error) {
 	return out, nil
 }
 
+// SaveHarnessSession merges harness -> sessionID into tasks.harness_sessions JSON and updates session_id.
+func (v *Service) SaveHarnessSession(taskID, harness, sessionID string) error {
+	harness = strings.ToLower(strings.TrimSpace(harness))
+	sessionID = strings.TrimSpace(sessionID)
+	if taskID == "" || sessionID == "" {
+		return nil
+	}
+	var raw string
+	_ = v.S.DB.QueryRow(`SELECT COALESCE(harness_sessions,'{}') FROM tasks WHERE id=?`, taskID).Scan(&raw)
+	sessions := map[string]string{}
+	if strings.TrimSpace(raw) != "" {
+		_ = json.Unmarshal([]byte(raw), &sessions)
+	}
+	if harness != "" {
+		sessions[harness] = sessionID
+	}
+	b, _ := json.Marshal(sessions)
+	_, err := v.S.DB.Exec(`UPDATE tasks SET session_id=?, harness_sessions=?, updated_at=? WHERE id=?`,
+		sessionID, string(b), v.Now().Unix(), taskID)
+	return err
+}
+
 // Move applies a status transition and unblocks dependents when a task is done.
 func (v *Service) Move(id, to, actor string) (Task, error) {
 	if !validStatus(to) {
@@ -417,7 +458,7 @@ func (v *Service) Move(id, to, actor string) (Task, error) {
 		}
 		return Task{}, err
 	}
-	ok := execMode == ExecTracker || actor == "tracker" || ((actor == "retry" || actor == "question") && to == Todo)
+	ok := execMode == ExecTracker || actor == "tracker" || actor == "dispatcher" || ((actor == "retry" || actor == "question") && to == Todo)
 	if !ok {
 		for _, s := range allowed[from] {
 			ok = ok || s == to

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adityahimaone/switchyard-lite/internal/harnesses"
 	"github.com/adityahimaone/switchyard-lite/internal/store"
 	"github.com/adityahimaone/switchyard-lite/internal/tasks"
 	"github.com/adityahimaone/switchyard-lite/internal/worker"
@@ -286,7 +287,26 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 	}
 	var boardName string
 	_ = d.S.DB.QueryRow(`SELECT name FROM boards WHERE id=?`, t.BoardID).Scan(&boardName)
-	message := AugmentPrompt(t.Prompt, t.Workspace, d.workspaceLabels(t.Workspace), t.Paths, t.Skills)
+	message := AugmentAutonomousPrompt(t.Prompt, t.Workspace, d.workspaceLabels(t.Workspace), t.Paths, t.Skills, t.GrillMe)
+	if staged := d.stageTaskContext(ctx, t, workspace); staged != "" {
+		message = staged + "\n" + message
+	}
+	canon := harnesses.Canonical(t.Executor)
+	if canon != "" && t.SessionID != "" {
+		// If the task switched harnesses mid-card, inject a cross-harness handoff summary.
+		prevHarness := ""
+		for h, sid := range t.HarnessSessions {
+			if sid == t.SessionID && h != canon {
+				prevHarness = h
+				break
+			}
+		}
+		if prevHarness != "" {
+			if handoff := harnesses.BuildCrossHarnessHandoff(prevHarness, canon, t); handoff != "" && !strings.Contains(message, "[CROSS-HARNESS HANDOFF]") {
+				message = handoff + "\n" + message
+			}
+		}
+	}
 	if isAgyExecutor(t.Executor) && d.shouldRunAgyLocally(t) {
 		d.executeLocalAgy(ctx, t, boardName, message, workspace, runID)
 		return
@@ -304,6 +324,16 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 		Paths:       t.Paths, Skills: t.Skills, Branch: t.Branch,
 		RunID: runID, TimeoutS: d.Cfg.TimeoutS}
 	applyTaskSession(&req, t)
+	if isContinuityHarness(t.Executor) && !isAgyExecutor(t.Executor) {
+		boundSID := t.SessionID
+		if hs, ok := t.HarnessSessions[canon]; ok && hs != "" {
+			boundSID = hs
+		} else if len(t.HarnessSessions) > 0 {
+			boundSID = ""
+		}
+		sp := harnesses.BuildSpawnSpec(canon, t.Model, effort, boundSID, workspace, message, d.Cfg.TimeoutS)
+		req.Spawn = &sp
+	}
 	hasRemote := (d.Remote != nil && d.Remote.Enabled()) || (d.Client != nil && strings.TrimSpace(d.Client.BaseURL) != "")
 	ack, err := d.Client.DispatchWithAck(ctx, req)
 	if err != nil {
@@ -351,6 +381,37 @@ func (d *Dispatcher) execute(ctx context.Context, t tasks.Task, runID string) {
 			}
 		}
 		logOffset = nextOff
+	}
+
+	// Try SSE event stream first for sub-100ms progress & result delivery; fall back
+	// to FetchProgress/FetchResult polling for legacy node-agent servers or test mocks.
+	if sres, supported, serr := d.Client.StreamEvents(ctx, t.ID, logOffset, func(chunk string, nextOff int64) {
+		if chunk != "" {
+			_ = AppendWorkerLog(d.WorkerLogDir(), t.ID, chunk)
+			_ = d.Tasks.RecordEvent(t.ID, "worker_output", map[string]any{
+				"run_id": runID,
+				"output": chunk,
+			})
+			streamedBuf.WriteString(chunk)
+			streamedBytes += len(chunk)
+			if !streamAsked && (strings.Contains(chunk, "[/QUESTION]") || strings.Contains(chunk, "```question") || strings.Contains(chunk, `"question"`)) {
+				if q, opts, ctxText, multi, ok := DetectOpenQuestionFull(streamedBuf.String()); ok {
+					streamAsked = true
+					d.recordDetectedQuestionFull(t, q, opts, ctxText, multi)
+				}
+			}
+		}
+		if nextOff > logOffset {
+			logOffset = nextOff
+		}
+		_ = d.renew(t.ID, runID)
+	}); supported && serr == nil && sres != nil {
+		if !sres.Success && isAgyExecutor(t.Executor) && isUnsupportedExecutorErr(errors.New(sres.Error)) && hasRemote {
+			d.executeRemoteShellAgy(ctx, t, boardName, message, workspace, runID)
+			return
+		}
+		d.finishWithStream(t, runID, sres, streamedBytes > 0)
+		return
 	}
 
 	for {
@@ -425,27 +486,45 @@ func (d *Dispatcher) finishWithStream(t tasks.Task, runID string, res *Result, s
 		})
 	}
 	now := d.Now().Unix()
-	sessionID, dshWsID, turnSeq := extractResultSession(firstNonEmpty(res.Executor, t.Executor), res)
+	usedExec := firstNonEmpty(res.Executor, t.Executor)
+	cleanOut, parsedSID := harnesses.UnwrapOutput(usedExec, res.Output)
+	if cleanOut == "" {
+		cleanOut = res.Output
+	}
+	sessionID, dshWsID, turnSeq := extractResultSession(usedExec, res)
+	if sessionID == "" {
+		sessionID = parsedSID
+	}
 	d.persistTaskSession(t.ID, sessionID, dshWsID, turnSeq)
-	_, _ = d.S.DB.Exec(`UPDATE tasks SET result=?, error_sig='', completed_at=? WHERE id=?`, res.Output, now, t.ID)
+	if sessionID != "" {
+		_ = d.Tasks.SaveHarnessSession(t.ID, harnesses.Canonical(usedExec), sessionID)
+	}
+	_, _ = d.S.DB.Exec(`UPDATE tasks SET result=?, error_sig='', completed_at=? WHERE id=?`, cleanOut, now, t.ID)
 	payload := map[string]any{
 		"run_id":      runID,
 		"worker_id":   d.Cfg.WorkerID,
-		"executor":    firstNonEmpty(res.Executor, t.Executor),
+		"executor":    usedExec,
 		"model":       firstNonEmpty(res.Model, t.Model),
 		"session_id":  sessionID,
 		"duration_ms": res.DurationMs,
-		"output":      trunc(res.Output, 65536),
+		"output":      trunc(cleanOut, 65536),
 	}
 	if u := UsageFromJSON(res.Usage, res.Output); u != nil {
 		payload["usage"] = u
 	}
 	_ = d.Tasks.RecordEvent(t.ID, "completed", payload)
-	if res.Output != "" {
-		_, _ = d.Tasks.AddComment(t.ID, "worker", res.Output)
+	if cleanOut != "" {
+		_, _ = d.Tasks.AddComment(t.ID, "worker", cleanOut)
 	}
-	if q, opts, ctxText, ok := DetectOpenQuestion(res.Output); ok {
-		d.recordDetectedQuestion(t, q, opts, ctxText)
+	if q, opts, ctxText, multi, ok := DetectOpenQuestionFull(cleanOut); ok {
+		d.recordDetectedQuestionFull(t, q, opts, ctxText, multi)
+		_ = d.Tasks.RecordEvent(t.ID, "question.waiting", map[string]any{
+			"run_id":   runID,
+			"question": q,
+		})
+		_, _ = d.Tasks.Move(t.ID, tasks.WaitingInput, "dispatcher")
+		d.release(t.ID, runID)
+		return
 	}
 	_, _ = d.Tasks.Move(t.ID, tasks.Review, "dispatcher")
 	d.release(t.ID, runID)
@@ -507,8 +586,14 @@ func (d *Dispatcher) failRun(t tasks.Task, runID, rawErr string, res *Result, st
 	}
 	_ = d.Tasks.RecordEvent(t.ID, "failed", payload)
 	_, _ = d.Tasks.AddComment(t.ID, "dispatcher", "attempt failed: "+reason)
-	if q, opts, ctxText, ok := DetectOpenQuestion(rawOut); ok {
-		d.recordDetectedQuestion(t, q, opts, ctxText)
+	if q, opts, ctxText, multi, ok := DetectOpenQuestionFull(rawOut); ok {
+		d.recordDetectedQuestionFull(t, q, opts, ctxText, multi)
+		if sessionID != "" {
+			_ = d.Tasks.SaveHarnessSession(t.ID, harnesses.Canonical(firstNonEmpty(executor, t.Executor)), sessionID)
+		}
+		_, _ = d.Tasks.Move(t.ID, tasks.WaitingInput, "dispatcher")
+		d.release(t.ID, runID)
+		return
 	}
 
 	next := tasks.Todo
@@ -597,15 +682,20 @@ func (d *Dispatcher) persistTaskSession(taskID, sessionID, dshWsID string, turnS
 }
 
 func (d *Dispatcher) recordDetectedQuestion(t tasks.Task, q string, opts []string, ctxText string) {
+	d.recordDetectedQuestionFull(t, q, opts, ctxText, false)
+}
+
+func (d *Dispatcher) recordDetectedQuestionFull(t tasks.Task, q string, opts []string, ctxText string, multi bool) {
 	cur, err := d.Tasks.Get(t.ID)
 	if err == nil && cur.Question != nil && cur.Question.Status == "pending" && cur.Question.Question == q {
 		return
 	}
 	_, _ = d.Tasks.AskQuestion(t.ID, tasks.AskQuestionInput{
-		Question: q,
-		Options:  opts,
-		Context:  ctxText,
-		Author:   firstNonEmpty(t.Executor, "agent"),
+		Question:    q,
+		Options:     opts,
+		MultiSelect: multi,
+		Context:     ctxText,
+		Author:      firstNonEmpty(t.Executor, "agent"),
 	})
 }
 
@@ -620,7 +710,7 @@ func (d *Dispatcher) ResumeWithAnswer(ctx context.Context, taskID string, q task
 	if t.ExecutionMode == tasks.ExecTracker {
 		return "", false, nil
 	}
-	if t.Executor == "" && t.SessionID == "" && t.Status != tasks.Review && t.Status != tasks.Failed && t.Status != tasks.Blocked && t.Status != tasks.InProgress && t.Status != tasks.Todo {
+	if t.Executor == "" && t.SessionID == "" && t.Status != tasks.WaitingInput && t.Status != tasks.Review && t.Status != tasks.Failed && t.Status != tasks.Blocked && t.Status != tasks.InProgress && t.Status != tasks.Todo {
 		return "", false, nil
 	}
 	contBlock := fmt.Sprintf("[User Answer — %s]\nQuestion: %s\nSelected / Answer: %s\nProceed with the task applying this decision.",

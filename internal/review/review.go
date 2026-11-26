@@ -117,6 +117,11 @@ func (v *Service) Approve(id string) (tasks.Task, error) {
 			}
 			_ = dispatch.RemoveWorktree(w.repo, w.path)
 			if v.AutoMerge() {
+				if target := strings.TrimSpace(t.Branch); target != "" {
+					if _, err := dispatch.Git(w.repo, "checkout", target); err != nil {
+						return t, fmt.Errorf("%w: checkout target branch %s: %v", tasks.ErrBadMove, target, err)
+					}
+				}
 				if _, err := dispatch.Git(w.repo, "merge", "--no-ff", "-m", "merge "+w.branch, w.branch); err != nil {
 					_, _ = dispatch.Git(w.repo, "merge", "--abort")
 					return t, fmt.Errorf("%w: auto-merge failed: %v", tasks.ErrBadMove, err)
@@ -150,6 +155,11 @@ func (v *Service) approveRemote(w wt, t tasks.Task) error {
 	}
 	_, _ = c.Git(ctx, w.repo, info, "worktree", "remove", "--force", w.path)
 	if v.AutoMerge() {
+		if target := strings.TrimSpace(t.Branch); target != "" {
+			if _, err := c.Git(ctx, w.repo, info, "checkout", target); err != nil {
+				return fmt.Errorf("%w: checkout target branch %s: %v", tasks.ErrBadMove, target, err)
+			}
+		}
 		if _, err := c.Git(ctx, w.repo, info, "merge", "--no-ff", "-m", "merge "+w.branch, w.branch); err != nil {
 			_, _ = c.Git(ctx, w.repo, info, "merge", "--abort")
 			return fmt.Errorf("%w: auto-merge failed: %v", tasks.ErrBadMove, err)

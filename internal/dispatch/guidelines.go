@@ -64,9 +64,39 @@ func IsSAASWorkspace(wsPath string, labels []string) bool {
 	return false
 }
 
+// OpenQuestionProtocol instructs autonomous agents on how to pause cleanly
+// with a structured question when blocked by genuine ambiguity.
+const OpenQuestionProtocol = `
+---
+[INTERACTIVE QUESTION PROTOCOL]
+If a requirement is genuinely ambiguous or has multiple valid architectural choices, DO NOT guess. Emit ONE structured question block at the very end of your response and stop:
+` + "```question\n" + `{"question": "Short single decision question?", "context": "1-sentence codebase finding", "options": ["(Recommended) Best option", "Alternative B", "Alternative C"], "multi_select": false}
+` + "```" + `
+---
+`
+
+// GrillMeProtocol instructs the agent to interview the user one high-leverage
+// question at a time (grounded in codebase inspection) before editing files.
+const GrillMeProtocol = `
+---
+[GRILL-ME INTERVIEW MODE ACTIVE]
+Before editing any code:
+1. Inspect the relevant files in the workspace first.
+2. Check if there are any unresolved design, UX, or edge-case decisions (ignore decisions already answered in [User Answer — ...] blocks).
+3. If key decisions remain unclear, ask ONE high-leverage question at a time using the ` + "```question```" + ` JSON block above, putting your "(Recommended) ..." choice first, and stop so the user can answer.
+4. Once all critical decisions are answered, proceed directly to implementation and verification.
+---
+`
+
 // AugmentPrompt attaches the internal guidelines plus the composer's context
 // references. It is idempotent so a retry never doubles the rules.
 func AugmentPrompt(msg, wsPath string, labels, paths, skills []string) string {
+	return AugmentAutonomousPrompt(msg, wsPath, labels, paths, skills, false)
+}
+
+// AugmentAutonomousPrompt attaches workspace context, Fast-8 SAAS rules,
+// universal open-question protocol, and optional Grill-Me interview instructions.
+func AugmentAutonomousPrompt(msg, wsPath string, labels, paths, skills []string, grillMe bool) string {
 	out := msg
 	if len(paths) > 0 || len(skills) > 0 {
 		var b strings.Builder
@@ -90,6 +120,12 @@ func AugmentPrompt(msg, wsPath string, labels, paths, skills []string) string {
 	}
 	if IsSAASWorkspace(wsPath, labels) && !strings.Contains(out, "[FAST-8 SAAS FRONTEND DEVELOPMENT GUIDELINES]") {
 		out += "\n" + SAASDevelopmentGuidelines
+	}
+	if !strings.Contains(out, "[INTERACTIVE QUESTION PROTOCOL]") {
+		out += "\n" + OpenQuestionProtocol
+	}
+	if grillMe && !strings.Contains(out, "[GRILL-ME INTERVIEW MODE ACTIVE]") {
+		out += "\n" + GrillMeProtocol
 	}
 	return out
 }

@@ -2,6 +2,7 @@
 package dispatch
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -11,19 +12,22 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/adityahimaone/switchyard-lite/internal/harnesses"
 )
 
 // Request mirrors kanban NodeDispatchRequest (shared subset, same JSON keys).
 type Request struct {
-	TaskID               string `json:"task_id"`
-	Title                string `json:"title,omitempty"`
-	Board                string `json:"board"`
-	Message              string `json:"message"`
-	Workspace            string `json:"workspace"`
-	Model                string `json:"model,omitempty"`
-	Effort               string `json:"effort,omitempty"`
-	Executor             string `json:"executor,omitempty"`
-	Command              string `json:"command,omitempty"`
+	TaskID               string               `json:"task_id"`
+	Title                string               `json:"title,omitempty"`
+	Board                string               `json:"board"`
+	Message              string               `json:"message"`
+	Workspace            string               `json:"workspace"`
+	Model                string               `json:"model,omitempty"`
+	Effort               string               `json:"effort,omitempty"`
+	Executor             string               `json:"executor,omitempty"`
+	Command              string               `json:"command,omitempty"`
+	Spawn                *harnesses.SpawnSpec `json:"spawn,omitempty"`
 	ExecutionMode        string `json:"execution_mode,omitempty"`
 	NoRTK                bool   `json:"no_rtk,omitempty"`
 	Acceptance           string `json:"acceptance,omitempty"`
@@ -181,4 +185,84 @@ func (c *Client) FetchResult(ctx context.Context, taskID string) (*Result, error
 		return nil, err
 	}
 	return &res, nil
+}
+
+// StreamEvents subscribes to GET /api/events/{task_id} (SSE) for real-time progress
+// and terminal result delivery. Returns (nil, false, nil) if the server does not
+// support SSE (404/405), allowing callers to fall back to polling cleanly.
+func (c *Client) StreamEvents(ctx context.Context, taskID string, offset int64, onProgress func(text string, nextOffset int64)) (*Result, bool, error) {
+	u := fmt.Sprintf("%s/api/events/%s?offset=%d", strings.TrimRight(c.BaseURL, "/"), taskID, offset)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	req.Header.Set("Accept", "text/event-stream")
+	if c.Token != "" {
+		req.Header.Set("X-Node-Agent-Token", c.Token)
+	}
+	streamHTTP := &http.Client{}
+	resp, err := streamHTTP.Do(req)
+	if err != nil {
+		return nil, false, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusMethodNotAllowed {
+		return nil, false, nil
+	}
+	if resp.StatusCode/100 != 2 {
+		return nil, false, fmt.Errorf("node-agent sse: %d", resp.StatusCode)
+	}
+
+	sc := bufio.NewScanner(resp.Body)
+	sc.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+	var evName string
+	var dataLines []string
+	flush := func() (*Result, bool, error) {
+		if len(dataLines) == 0 {
+			evName = ""
+			return nil, false, nil
+		}
+		raw := strings.Join(dataLines, "\n")
+		dataLines = nil
+		kind := evName
+		evName = ""
+		switch kind {
+		case "progress":
+			var chunk ProgressChunk
+			if json.Unmarshal([]byte(raw), &chunk) == nil && chunk.Text != "" && onProgress != nil {
+				onProgress(chunk.Text, chunk.Offset)
+			}
+		case "result":
+			var res Result
+			if err := json.Unmarshal([]byte(raw), &res); err != nil {
+				return nil, true, err
+			}
+			return &res, true, nil
+		}
+		return nil, false, nil
+	}
+	for sc.Scan() {
+		line := sc.Text()
+		if line == "" {
+			if res, done, ferr := flush(); done || ferr != nil {
+				return res, true, ferr
+			}
+			continue
+		}
+		if strings.HasPrefix(line, ":") {
+			continue
+		}
+		if v, ok := strings.CutPrefix(line, "event:"); ok {
+			evName = strings.TrimSpace(v)
+		} else if v, ok := strings.CutPrefix(line, "data:"); ok {
+			dataLines = append(dataLines, strings.TrimSpace(v))
+		}
+	}
+	if res, done, ferr := flush(); done || ferr != nil {
+		return res, true, ferr
+	}
+	if err := sc.Err(); err != nil {
+		return nil, true, err
+	}
+	return nil, true, ErrPending
 }

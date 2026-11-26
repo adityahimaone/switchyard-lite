@@ -110,15 +110,147 @@ type shellResult struct {
 	Error   string `json:"error"`
 }
 
+type StagedFile struct {
+	RelPath    string `json:"rel_path"`
+	DataBase64 string `json:"data_base64"`
+	Mode       uint32 `json:"mode,omitempty"`
+}
+
+type controlRPCRequest struct {
+	RPCID     string            `json:"rpc_id,omitempty"`
+	Op        string            `json:"op"`
+	Workspace string            `json:"workspace,omitempty"`
+	Argv      []string          `json:"argv,omitempty"`
+	Command   string            `json:"command,omitempty"`
+	Env       map[string]string `json:"env,omitempty"`
+	Files     []StagedFile      `json:"files,omitempty"`
+	Bins      []string          `json:"bins,omitempty"`
+	TimeoutMs int               `json:"timeout_ms,omitempty"`
+}
+
+type controlRPCResponse struct {
+	RPCID    string `json:"rpc_id"`
+	OK       bool   `json:"ok"`
+	Output   string `json:"output,omitempty"`
+	Error    string `json:"error,omitempty"`
+	ExitCode int    `json:"exit_code,omitempty"`
+}
+
+func (c *Client) callControlRPC(ctx context.Context, payload controlRPCRequest) (controlRPCResponse, bool, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return controlRPCResponse{}, false, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/api/rpc", bytes.NewReader(body))
+	if err != nil {
+		return controlRPCResponse{}, false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if c.Token != "" {
+		req.Header.Set("X-Node-Agent-Token", c.Token)
+	}
+	resp, err := c.http().Do(req)
+	if err != nil {
+		return controlRPCResponse{}, false, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusMethodNotAllowed {
+		return controlRPCResponse{}, false, nil
+	}
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	if resp.StatusCode/100 != 2 {
+		return controlRPCResponse{}, true, fmt.Errorf("node-agent rpc %d: %s", resp.StatusCode, firstLine(string(raw)))
+	}
+	var out controlRPCResponse
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return controlRPCResponse{}, true, err
+	}
+	return out, true, nil
+}
+
+// ExecArgv runs an argv command on the node owning workspace via the fast Control RPC lane.
+func (c *Client) ExecArgv(ctx context.Context, workspace string, argv []string) (string, error) {
+	if !c.Enabled() {
+		return "", fmt.Errorf("node-agent is not configured")
+	}
+	res, supported, err := c.callControlRPC(ctx, controlRPCRequest{
+		Op:        "exec",
+		Workspace: workspace,
+		Argv:      argv,
+		TimeoutMs: 15000,
+	})
+	if err != nil {
+		return "", err
+	}
+	if !supported {
+		win := IsWindowsPath(workspace)
+		quoted := make([]string, len(argv))
+		for i, a := range argv {
+			quoted[i] = Quote(a, win)
+		}
+		return c.Shell(ctx, workspace, strings.Join(quoted, " "))
+	}
+	if !res.OK {
+		msg := strings.TrimSpace(res.Error)
+		if msg == "" {
+			msg = strings.TrimSpace(res.Output)
+		}
+		return res.Output, fmt.Errorf("%s", msg)
+	}
+	return res.Output, nil
+}
+
+// StageFiles transfers files into the workspace via the fast Control RPC lane.
+func (c *Client) StageFiles(ctx context.Context, workspace string, files []StagedFile) error {
+	if !c.Enabled() || len(files) == 0 {
+		return nil
+	}
+	res, supported, err := c.callControlRPC(ctx, controlRPCRequest{
+		Op:        "stage_files",
+		Workspace: workspace,
+		Files:     files,
+		TimeoutMs: 20000,
+	})
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return fmt.Errorf("node-agent does not support /api/rpc stage_files")
+	}
+	if !res.OK {
+		return fmt.Errorf("%s", res.Error)
+	}
+	return nil
+}
+
 // Shell runs one command in the workspace on its owning node and returns its
-// combined output. Failures carry the worker's own stderr so the UI can explain
-// what went wrong instead of showing an empty list.
+// combined output. Uses the non-blocking /api/rpc lane first, falling back to
+// /api/dispatch + polling for older node-agent servers or test mocks.
 func (c *Client) Shell(ctx context.Context, workspace, command string) (string, error) {
 	if !c.Enabled() {
 		return "", fmt.Errorf("node-agent is not configured")
 	}
 	if strings.TrimSpace(workspace) == "" {
 		return "", fmt.Errorf("workspace path required")
+	}
+	if res, supported, err := c.callControlRPC(ctx, controlRPCRequest{
+		Op:        "exec",
+		Workspace: workspace,
+		Command:   command,
+		TimeoutMs: 15000,
+	}); supported {
+		if err != nil {
+			return "", err
+		}
+		clean := stripProvenance(res.Output)
+		if !res.OK {
+			msg := strings.TrimSpace(res.Error)
+			if msg == "" {
+				msg = clean
+			}
+			return "", fmt.Errorf("%s", msg)
+		}
+		return clean, nil
 	}
 	id := c.nextID()
 	body, err := json.Marshal(shellRequest{

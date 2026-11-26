@@ -6,6 +6,7 @@ import {
   Cpu,
   FolderGit2,
   GitPullRequest,
+  Inbox,
   Kanban,
   Network,
   PanelLeft,
@@ -51,10 +52,14 @@ import {
   WorkspacesScreen,
 } from "./Screens";
 import { KnowledgeScreen } from "@/components/knowledge/KnowledgeScreen";
+import { InboxScreen } from "@/components/studio/InboxScreen";
+import { HarnessAvatar } from "@/components/studio/StudioAssets";
+import { isPipelinesEnabled } from "@/lib/features";
 import { navigate, useRoute } from "@/lib/router";
 
 const NAV = [
   { id: "board", label: "Board", group: "Work", icon: Kanban },
+  { id: "inbox", label: "Inbox", group: "Work", icon: Inbox },
   { id: "review", label: "Review", group: "Work", icon: GitPullRequest },
   { id: "pipelines", label: "Pipelines", group: "Work", icon: Workflow },
   { id: "flow", label: "Flow map", group: "Work", icon: Network },
@@ -140,7 +145,10 @@ export function App() {
   };
 
   const taskList = tasks.data ?? [];
+  const pipelinesEnabled = isPipelinesEnabled();
+  const visibleNav = NAV.filter((item) => item.id !== "pipelines" || pipelinesEnabled);
   const reviewCount = taskList.filter((t) => t.status === "review").length;
+  const waitingInputCount = taskList.filter((t) => t.status === "waiting_input").length;
   const queuedCount = taskList.filter((t) => t.status === "todo").length;
   const runningCount = taskList.filter((t) => t.status === "in_progress").length;
   const doneCount = taskList.filter((t) => t.status === "done").length;
@@ -153,14 +161,49 @@ export function App() {
       <AppSidebar>
         <div className="side-top-pod">
           <div className="side-top-row">
-            <AppSidebarBrand name="Switchyard" tag="LITE" markSize={26} />
+            <AppSidebarBrand name="Switchyard" tag="STUDIO" markSize={26} />
+          </div>
+          <div className="mt-2.5 space-y-2 px-1">
+            {activeBoard && (
+              <div className="flex items-center gap-2.5 rounded-[12px] border border-line bg-surface px-2.5 py-2 shadow-2xs">
+                <HarnessAvatar harness={activeBoard.default_executor || "studio"} size={30} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12.5px] font-semibold text-ink">{activeBoard.name}</div>
+                  <div className="truncate font-mono text-[10.5px] text-ink-4">
+                    {activeBoard.default_executor || "auto"}
+                    {activeBoard.default_model ? ` · ${activeBoard.default_model}` : ""}
+                  </div>
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="flex h-8 w-full items-center justify-between rounded-[10px] border border-line bg-well/65 px-2.5 text-[12px] text-ink-3 transition-colors hover:border-line-strong hover:text-ink"
+              aria-label="Search tasks and boards"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Search className="size-3.5" />
+                <span>Search</span>
+              </span>
+              <Kbd>⌘K</Kbd>
+            </button>
+            <button
+              type="button"
+              disabled={!boardId}
+              onClick={() => setTaskDialogOpen(true)}
+              className="studio-scenic-cta flex h-9 w-full items-center gap-2 rounded-[11px] px-3 text-[12.5px] font-semibold disabled:opacity-50"
+            >
+              <Plus className="size-3.5" />
+              <span>Compose task</span>
+            </button>
           </div>
         </div>
 
         <AppSidebarTrack>
           {groups.map((grp) => (
             <AppSidebarGroup key={grp} label={grp}>
-              {NAV.filter((item) => item.group === grp).map((item) => {
+              {visibleNav.filter((item) => item.group === grp).map((item) => {
                 const Icon = item.icon;
                 return (
                   <AppSidebarItem
@@ -255,6 +298,15 @@ export function App() {
                   <span className="size-1.5 rounded-full bg-[var(--c-st-in_progress)]" aria-hidden />
                   <strong className="text-[var(--status-progress)]">{runningCount}</strong> running
                 </span>
+                {waitingInputCount > 0 && (
+                  <>
+                    <span className="text-[var(--text-muted)]">·</span>
+                    <span className="inline-flex items-center gap-1 font-mono tabular">
+                      <span className="size-1.5 rounded-full bg-[var(--c-st-waiting_input)]" aria-hidden />
+                      <strong className="text-[var(--status-waiting)]">{waitingInputCount}</strong> waiting
+                    </span>
+                  </>
+                )}
                 <span className="text-[var(--text-muted)]">·</span>
                 <span className="inline-flex items-center gap-1 font-mono tabular">
                   <span className="size-1.5 rounded-full bg-[var(--c-st-review)]" aria-hidden />
@@ -290,6 +342,14 @@ export function App() {
               open={setDrawer}
               onNewBoard={() => setBoardDialog({ mode: "new" })}
               onEditBoard={(b) => setBoardDialog({ mode: "edit", board: b })}
+            />
+          )}
+          {page === "inbox" && (
+            <InboxScreen
+              boardName={activeBoard?.name}
+              tasks={tasks.data ?? []}
+              onOpenTask={setDrawer}
+              onNewTask={boardId ? () => setTaskDialogOpen(true) : undefined}
             />
           )}
           {page === "task" && arg && (

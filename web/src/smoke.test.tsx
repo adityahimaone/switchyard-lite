@@ -6,6 +6,9 @@ import { Login } from "./Login";
 import { BoardScreen } from "./Board";
 import { TaskDrawer } from "./Drawer";
 import { TaskDialog } from "@/components/board/TaskDialog";
+import { InboxScreen } from "@/components/studio/InboxScreen";
+import { WorkflowTree } from "@/components/studio/WorkflowTree";
+import { PreviewBrowserTab, WorktreeTerminalTab } from "@/components/studio/WorktreeStudioTabs";
 import { WorkspacesPage } from "@/components/workspaces/WorkspacesPage";
 import { TaskDetailPage } from "@/components/board/TaskDetailPage";
 import { normalizeModels, parseModelCatalog } from "./api";
@@ -523,7 +526,7 @@ test("flow screen renders global multi-board topology and traces selected task",
 
   expect(await screen.findByText("Implement auth middleware")).toBeTruthy();
   expect(screen.getByText("Run meta7 design synthesis")).toBeTruthy();
-  expect(screen.getByText("Pipelines & meta7")).toBeTruthy();
+  expect(screen.getByText("Autonomous Studio")).toBeTruthy();
   expect(screen.getByText("14ms")).toBeTruthy();
 
   fireEvent.click(screen.getByText("Implement auth middleware"));
@@ -867,6 +870,10 @@ test("SettingsScreen swaps and hides executors and reflects them in TaskDialog",
   );
 
   await screen.findByTestId("executors-order-list");
+  await waitFor(() => {
+    const items = Array.from(screen.getByTestId("executors-order-list").children);
+    expect(items[1]?.textContent).toContain("Claude Code");
+  });
   fireEvent.click(screen.getByLabelText("Move claude up"));
   await waitFor(() => expect(savedConfig.order.slice(0, 2)).toEqual(["claude", "agy"]));
 
@@ -1019,4 +1026,207 @@ test("TaskDialog redesigned composer renders inline styled tokens for attached @
   expect(backdrop.querySelector('[data-token-kind="skill"]')?.textContent).toBe("$ui-ux-pro-max");
   expect(backdrop.querySelector('[data-token-kind="file"]')?.className).toContain("font-mono");
   expect(backdrop.querySelector('[data-token-kind="skill"]')?.className).toContain("font-mono");
+});
+
+test("Wave 1 Studio: waiting_input column, auto-collapsed empty secondary columns, mid-card switch, and Grill-Me First toggle", async () => {
+  localStorage.clear();
+  let answerBody: Record<string, unknown> | null = null;
+  let createdTaskBody: Record<string, unknown> | null = null;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    if (url.endsWith("/api/v1/boards")) {
+      return new Response(JSON.stringify([{ id: "b_w1", name: "Studio Board", default_executor: "agy" }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/api/v1/boards/b_w1/tasks")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "t_wait1",
+            board_id: "b_w1",
+            title: "Clarify auth provider",
+            prompt: "Add OAuth",
+            status: "waiting_input",
+            executor: "agy",
+            model: "gemini-2.5-pro",
+            grill_me: true,
+            retry_count: 0,
+            blocked_by: [],
+            created_at: 1700000000,
+            updated_at: 1700000010,
+            question: {
+              id: "q_wait1",
+              task_id: "t_wait1",
+              question: "Which OAuth provider should we wire?",
+              options: ["Google", "GitHub"],
+              multi_select: false,
+              status: "pending",
+              author: "agy",
+              created_at: 1700000010,
+            },
+          },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    if (url.endsWith("/api/v1/settings/executors")) {
+      return new Response(JSON.stringify({ order: ["agy", "dsh", "commandcode"], hidden: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.startsWith("/api/v1/models")) {
+      return new Response(JSON.stringify({ models: [{ id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/tasks/t_wait1/questions/answer") && method === "POST") {
+      answerBody = JSON.parse(String(init?.body ?? "{}"));
+      return new Response(JSON.stringify({ ok: true, resumed: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.endsWith("/api/v1/tasks") && method === "POST") {
+      createdTaskBody = JSON.parse(String(init?.body ?? "{}"));
+      return new Response(JSON.stringify({ id: "t_new_gm", board_id: "b_w1", title: "Grill me task", status: "todo" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const { container, unmount } = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <BoardScreen open={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(await screen.findByText("Clarify auth provider")).toBeTruthy();
+  expect(container.querySelector('[data-status="waiting_input"]')).toBeTruthy();
+  expect(container.querySelector('[data-status="backlog"]')?.getAttribute("data-collapsed")).toBe("true");
+  expect(container.querySelector('[data-status="blocked"]')?.getAttribute("data-collapsed")).toBe("true");
+  expect(container.querySelector('[data-status="failed"]')?.getAttribute("data-collapsed")).toBe("true");
+
+  // Mid-card harness/model switch on TaskQuestionCard
+  fireEvent.click(screen.getByRole("button", { name: "Switch" }));
+  const harnessSelect = await screen.findByLabelText("Switch harness");
+  fireEvent.pointerDown(harnessSelect);
+  fireEvent.click(harnessSelect);
+  fireEvent.click(await screen.findByRole("option", { name: /DeepSeek Harness/i }));
+
+  const modelSelect = await screen.findByLabelText("Switch model");
+  fireEvent.pointerDown(modelSelect);
+  fireEvent.click(modelSelect);
+  fireEvent.click(await screen.findByRole("option", { name: /DeepSeek V4\.1 Flash/i }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Google" }));
+  await waitFor(() => expect(answerBody).not.toBeNull());
+  expect(answerBody).toMatchObject({
+    question_id: "q_wait1",
+    selected_options: ["Google"],
+    executor: "dsh",
+    model: "deepseek-v4.1-flash",
+  });
+  unmount();
+
+  // TaskDialog hides meta7 by default and sends grill_me: true when toggled ON
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TaskDialog open boardId="b_w1" board={{ id: "b_w1", name: "Studio Board" }} onClose={() => {}} />
+    </QueryClientProvider>
+  );
+
+  expect(screen.queryByRole("radio", { name: "meta7" })).toBeNull();
+  const grillSwitch = await screen.findByRole("switch");
+  fireEvent.click(grillSwitch);
+  expect(grillSwitch.getAttribute("aria-checked")).toBe("true");
+
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Design API schema" } });
+  fireEvent.click(screen.getByRole("button", { name: /Create task/i }));
+  await waitFor(() => expect(createdTaskBody).not.toBeNull());
+  expect(createdTaskBody).toMatchObject({
+    title: "Design API schema",
+    grill_me: true,
+  });
+});
+
+test("Wave 2 & 3 Studio: InboxScreen grouped triage, WorkflowTree dot-grid, Terminal exec, and PreviewBrowser", async () => {
+  let execCmd = "";
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/v1/tasks/t_studio1/terminal/exec") && init?.method === "POST") {
+      const body = JSON.parse(String(init.body ?? "{}"));
+      execCmd = body.command;
+      return new Response(
+        JSON.stringify({ stdout: "On branch sy/t_studio1\n", stderr: "", exit_code: 0, cwd: "/tmp/wt", duration_ms: 12 }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const sampleTask = {
+    id: "t_studio1",
+    board_id: "b_1",
+    title: "Redesign Studio Shell",
+    prompt: "Apply warm light tactile design system",
+    status: "waiting_input" as const,
+    executor: "dsh",
+    model: "deepseek-v4.1-flash",
+    workspace: "/Users/dev/switchyard-lite",
+    branch: "main",
+    paths: ["web/src/App.tsx"],
+    skills: ["frontend-design"],
+    mcps: ["context7"],
+    retry_count: 0,
+    blocked_by: [],
+    created_at: Math.floor(Date.now() / 1000) - 60,
+    updated_at: Math.floor(Date.now() / 1000) - 30,
+  };
+
+  const qc = new QueryClient();
+  const { unmount } = render(
+    <QueryClientProvider client={qc}>
+      <InboxScreen boardName="Main Studio" tasks={[sampleTask]} onOpenTask={() => {}} onNewTask={() => {}} />
+    </QueryClientProvider>
+  );
+  expect(screen.getByTestId("studio-inbox-view")).toBeTruthy();
+  expect(screen.getByText("Redesign Studio Shell")).toBeTruthy();
+  expect(screen.getByText("App.tsx")).toBeTruthy();
+  unmount();
+
+  const { unmount: unmountTree } = render(
+    <QueryClientProvider client={qc}>
+      <WorkflowTree task={sampleTask} subtasks={[]} variant="detail" />
+    </QueryClientProvider>
+  );
+  expect(screen.getByTestId("workflow-tree-canvas")).toBeTruthy();
+  expect(screen.getByText("Tech-Stack")).toBeTruthy();
+  expect(screen.getByText("context7")).toBeTruthy();
+  unmountTree();
+
+  const { unmount: unmountTerm } = render(
+    <QueryClientProvider client={qc}>
+      <WorktreeTerminalTab task={sampleTask} />
+    </QueryClientProvider>
+  );
+  fireEvent.click(screen.getByRole("button", { name: "git status -sb" }));
+  await waitFor(() => expect(execCmd).toBe("git status -sb"));
+  expect(await screen.findByText(/On branch sy\/t_studio1/)).toBeTruthy();
+  unmountTerm();
+
+  render(
+    <QueryClientProvider client={qc}>
+      <PreviewBrowserTab task={sampleTask} />
+    </QueryClientProvider>
+  );
+  expect(screen.getByTestId("preview-browser-tab")).toBeTruthy();
+  expect(screen.getByTitle("Preview localhost:5173")).toBeTruthy();
 });

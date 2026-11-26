@@ -13,18 +13,24 @@ var (
 )
 
 // DetectOpenQuestion extracts a structured clarification / grill-me prompt and
-// its selectable choices from worker output emitted by dsh, commandcode, or an MCP caller.
+// its selectable choices from worker output emitted by dsh, commandcode, agy, or an MCP caller.
 func DetectOpenQuestion(output string) (question string, options []string, contextText string, ok bool) {
+	q, opts, ctx, _, found := DetectOpenQuestionFull(output)
+	return q, opts, ctx, found
+}
+
+// DetectOpenQuestionFull extracts question, options, context, and multi_select.
+func DetectOpenQuestionFull(output string) (question string, options []string, contextText string, multiSelect bool, ok bool) {
 	trimmed := strings.TrimSpace(output)
 	if trimmed == "" {
-		return "", nil, "", false
+		return "", nil, "", false, false
 	}
 
 	// 1. Explicit fenced JSON block containing {"question": ..., "options": [...]}.
 	if matches := reQuestionJSONFence.FindAllStringSubmatch(trimmed, -1); len(matches) > 0 {
 		last := matches[len(matches)-1][1]
-		if q, opts, ctx, found := parseQuestionJSON(last); found {
-			return q, opts, ctx, true
+		if q, opts, ctx, multi, found := parseQuestionJSONFull(last); found {
+			return q, opts, ctx, multi, true
 		}
 	}
 
@@ -32,7 +38,7 @@ func DetectOpenQuestion(output string) (question string, options []string, conte
 	if matches := reQuestionTagBlock.FindAllStringSubmatch(trimmed, -1); len(matches) > 0 {
 		last := strings.TrimSpace(matches[len(matches)-1][1])
 		if q, opts, ctx, found := parseNaturalQuestionBlock(last, true); found {
-			return q, opts, ctx, true
+			return q, opts, ctx, false, true
 		}
 	}
 
@@ -45,30 +51,32 @@ func DetectOpenQuestion(output string) (question string, options []string, conte
 	for i := len(lines) - 1; i >= startScan; i-- {
 		ln := strings.TrimSpace(lines[i])
 		if strings.HasPrefix(ln, "{") && strings.Contains(ln, `"question`) {
-			if q, opts, ctx, found := parseQuestionJSON(ln); found {
-				return q, opts, ctx, true
+			if q, opts, ctx, multi, found := parseQuestionJSONFull(ln); found {
+				return q, opts, ctx, multi, true
 			}
 		}
 	}
 
-	// 4. Natural tail pattern from dsh / commandcode (question ending in '?' followed by 2..6 options).
+	// 4. Natural tail pattern from dsh / commandcode / agy (question ending in '?' followed by 2..8 options).
 	tailStart := len(lines) - 30
 	if tailStart < 0 {
 		tailStart = 0
 	}
 	tail := strings.Join(lines[tailStart:], "\n")
-	return parseNaturalQuestionBlock(tail, false)
+	q, opts, ctx, found := parseNaturalQuestionBlock(tail, false)
+	return q, opts, ctx, false, found
 }
 
 type rawQuestionItem struct {
-	Question string   `json:"question"`
-	Prompt   string   `json:"prompt"`
-	Context  string   `json:"context"`
-	Options  []string `json:"options"`
-	Choices  []string `json:"choices"`
+	Question    string   `json:"question"`
+	Prompt      string   `json:"prompt"`
+	Context     string   `json:"context"`
+	Options     []string `json:"options"`
+	Choices     []string `json:"choices"`
+	MultiSelect bool     `json:"multi_select"`
 }
 
-func extractQuestionFromItem(item rawQuestionItem) (string, []string, string, bool) {
+func extractQuestionFromItem(item rawQuestionItem) (string, []string, string, bool, bool) {
 	q := strings.TrimSpace(item.Question)
 	if q == "" {
 		q = strings.TrimSpace(item.Prompt)
@@ -79,21 +87,21 @@ func extractQuestionFromItem(item rawQuestionItem) (string, []string, string, bo
 	}
 	cleanOpts := dedupeTrim(opts)
 	if q == "" || len(cleanOpts) < 1 {
-		return "", nil, "", false
+		return "", nil, "", false, false
 	}
-	return q, cleanOpts, strings.TrimSpace(item.Context), true
+	return q, cleanOpts, strings.TrimSpace(item.Context), item.MultiSelect, true
 }
 
-func extractQuestionFromObject(obj map[string]any) (string, []string, string, bool) {
+func extractQuestionFromObject(obj map[string]any) (string, []string, string, bool, bool) {
 	if obj == nil {
-		return "", nil, "", false
+		return "", nil, "", false, false
 	}
 	b, err := json.Marshal(obj)
 	if err == nil {
 		var single rawQuestionItem
 		if json.Unmarshal(b, &single) == nil {
-			if q, opts, ctx, ok := extractQuestionFromItem(single); ok {
-				return q, opts, ctx, true
+			if q, opts, ctx, multi, ok := extractQuestionFromItem(single); ok {
+				return q, opts, ctx, multi, true
 			}
 		}
 		var batch struct {
@@ -101,41 +109,41 @@ func extractQuestionFromObject(obj map[string]any) (string, []string, string, bo
 			Context   string            `json:"context"`
 		}
 		if json.Unmarshal(b, &batch) == nil && len(batch.Questions) > 0 {
-			if q, opts, ctx, ok := extractQuestionFromItem(batch.Questions[0]); ok {
+			if q, opts, ctx, multi, ok := extractQuestionFromItem(batch.Questions[0]); ok {
 				if ctx == "" {
 					ctx = strings.TrimSpace(batch.Context)
 				}
-				return q, opts, ctx, true
+				return q, opts, ctx, multi, true
 			}
 		}
 	}
 	for _, key := range []string{"args", "arguments", "input", "payload", "tool_use", "tool_call", "functionCall", "call", "function"} {
 		if sub, ok := obj[key].(map[string]any); ok {
-			if q, opts, ctx, found := extractQuestionFromObject(sub); found {
-				return q, opts, ctx, true
+			if q, opts, ctx, multi, found := extractQuestionFromObject(sub); found {
+				return q, opts, ctx, multi, true
 			}
 		} else if rawStr, ok := obj[key].(string); ok && strings.HasPrefix(strings.TrimSpace(rawStr), "{") {
-			if q, opts, ctx, found := parseQuestionJSON(rawStr); found {
-				return q, opts, ctx, true
+			if q, opts, ctx, multi, found := parseQuestionJSONFull(rawStr); found {
+				return q, opts, ctx, multi, true
 			}
 		}
 	}
 	if tcs, ok := obj["tool_calls"].([]any); ok {
 		for _, tc := range tcs {
 			if sub, ok := tc.(map[string]any); ok {
-				if q, opts, ctx, found := extractQuestionFromObject(sub); found {
-					return q, opts, ctx, true
+				if q, opts, ctx, multi, found := extractQuestionFromObject(sub); found {
+					return q, opts, ctx, multi, true
 				}
 			}
 		}
 	}
-	return "", nil, "", false
+	return "", nil, "", false, false
 }
 
-func parseQuestionJSON(raw string) (string, []string, string, bool) {
+func parseQuestionJSONFull(raw string) (string, []string, string, bool, bool) {
 	var obj map[string]any
 	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &obj); err != nil {
-		return "", nil, "", false
+		return "", nil, "", false, false
 	}
 	return extractQuestionFromObject(obj)
 }

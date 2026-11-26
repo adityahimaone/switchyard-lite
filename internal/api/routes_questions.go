@@ -42,10 +42,42 @@ func init() {
 				Answer          string   `json:"answer"`
 				Author          string   `json:"author"`
 				AutoResume      *bool    `json:"auto_resume"`
+				Executor        string   `json:"executor"`
+				Model           string   `json:"model"`
+				Effort          string   `json:"effort"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 				fail(w, 400, "invalid json")
 				return
+			}
+			if ex := in.Executor; ex != "" {
+				patch := tasks.Patch{Executor: &ex}
+				if in.Model != "" {
+					m := in.Model
+					patch.Model = &m
+				}
+				if in.Effort != "" {
+					ef := in.Effort
+					patch.Effort = &ef
+				}
+				if _, err := a.Tasks.Update(id, patch); err != nil {
+					fromErr(w, err)
+					return
+				}
+			} else if in.Model != "" || in.Effort != "" {
+				var patch tasks.Patch
+				if in.Model != "" {
+					m := in.Model
+					patch.Model = &m
+				}
+				if in.Effort != "" {
+					ef := in.Effort
+					patch.Effort = &ef
+				}
+				if _, err := a.Tasks.Update(id, patch); err != nil {
+					fromErr(w, err)
+					return
+				}
 			}
 			q, updated, err := a.Tasks.AnswerQuestion(id, tasks.AnswerQuestionInput{
 				QuestionID:      in.QuestionID,

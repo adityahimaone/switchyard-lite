@@ -1,4 +1,4 @@
-export const STATUSES = ["backlog", "todo", "blocked", "in_progress", "review", "done", "failed"] as const;
+export const STATUSES = ["backlog", "todo", "blocked", "in_progress", "waiting_input", "review", "done", "failed"] as const;
 export type Status = (typeof STATUSES)[number];
 
 export type ExecutionMode = "managed" | "tracker";
@@ -46,13 +46,16 @@ export interface Task {
   model?: string;
   effort?: string;
   execution_mode?: ExecutionMode;
+  grill_me?: boolean;
   session_id?: string;
+  harness_sessions?: Record<string, string>;
   dsh_workspace_id?: string;
   last_turn_seq?: number;
   question?: TaskQuestion | null;
   /** @file references and $skill names attached in the composer. */
   paths?: string[];
   skills?: string[];
+  mcps?: string[];
   /** Base branch for the isolated worktree (empty = current HEAD). */
   branch?: string;
   retry_count: number;
@@ -72,6 +75,17 @@ export interface Board {
   name: string;
   default_executor?: string;
   default_model?: string;
+}
+
+export interface MCPServer {
+  id: string;
+  name: string;
+  transport: string;
+  command?: string;
+  args?: string[];
+  url?: string;
+  env?: Record<string, string>;
+  enabled: boolean;
 }
 
 export interface Workspace {
@@ -194,7 +208,7 @@ export interface FlowTask {
   model?: string;
   branch?: string;
   transport?: string;
-  stage: "dispatched" | "running" | "review" | "done" | "failed" | "queued" | "blocked";
+  stage: "dispatched" | "running" | "waiting_input" | "review" | "done" | "failed" | "queued" | "blocked";
   status?: Status;
   workspace?: string;
   blocked_by?: string[];
@@ -509,11 +523,12 @@ export const del = <T,>(path: string) =>
 
 export const NEXT: Record<Status, Status[]> = {
   backlog: ["todo"],
-  todo: ["backlog", "blocked", "in_progress"],
-  blocked: ["todo"],
-  in_progress: ["review", "todo", "failed"],
-  review: ["done", "todo"],
-  failed: ["todo"],
+  todo: ["backlog", "blocked", "waiting_input", "in_progress"],
+  blocked: ["todo", "waiting_input"],
+  in_progress: ["review", "waiting_input", "todo", "blocked", "failed"],
+  waiting_input: ["todo", "in_progress", "review", "blocked"],
+  review: ["done", "todo", "waiting_input"],
+  failed: ["todo", "waiting_input"],
   done: [],
 };
 

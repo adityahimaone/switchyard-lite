@@ -3,56 +3,57 @@
    ========================================================================== */
 
 :root {
-  /* App background — volumetric cloud sky + subtle mesh highlights */
+  /* App background — Warm Golden-Hour Sky atmospheric frame (matching Warm Light Tactile Studio) */
   --bg-cloud-image: url("/clouds/clouds-light.webp");
-  --cloud-opacity: 0.90;
-  --cloud-filter: saturate(1.12) contrast(1.04);
+  --cloud-opacity: 0.32;
+  --cloud-filter: saturate(0.95) contrast(0.98) blur(6px);
   --app-bg:
-    radial-gradient(65% 55% at 12% 8%, rgba(99, 102, 241, 0.14) 0%, transparent 70%),
-    radial-gradient(50% 45% at 88% 12%, rgba(56, 189, 248, 0.12) 0%, transparent 65%),
-    radial-gradient(60% 50% at 75% 88%, rgba(217, 70, 239, 0.08) 0%, transparent 70%),
-    linear-gradient(135deg, #dbeafe 0%, #e0e7ff 38%, #f0f9ff 72%, #fdf4ff 100%);
+    radial-gradient(75% 60% at 18% 12%, rgba(251, 191, 146, 0.42) 0%, transparent 65%),
+    radial-gradient(65% 55% at 85% 18%, rgba(165, 180, 252, 0.36) 0%, transparent 65%),
+    radial-gradient(70% 55% at 50% 92%, rgba(244, 211, 186, 0.38) 0%, transparent 70%),
+    linear-gradient(145deg, #e7d4c6 0%, #d9cedc 45%, #e9dfd7 100%);
 
-  /* Glass surfaces — 3 strict hierarchy levels (+ popover) */
-  --glass-1: rgba(255, 255, 255, 0.74); /* Level 1: Sidebar / Topbar — most solid */
-  --glass-2: rgba(255, 255, 255, 0.34); /* Level 2: Kanban column — most transparent */
-  --glass-3: rgba(255, 255, 255, 0.85); /* Level 3: Card — solid */
-  --glass-4: rgba(255, 255, 255, 0.92); /* Popover / Modal */
+  /* Tactile crisp surfaces — pure white sidebar & cards over soft off-white canvas */
+  --glass-1: rgba(255, 255, 255, 0.96); /* Level 1: Sidebar / Topbar — pure crisp white */
+  --glass-2: rgba(248, 249, 251, 0.90); /* Level 2: Kanban column — soft alabaster */
+  --glass-3: rgba(255, 255, 255, 0.99); /* Level 3: Card — pure white */
+  --glass-4: rgba(255, 255, 255, 0.99); /* Popover / Modal */
 
   /* Blur + saturate */
-  --glass-blur-1: blur(20px) saturate(180%);
-  --glass-blur-2: blur(12px) saturate(140%);
-  --glass-blur-3: blur(16px) saturate(160%);
-  --glass-blur-4: blur(24px) saturate(180%);
+  --glass-blur-1: blur(18px) saturate(140%);
+  --glass-blur-2: blur(10px) saturate(120%);
+  --glass-blur-3: blur(12px) saturate(130%);
+  --glass-blur-4: blur(22px) saturate(150%);
 
-  /* Border + specular highlight (liquid glass edge) */
-  --glass-border: rgba(255, 255, 255, 0.60);
-  --glass-border-soft: rgba(255, 255, 255, 0.40);
-  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.80);
-  --glass-inner: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
-  --glass-specular: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 40%);
+  /* Border + specular highlight */
+  --glass-border: rgba(226, 232, 240, 0.92);
+  --glass-border-soft: rgba(236, 238, 242, 0.95);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-inner: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+  --glass-specular: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 40%);
 
   /* Shadows */
-  --glass-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.06);
-  --glass-shadow-md: 0 2px 4px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.10);
-  --glass-shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12), 0 24px 48px rgba(15, 23, 42, 0.12);
+  --glass-shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.04), 0 2px 6px rgba(17, 24, 39, 0.03);
+  --glass-shadow-md: 0 2px 6px rgba(17, 24, 39, 0.05), 0 10px 24px rgba(17, 24, 39, 0.06);
+  --glass-shadow-lg: 0 8px 24px rgba(17, 24, 39, 0.08), 0 24px 48px rgba(17, 24, 39, 0.09);
 
-  /* Text — WCAG AA compliant (never use slate-400 for body copy) */
-  --text-primary: #0f172a;   /* slate-900 */
-  --text-secondary: #475569; /* slate-600 */
-  --text-muted: #64748b;     /* slate-500 */
+  /* Text — WCAG AA compliant */
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
 
-  /* Primary solid CTA consistent with glass palette */
-  --glass-btn-primary-bg: #0f172a;
-  --glass-btn-primary-hover: #1e293b;
-  --glass-btn-primary-ink: #f8fafc;
-  --glass-btn-primary-border: rgba(255, 255, 255, 0.18);
+  /* Primary solid CTA — Sky Blue matching attached design */
+  --glass-btn-primary-bg: #0a84ff;
+  --glass-btn-primary-hover: #0070e0;
+  --glass-btn-primary-ink: #ffffff;
+  --glass-btn-primary-border: rgba(10, 132, 255, 0.25);
 
   /* Status tokens */
   --status-backlog: #475569;
   --status-todo: #334155;
   --status-blocked: #dc2626;
   --status-progress: #2563eb;
+  --status-waiting: #7c3aed;
   --status-review: #b45309;
   --status-done: #059669;
   --status-failed: #dc2626;
@@ -66,6 +67,8 @@
   --status-blocked-border: rgba(220, 38, 38, 0.28);
   --status-progress-bg: rgba(37, 99, 235, 0.10);
   --status-progress-border: rgba(37, 99, 235, 0.28);
+  --status-waiting-bg: rgba(124, 58, 237, 0.11);
+  --status-waiting-border: rgba(124, 58, 237, 0.30);
   --status-review-bg: rgba(180, 83, 9, 0.10);
   --status-review-border: rgba(180, 83, 9, 0.28);
   --status-done-bg: rgba(5, 150, 105, 0.10);
@@ -122,6 +125,7 @@
   --status-todo: #e2e8f0;
   --status-blocked: #f87171;
   --status-progress: #60a5fa;
+  --status-waiting: #a78bfa;
   --status-review: #fbbf24;
   --status-done: #34d399;
   --status-failed: #f87171;
@@ -134,6 +138,8 @@
   --status-blocked-border: rgba(248, 113, 113, 0.35);
   --status-progress-bg: rgba(37, 99, 235, 0.20);
   --status-progress-border: rgba(96, 165, 250, 0.36);
+  --status-waiting-bg: rgba(139, 92, 246, 0.22);
+  --status-waiting-border: rgba(167, 139, 250, 0.38);
   --status-review-bg: rgba(180, 83, 9, 0.22);
   --status-review-border: rgba(251, 191, 36, 0.36);
   --status-done-bg: rgba(5, 150, 105, 0.20);
@@ -147,6 +153,36 @@
 }
 
 /* Fine SVG noise grain overlay for authentic glass refraction */
+.studio-scenic-cta {
+  background-image:
+    linear-gradient(95deg, #0a84ff 0%, rgba(10, 132, 255, 0.90) 44%, rgba(10, 132, 255, 0.22) 100%),
+    url("/studio/cta-scenic.jpg");
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  border: 1px solid rgba(10, 132, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  transition: transform 140ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+
+.studio-scenic-cta:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 4px 14px rgba(10, 132, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.studio-scenic-cta:active {
+  transform: scale(0.985);
+}
+
+.studio-dot-grid {
+  background-image: radial-gradient(rgba(17, 24, 39, 0.14) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.dark .studio-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+}
+
 .app-noise-layer {
   position: relative;
 }
@@ -303,6 +339,12 @@
   color: var(--status-progress);
   background: var(--status-progress-bg);
   border-color: var(--status-progress-border);
+}
+
+.status-waiting {
+  color: var(--status-waiting);
+  background: var(--status-waiting-bg);
+  border-color: var(--status-waiting-border);
 }
 
 .status-review {

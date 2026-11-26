@@ -58,6 +58,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WorkerLogPanel } from "@/components/board/OutputPanels";
+import { isPipelinesEnabled } from "@/lib/features";
 
 /* -------------------------------------------------------------------------- */
 /* Topology Model & Geometry                                                  */
@@ -120,8 +121,8 @@ const SPEED_TRACED = 310;
 const NODES: LayoutNode[] = [
   {
     id: "meta7",
-    label: "Pipelines & meta7",
-    sub: "autonomous DAG studio",
+    label: isPipelinesEnabled() ? "Pipelines & meta7" : "Autonomous Studio",
+    sub: isPipelinesEnabled() ? "autonomous DAG studio" : "grill-me · subtasks · handoff",
     group: "ORCHESTRATION",
     hue: "#8b5cf6",
     icon: Workflow,
@@ -316,6 +317,7 @@ const STAGE_COLOR: Record<string, string> = {
   blocked: "var(--c-warning)",
   dispatched: "var(--c-warning)",
   running: "var(--c-accent)",
+  waiting_input: "var(--c-st-waiting_input)",
   review: "var(--c-review)",
   done: "var(--c-success-text)",
   failed: "var(--c-danger-text)",
@@ -339,6 +341,7 @@ function resolveWorkerNode(t: FlowTask): "mac" | "windows" | "linux" {
 function stationedNodeFor(t: FlowTask): FlowNodeId {
   if (t.stage === "running") return resolveWorkerNode(t);
   if (t.stage === "dispatched") return "node-agent-server";
+  if (t.stage === "waiting_input") return "orchestrator";
   if (t.stage === "review" || t.stage === "done" || t.stage === "failed") return "review";
   if (t.run_id) return "meta7";
   return "kanban";
@@ -359,7 +362,7 @@ function channelChain(t: FlowTask, replayAll = false): FlowNodeId[] {
   if (t.stage === "review" || t.stage === "done" || t.stage === "failed") {
     return [worker, "review", "kanban"];
   }
-  if (t.stage === "queued" || t.stage === "blocked") {
+  if (t.stage === "queued" || t.stage === "blocked" || t.stage === "waiting_input") {
     return t.run_id ? ["meta7", "orchestrator", "kanban"] : ["kanban", "dispatcher"];
   }
   return [];

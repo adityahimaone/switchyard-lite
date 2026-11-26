@@ -10,10 +10,13 @@ import {
   History,
   Link2,
   MessageSquare,
+  Monitor,
+  Network,
   Paperclip,
   Pencil,
   ScrollText,
   Send,
+  Terminal,
   Trash2,
 } from "@/components/ui/icons";
 import {
@@ -38,6 +41,8 @@ import {
 import { AgentTaskStatus, ToneBadge } from "@/components/board/AgentStatus";
 import { TaskOutput, WorkerLogPanel } from "@/components/board/OutputPanels";
 import { TaskQuestionCard } from "@/components/board/TaskQuestionCard";
+import { WorkflowTree } from "@/components/studio/WorkflowTree";
+import { PreviewBrowserTab, WorktreeTerminalTab } from "@/components/studio/WorktreeStudioTabs";
 import { parseEventCards, traceSpansFromHistory, type EventTone } from "@/components/board/taskTrace";
 import { AgentTrace } from "@/components/ui/agent-trace";
 import { Link } from "@/lib/router";
@@ -578,6 +583,18 @@ export function TaskDetailPanels({
               {eventCount}
             </span>
           )}
+        </TabsTrigger>
+        <TabsTrigger value="workflow">
+          <Network className="size-3.5" />
+          Workflow
+        </TabsTrigger>
+        <TabsTrigger value="terminal">
+          <Terminal className="size-3.5" />
+          Terminal
+        </TabsTrigger>
+        <TabsTrigger value="preview">
+          <Monitor className="size-3.5" />
+          Preview
         </TabsTrigger>
       </TabsList>
 
@@ -1400,6 +1417,27 @@ export function TaskDetailPanels({
             />
           )}
         </Section>
+      </TabsContent>
+
+      {/* ------------------------------------------------------- Workflow Tree */}
+      <TabsContent value="workflow" className="space-y-3 pt-3">
+        {t && (
+          <WorkflowTree
+            task={t}
+            subtasks={(boardTasks.data ?? []).filter((sub) => sub.parent_id === t.id)}
+            variant="detail"
+          />
+        )}
+      </TabsContent>
+
+      {/* ---------------------------------------------------- Worktree Terminal */}
+      <TabsContent value="terminal" className="space-y-3 pt-3">
+        {t && <WorktreeTerminalTab task={t} />}
+      </TabsContent>
+
+      {/* ----------------------------------------------------- Preview Browser */}
+      <TabsContent value="preview" className="space-y-3 pt-3">
+        {t && <PreviewBrowserTab task={t} />}
       </TabsContent>
     </Tabs>
   );

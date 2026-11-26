@@ -17,6 +17,7 @@ type Patch struct {
 	Effort        *string   `json:"effort"`
 	Branch        *string   `json:"branch"`
 	ExecutionMode *string   `json:"execution_mode"`
+	GrillMe       *bool     `json:"grill_me"`
 	Paths         *[]string `json:"paths"`
 	Skills        *[]string `json:"skills"`
 }
@@ -72,6 +73,16 @@ func (v *Service) Update(id string, p Patch) (Task, error) {
 			return Task{}, err
 		}
 		changed = append(changed, s.col)
+	}
+	if p.GrillMe != nil {
+		g := 0
+		if *p.GrillMe {
+			g = 1
+		}
+		if _, err := tx.Exec(`UPDATE tasks SET grill_me=? WHERE id=?`, g, id); err != nil {
+			return Task{}, err
+		}
+		changed = append(changed, "grill_me")
 	}
 	if len(changed) > 0 {
 		if _, err := tx.Exec(`UPDATE tasks SET updated_at=? WHERE id=?`, v.Now().Unix(), id); err != nil {

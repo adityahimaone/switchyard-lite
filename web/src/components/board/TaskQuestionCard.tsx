@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, post, type Task, type TaskQuestion } from "@/api";
+import { api, apiOr, parseModelCatalog, post, type Task, type TaskQuestion } from "@/api";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, HelpCircle, Plus } from "@/components/ui/icons";
+import { Check, ChevronRight, Cpu, HelpCircle, Plus } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, toastError } from "@/components/ui/toast";
+import { EXECUTOR_LABELS, useExecutorConfig } from "@/lib/executors";
 
 interface AnswerResponse {
   question: TaskQuestion;
@@ -31,6 +39,25 @@ export function TaskQuestionCard({
   const [newQ, setNewQ] = useState("");
   const [newOpts, setNewOpts] = useState("");
   const [newMulti, setNewMulti] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [nextExecutor, setNextExecutor] = useState(task.executor || "");
+  const [nextModel, setNextModel] = useState(task.model || "");
+  const { visibleExecutors } = useExecutorConfig();
+
+  const modelsQuery = useQuery({
+    queryKey: ["models", nextExecutor, task.workspace || ""],
+    enabled: switchOpen && !!nextExecutor,
+    queryFn: async () =>
+      parseModelCatalog(
+        await apiOr<unknown>(
+          `/api/v1/models?executor=${encodeURIComponent(nextExecutor)}${
+            task.workspace ? `&workspace=${encodeURIComponent(task.workspace)}` : ""
+          }`,
+          {}
+        )
+      ),
+  });
+  const modelList = modelsQuery.data?.models ?? [];
 
   const questionsQuery = useQuery({
     queryKey: ["questions", task.id],
@@ -47,6 +74,8 @@ export function TaskQuestionCard({
     }) =>
       post<AnswerResponse>(`/api/v1/tasks/${task.id}/questions/answer`, {
         ...payload,
+        ...(switchOpen && nextExecutor ? { executor: nextExecutor } : {}),
+        ...(switchOpen && nextModel ? { model: nextModel } : {}),
         author: "user",
       }),
     onSuccess: (res) => {
@@ -122,17 +151,80 @@ export function TaskQuestionCard({
             <HelpCircle className="size-3 shrink-0" />
             <span className="truncate">{q.author || task.executor || "Question"}</span>
           </span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCustomOpen((v) => !v);
-            }}
-            className="text-[10px] font-medium normal-case tracking-normal text-ink-3 hover:text-ink underline-offset-2 hover:underline"
-          >
-            {customOpen ? "Cancel" : "Reply"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSwitchOpen((v) => !v);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-medium normal-case tracking-normal text-ink-3 hover:text-ink"
+              title="Switch harness or model on resume"
+            >
+              <Cpu className="size-2.5" />
+              {switchOpen ? "Keep" : "Switch"}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCustomOpen((v) => !v);
+              }}
+              className="text-[10px] font-medium normal-case tracking-normal text-ink-3 hover:text-ink underline-offset-2 hover:underline"
+            >
+              {customOpen ? "Cancel" : "Reply"}
+            </button>
+          </div>
         </div>
+
+        {switchOpen && (
+          <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-md border border-line/70 bg-surface/80 p-1.5">
+            <Select
+              value={nextExecutor || "__keep__"}
+              onValueChange={(v) => {
+                setNextExecutor(v === "__keep__" ? "" : v);
+                setNextModel("");
+              }}
+            >
+              <SelectTrigger size="sm" aria-label="Switch harness">
+                <SelectValue placeholder="Harness" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__keep__">Keep harness</SelectItem>
+                {visibleExecutors.map((ex) => (
+                  <SelectItem key={ex} value={ex}>
+                    {EXECUTOR_LABELS[ex] ?? ex}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {modelList.length > 0 ? (
+              <Select
+                value={nextModel || "__default__"}
+                onValueChange={(v) => setNextModel(v === "__default__" ? "" : v)}
+              >
+                <SelectTrigger size="sm" aria-label="Switch model">
+                  <SelectValue placeholder="Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">(default model)</SelectItem>
+                  {modelList.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={nextModel}
+                onChange={(e) => setNextModel(e.target.value)}
+                placeholder="Model ID..."
+                className="h-7 font-mono text-[10.5px]"
+              />
+            )}
+          </div>
+        )}
 
         <div className="mt-1 text-[11.5px] font-medium leading-snug text-ink line-clamp-2">
           {q.question}

@@ -75,6 +75,8 @@ func NewFromEnv() *Registry {
 
 func defaultRoots(home, wd string) []string {
 	candidates := []string{
+		filepath.Join(home, ".gemini", "config", "skills"),
+		filepath.Join(home, ".gemini", "antigravity", "builtin", "skills"),
 		filepath.Join(home, ".agents", "skills"),
 		filepath.Join(home, ".workbuddy-ai", "skills"),
 		filepath.Join(home, ".hermes", "skills"),

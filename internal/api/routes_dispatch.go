@@ -556,8 +556,30 @@ func init() {
 				Prompt       string `json:"prompt"`
 				ResetRetries *bool  `json:"reset_retries"`
 				DispatchNow  *bool  `json:"dispatch_now"`
+				Executor     string `json:"executor"`
+				Model        string `json:"model"`
+				Effort       string `json:"effort"`
 			}
 			_ = json.NewDecoder(r.Body).Decode(&in)
+			if ex := strings.TrimSpace(in.Executor); ex != "" {
+				p := tasks.Patch{Executor: &ex}
+				if m := strings.TrimSpace(in.Model); m != "" {
+					p.Model = &m
+				}
+				if ef := strings.TrimSpace(in.Effort); ef != "" {
+					p.Effort = &ef
+				}
+				_, _ = a.Tasks.Update(id, p)
+			} else if strings.TrimSpace(in.Model) != "" || strings.TrimSpace(in.Effort) != "" {
+				var p tasks.Patch
+				if m := strings.TrimSpace(in.Model); m != "" {
+					p.Model = &m
+				}
+				if ef := strings.TrimSpace(in.Effort); ef != "" {
+					p.Effort = &ef
+				}
+				_, _ = a.Tasks.Update(id, p)
+			}
 			if fb := strings.TrimSpace(in.Feedback); fb != "" {
 				_, _ = a.Tasks.AddComment(id, "retry", fb)
 			}
