@@ -38,8 +38,12 @@ func main() {
 		api.UseDispatcher(a, disp)
 		// ponytail: dispatch is opt-in; without SWITCHYARD_DISPATCH=1 the loop never
 		// claims or runs tasks (prevents migrations/imports from auto-firing on workers).
+		// Always run the lease reaper so expired claims (including from a previous PID
+		// after restart) are reclaimed even when auto-dispatch is disabled.
 		if os.Getenv("SWITCHYARD_DISPATCH") == "1" {
 			go disp.Run(context.Background())
+		} else {
+			go disp.RunReaper(context.Background())
 		}
 		log.Printf("listening on %s", *addr)
 		log.Fatal(http.ListenAndServe(*addr, a.Handler()))

@@ -88,6 +88,33 @@ type ProgressChunk struct {
 // ErrPending means the node-agent has no result yet.
 var ErrPending = errors.New("result pending")
 
+// ErrCapacity indicates the node-agent temporarily rejected dispatch due to
+// queue saturation or rate limiting (e.g. HTTP 503 "node queue full").
+var ErrCapacity = errors.New("node-agent at capacity")
+
+// HTTPStatusError captures a non-2xx response from node-agent while preserving
+// the status code so callers can distinguish transient capacity errors (503/429)
+// from ordinary execution failures.
+type HTTPStatusError struct {
+	Op         string
+	StatusCode int
+	Body       string
+}
+
+func (e *HTTPStatusError) Error() string {
+	if e.Body == "" {
+		return fmt.Sprintf("node-agent %s: %d", e.Op, e.StatusCode)
+	}
+	return fmt.Sprintf("node-agent %s: %d %s", e.Op, e.StatusCode, e.Body)
+}
+
+func (e *HTTPStatusError) Unwrap() error {
+	if e.StatusCode == http.StatusServiceUnavailable || e.StatusCode == http.StatusTooManyRequests {
+		return ErrCapacity
+	}
+	return nil
+}
+
 // Client talks to a node-agent.
 type Client struct {
 	BaseURL string
@@ -137,7 +164,11 @@ func (c *Client) DispatchWithAck(ctx context.Context, r Request) (Ack, error) {
 		return Ack{}, err
 	}
 	if code/100 != 2 {
-		return Ack{}, fmt.Errorf("node-agent dispatch: %d %s", code, strings.TrimSpace(string(b)))
+		return Ack{}, &HTTPStatusError{
+			Op:         "dispatch",
+			StatusCode: code,
+			Body:       strings.TrimSpace(string(b)),
+		}
 	}
 	var ack Ack
 	if len(b) > 0 {

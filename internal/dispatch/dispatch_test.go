@@ -685,3 +685,398 @@ func TestAgyRemoteFallbackOnNodeAgent409Unavailable(t *testing.T) {
 		t.Fatalf("expected provenance stripped from task result, got %q", gotTask.Result)
 	}
 }
+
+func TestLeaseDefaultsAndConfiguration(t *testing.T) {
+	t.Setenv("SWITCHYARD_DISPATCH_LEASE", "")
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	dDefault, err := New(s, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dDefault.Cfg.Lease < 5*time.Minute {
+		t.Fatalf("expected default lease >= 5m, got %s", dDefault.Cfg.Lease)
+	}
+
+	// dispatch_settings override when Config.Lease is unset.
+	if _, err := s.DB.Exec(`INSERT INTO dispatch_settings(key,value) VALUES('dispatch.lease','8m')`); err != nil {
+		t.Fatal(err)
+	}
+	dFromDB, err := New(s, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dFromDB.Cfg.Lease != 8*time.Minute {
+		t.Fatalf("expected lease 8m from dispatch_settings, got %s", dFromDB.Cfg.Lease)
+	}
+
+	// Environment variable override takes precedence over dispatch_settings.
+	t.Setenv("SWITCHYARD_DISPATCH_LEASE", "600")
+	cfgEnv := ConfigFromEnv()
+	if cfgEnv.Lease != 10*time.Minute {
+		t.Fatalf("expected 10m from SWITCHYARD_DISPATCH_LEASE=600, got %s", cfgEnv.Lease)
+	}
+	dFromEnv, err := New(s, cfgEnv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dFromEnv.Cfg.Lease != 10*time.Minute {
+		t.Fatalf("expected lease 10m from env, got %s", dFromEnv.Cfg.Lease)
+	}
+}
+
+func TestIndependentLeaseRenewalSurvivesLongSilentToolCall(t *testing.T) {
+	unblock := make(chan struct{})
+	sseConnected := make(chan struct{}, 1)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/dispatch":
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"accepted":true}`))
+		case strings.HasPrefix(r.URL.Path, "/api/events/"):
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			select {
+			case sseConnected <- struct{}{}:
+			default:
+			}
+			// Simulate a silent long-running tool call exceeding the 1s lease.
+			select {
+			case <-unblock:
+			case <-r.Context().Done():
+				return
+			}
+			id := strings.TrimPrefix(r.URL.Path, "/api/events/")
+			b, _ := json.Marshal(Result{TaskID: id, Success: true, Output: "grep finished"})
+			_, _ = w.Write([]byte("event: result\ndata: " + string(b) + "\n\n"))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	d, err := New(s, Config{
+		NodeAgentURL: srv.URL,
+		Lease:        1 * time.Second,
+		Poll:         20 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.LogDir = t.TempDir()
+	b, _ := d.Tasks.CreateBoard("b")
+	tk, err := d.Tasks.Create(tasks.NewTask{BoardID: b.ID, Title: "slow grep", Prompt: "search tree", Workspace: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := d.Start(context.Background(), tk.ID); err != nil {
+		t.Fatal(err)
+	}
+	<-sseConnected
+
+	var initialExp int64
+	if err := s.DB.QueryRow(`SELECT lease_expires_at FROM dispatch_claims WHERE task_id=?`, tk.ID).Scan(&initialExp); err != nil {
+		t.Fatalf("read initial claim: %v", err)
+	}
+
+	// Wait longer than the 1s lease with zero SSE events emitted.
+	time.Sleep(1500 * time.Millisecond)
+
+	var renewedExp int64
+	if err := s.DB.QueryRow(`SELECT lease_expires_at FROM dispatch_claims WHERE task_id=?`, tk.ID).Scan(&renewedExp); err != nil {
+		t.Fatalf("read renewed claim: %v", err)
+	}
+	if renewedExp <= initialExp {
+		t.Fatalf("expected background goroutine to renew lease: initial=%d renewed=%d", initialExp, renewedExp)
+	}
+	if n, err := d.ReapExpired(); err != nil || n != 0 {
+		t.Fatalf("active run should not be reaped: n=%d err=%v", n, err)
+	}
+
+	close(unblock)
+	d.Wait()
+
+	got, err := d.Tasks.Get(tk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != tasks.Review {
+		t.Fatalf("expected review after long silent call, got %s", got.Status)
+	}
+}
+
+func TestNodeQueueFull503BacksOffAndDoesNotFail(t *testing.T) {
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/dispatch":
+			n := atomic.AddInt32(&attempts, 1)
+			if n <= 4 {
+				http.Error(w, "node queue full", http.StatusServiceUnavailable)
+				return
+			}
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"accepted":true}`))
+		case strings.HasPrefix(r.URL.Path, "/api/events/"):
+			w.WriteHeader(http.StatusNotFound)
+		case strings.HasPrefix(r.URL.Path, "/api/progress/"):
+			w.WriteHeader(http.StatusNoContent)
+		case strings.HasPrefix(r.URL.Path, "/api/results/"):
+			id := strings.TrimPrefix(r.URL.Path, "/api/results/")
+			_ = json.NewEncoder(w).Encode(Result{TaskID: id, Success: true, Output: "completed after backoff"})
+		}
+	}))
+	defer srv.Close()
+
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	var nowMu sync.Mutex
+	curNow := time.Now()
+	d, err := New(s, Config{
+		NodeAgentURL:        srv.URL,
+		Poll:                5 * time.Millisecond,
+		Lease:               time.Minute,
+		MaxRetries:          1, // Ordinary failures would mark Failed after 2 tries.
+		CapacityBackoffBase: 5 * time.Second,
+		CapacityBackoffMax:  30 * time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.Now = func() time.Time {
+		nowMu.Lock()
+		defer nowMu.Unlock()
+		return curNow
+	}
+	d.LogDir = t.TempDir()
+
+	b, _ := d.Tasks.CreateBoard("b")
+	tk, err := d.Tasks.Create(tasks.NewTask{BoardID: b.ID, Title: "burst", Prompt: "run", Workspace: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantDelays := []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second, 30 * time.Second}
+	for i, wantDelay := range wantDelays {
+		if err := d.Tick(context.Background()); err != nil {
+			t.Fatalf("tick %d: %v", i, err)
+		}
+		d.Wait()
+
+		got, err := d.Tasks.Get(tk.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Status != tasks.Todo {
+			t.Fatalf("attempt %d: expected status todo on 503, got %s", i+1, got.Status)
+		}
+		if got.RetryCount != 0 {
+			t.Fatalf("attempt %d: 503 must not increment retry_count, got %d", i+1, got.RetryCount)
+		}
+
+		// Tick immediately while inside backoff must skip the task.
+		before := atomic.LoadInt32(&attempts)
+		if err := d.Tick(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		d.Wait()
+		if after := atomic.LoadInt32(&attempts); after != before {
+			t.Fatalf("attempt %d: task dispatched during backoff window (%d -> %d)", i+1, before, after)
+		}
+
+		// Verify exponential backoff boundary: advance just short of wantDelay -> still skipped.
+		nowMu.Lock()
+		curNow = curNow.Add(wantDelay - time.Second)
+		nowMu.Unlock()
+		if err := d.Tick(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		d.Wait()
+		if after := atomic.LoadInt32(&attempts); after != before {
+			t.Fatalf("attempt %d: task dispatched before %s backoff elapsed", i+1, wantDelay)
+		}
+
+		// Advance past backoff window for next iteration.
+		nowMu.Lock()
+		curNow = curNow.Add(2 * time.Second)
+		nowMu.Unlock()
+	}
+
+	// Verify dispatcher comment explains queue-full backoff instead of generic "attempt failed".
+	comments, err := d.Tasks.Comments(tk.ID)
+	if err != nil || len(comments) == 0 {
+		t.Fatalf("expected dispatcher comments, got %d err=%v", len(comments), err)
+	}
+	for _, c := range comments {
+		if strings.Contains(c.Body, "attempt failed") {
+			t.Fatalf("expected capacity backoff comment, got %q", c.Body)
+		}
+		if !strings.Contains(strings.ToLower(c.Body), "node queue full") || !strings.Contains(strings.ToLower(c.Body), "backing off") {
+			t.Fatalf("unexpected capacity comment: %q", c.Body)
+		}
+	}
+
+	// 5th attempt succeeds and moves task to Review.
+	if err := d.Tick(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	d.Wait()
+	got, err := d.Tasks.Get(tk.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != tasks.Review || got.RetryCount != 0 {
+		t.Fatalf("expected review with retry_count=0 after recovery, got status=%s retries=%d", got.Status, got.RetryCount)
+	}
+}
+
+func TestManualMoveReleasesClaimCancelsRunAndReaperReclaimsDeadPID(t *testing.T) {
+	sseConnected := make(chan struct{}, 1)
+	sseCanceled := make(chan struct{}, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/dispatch":
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"accepted":true}`))
+		case strings.HasPrefix(r.URL.Path, "/api/events/"):
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			select {
+			case sseConnected <- struct{}{}:
+			default:
+			}
+			<-r.Context().Done()
+			select {
+			case sseCanceled <- struct{}{}:
+			default:
+			}
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	d, err := New(s, Config{
+		NodeAgentURL: srv.URL,
+		Lease:        90 * time.Millisecond, // renewInterval = 30ms
+		Poll:         10 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.LogDir = t.TempDir()
+	b, _ := d.Tasks.CreateBoard("b")
+	tk, err := d.Tasks.Create(tasks.NewTask{BoardID: b.ID, Title: "stop me", Prompt: "work", Workspace: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := d.Start(context.Background(), tk.ID); err != nil {
+		t.Fatal(err)
+	}
+	<-sseConnected
+
+	// Manually move task to Failed via Service.Move (API path).
+	if _, err := d.Tasks.Move(tk.ID, tasks.Failed, "api"); err != nil {
+		t.Fatal(err)
+	}
+	var claims int
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM dispatch_claims WHERE task_id=?`, tk.ID).Scan(&claims); err != nil {
+		t.Fatal(err)
+	}
+	if claims != 0 {
+		t.Fatalf("expected Move to failed to delete dispatch_claims immediately, got %d", claims)
+	}
+
+	// Background renewer detects missing claim and cancels the SSE stream promptly.
+	select {
+	case <-sseCanceled:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected in-flight SSE run to cancel after Move released claim")
+	}
+	d.Wait()
+	got, _ := d.Tasks.Get(tk.ID)
+	if got.Status != tasks.Failed {
+		t.Fatalf("expected task to stay failed, got %s", got.Status)
+	}
+
+	// Simulate a stale expired claim from a killed previous serve PID and verify RunReaper reclaims it.
+	tk2, err := d.Tasks.Create(tasks.NewTask{BoardID: b.ID, Title: "orphaned", Prompt: "work", Workspace: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Tasks.Move(tk2.ID, tasks.InProgress, "dispatcher"); err != nil {
+		t.Fatal(err)
+	}
+	past := time.Now().Add(-10 * time.Minute).Unix()
+	if _, err := s.DB.Exec(
+		`INSERT INTO dispatch_claims(task_id,worker_id,run_id,attempt,claimed_at,lease_expires_at) VALUES(?,?,?,?,?,?)`,
+		tk2.ID, "old-host-1063905", "run_dead", 5, past-300, past,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	d2, err := New(s, Config{WorkerID: "new-host-2000", Tick: 20 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rctx, rcancel := context.WithCancel(context.Background())
+	reaperDone := make(chan struct{})
+	go func() {
+		defer close(reaperDone)
+		d2.RunReaper(rctx)
+	}()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		got2, _ := d2.Tasks.Get(tk2.ID)
+		if got2.Status == tasks.Todo {
+			break
+		}
+		time.Sleep(15 * time.Millisecond)
+	}
+	rcancel()
+	<-reaperDone
+
+	got2, _ := d2.Tasks.Get(tk2.ID)
+	if got2.Status != tasks.Todo {
+		t.Fatalf("expected RunReaper to reclaim orphaned task to todo, got %s", got2.Status)
+	}
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM dispatch_claims WHERE task_id=?`, tk2.ID).Scan(&claims); err != nil {
+		t.Fatal(err)
+	}
+	if claims != 0 {
+		t.Fatalf("expected RunReaper to delete expired claim, got %d", claims)
+	}
+}

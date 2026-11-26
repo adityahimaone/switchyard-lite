@@ -493,6 +493,11 @@ func (v *Service) Move(id, to, actor string) (Task, error) {
 	if _, err := tx.Exec(`UPDATE tasks SET status=?,updated_at=? WHERE id=?`, to, v.Now().Unix(), id); err != nil {
 		return Task{}, err
 	}
+	if to != InProgress {
+		if _, err := tx.Exec(`DELETE FROM dispatch_claims WHERE task_id=?`, id); err != nil {
+			return Task{}, err
+		}
+	}
 	if err := v.event(tx, id, "task.moved", map[string]string{"from": from, "to": to, "actor": actor}); err != nil {
 		return Task{}, err
 	}

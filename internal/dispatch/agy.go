@@ -545,6 +545,7 @@ func (d *Dispatcher) executeRemoteShellAgy(ctx context.Context, t tasks.Task, bo
 					DurationMs: time.Since(started).Milliseconds(),
 				}, err
 			}
+			d.clearCapacityBackoff(t.ID)
 
 			var logOffset int64
 			flushProgress := func() {
@@ -781,6 +782,10 @@ func (d *Dispatcher) executeAgyWithRunner(ctx context.Context, t tasks.Task, boa
 	}
 	if res.Success {
 		d.finishWithStream(t, runID, res, streamed)
+		return
+	}
+	if isCapacityError(runErr, errMsg) {
+		d.requeueCapacity(t, runID, errMsg)
 		return
 	}
 	d.failRun(t, runID, errMsg, res, streamed)
