@@ -1,6 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 46" width="46" height="46" fill="none" role="img" aria-label="Switchyard">
-  <rect width="46" height="46" rx="11" fill="#2563eb"/>
-  <g transform="translate(2, 2.5)">
-    <path d="M31 15c0-3-3.4-5-10.3-5-7.4 0-10.9 2.3-10.9 5.6 0 2.6 2.4 4 5.4 4.7l7.4 1.6c1.6.4 2.4.9 2.4 1.7 0 1.1-1.4 1.8-4 1.8-3.3 0-4.7-.9-4.7-2.6h-6.2c0 4.6 3.7 7.7 10.9 7.7 6.9 0 10.6-2.6 10.6-6.4 0-3-2.3-4.4-6.2-5.2l-6.8-1.4c-1.7-.4-2.5-.8-2.5-1.6 0-1 1.3-1.7 3.9-1.7 2.9 0 4.3.8 4.3 2.4z" fill="#ffffff"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="sy-bg" x1="4" y1="2" x2="60" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0A84FF" />
+      <stop offset="100%" stop-color="#2148E0" />
+    </linearGradient>
+    <linearGradient id="sy-rim" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.34" />
+      <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#sy-bg)" />
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" stroke="url(#sy-rim)" stroke-width="1.5" />
+  <path
+    d="M44 16H29.6C22.4 16 17.8 20.1 17.8 25.5C17.8 30.9 22.0 34.0 28.8 34.9L32.4 35.4C37.0 36.1 39.2 37.9 39.2 40.3C39.2 42.8 37.0 44.5 32.8 44.5H20"
+    stroke="#FFFFFF"
+    stroke-width="4.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M44 22.5H30.2C26.7 22.5 24.4 23.7 24.4 25.5C24.4 27.3 26.7 28.4 30.2 28.9L34.0 29.4C41.4 30.5 45.8 34.2 45.8 40.4C45.8 46.8 40.9 51.1 33.4 51.1H20"
+    stroke="#FFFFFF"
+    stroke-width="4.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="44.2" cy="27.8" r="2.1" fill="#FFFFFF" />
 </svg>

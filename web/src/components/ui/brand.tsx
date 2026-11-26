@@ -2,10 +2,10 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * BrandMark — The authentic Switchyard "S" brand icon.
+ * BrandMark — The Switchyard Parallel-Track "S" Turnout brand icon.
  *
- * Rounded-square tile: Royal Signal Blue field with the signature white "S" turnout curve.
- * Sourced directly from `/brand/switchyard-favicon-blue-512.png` (identical to kanban-board).
+ * Rounded-square tile: Electric Sky-to-Cobalt gradient (#0A84FF -> #2148E0)
+ * with the white parallel-track "S" turnout monogram and switch-node dot.
  */
 export function BrandMark({
   size = 26,
@@ -18,7 +18,7 @@ export function BrandMark({
 }) {
   return (
     <img
-      src="/brand/switchyard-favicon-blue-512.png"
+      src="/brand/switchyard-logo.svg"
       alt={title || "Switchyard"}
       width={size}
       height={size}
