@@ -174,7 +174,7 @@ code, pre, .mono {
   padding: 0;
   overflow: hidden;
   background: var(--c-surface);
-  transition: grid-template-columns 220ms var(--ease-out);
+  transition: grid-template-columns 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .shell::before,
@@ -203,7 +203,7 @@ nav.side {
   border: 0;
   border-right: 1px solid var(--c-line);
   border-radius: 0;
-  padding: 12px 12px 10px;
+  padding: 11px 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -219,10 +219,10 @@ nav.side {
   border: 0;
   border-bottom: 1px solid var(--c-line);
   border-radius: 0;
-  padding: 0 0 10px 0;
+  padding: 0 0 11px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   box-shadow: none;
   flex-shrink: 0;
 }
@@ -238,9 +238,9 @@ nav.side {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 10px;
   min-height: 32px;
-  padding: 2px 5px;
+  padding: 0 8px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -332,21 +332,21 @@ nav.side h1 {
   text-transform: none;
   letter-spacing: -0.01em;
   color: var(--text-muted);
-  padding: 2px 10px 4px;
+  padding: 2px 13px 4px;
   white-space: nowrap;
   height: 22px;
   overflow: hidden;
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 160ms var(--ease-out) 30ms,
-    transform 160ms var(--ease-out) 30ms,
-    height 220ms var(--ease-out),
-    padding 220ms var(--ease-out);
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1) 60ms,
+    transform 200ms cubic-bezier(0.23, 1, 0.32, 1) 60ms,
+    height 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    padding 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* 标签宽度恒定，切换态只做淡出/位移；溢出交给父级 clip。
-   任何 width / max-width / padding 变化都会让布局在动画期间逐帧重算。 */
+/* Constant-anchor icon geometry: icons never shift horizontally between 240px and 64px.
+   Labels, badges, and top pod smoothly glide & crossfade via compositor-friendly properties. */
 nav.side .nav-label {
   flex: 0 0 auto;
   min-width: 0;
@@ -355,7 +355,9 @@ nav.side .nav-label {
   white-space: nowrap;
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms;
+  transition:
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1) 70ms,
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1) 60ms;
 }
 
 nav.side .side-brand h1,
@@ -364,97 +366,75 @@ nav.side .side-footer-status {
   opacity: 1;
   transform: translateX(0);
   white-space: nowrap;
-  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1) 45ms;
+  transition:
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1) 70ms,
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1) 60ms;
+}
+
+.side-board-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 nav.side .side-board-box {
-  opacity: 1;
-  max-height: 240px;
+  min-height: 0;
   overflow: hidden;
-  transform: translateY(0);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: top left;
   transition:
-    opacity 160ms var(--ease-out) 35ms,
-    transform 160ms var(--ease-out) 35ms,
-    max-height 220ms var(--ease-out),
-    margin-top 220ms var(--ease-out);
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1) 75ms,
+    transform 240ms cubic-bezier(0.23, 1, 0.32, 1) 45ms;
 }
 
 .shell.collapsed nav.side .nav-label,
 .shell.collapsed nav.side .nav-badge,
-.shell.collapsed nav.side .side-brand h1 {
-  display: none;
+.shell.collapsed nav.side .side-brand h1,
+.shell.collapsed nav.side .side-footer-status {
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+  transition:
+    opacity 110ms ease-out,
+    transform 130ms ease-out;
+}
+
+.shell.collapsed .side-board-collapse {
+  grid-template-rows: 0fr;
 }
 
 .shell.collapsed nav.side .side-board-box {
   opacity: 0;
-  max-height: 0;
-  margin-top: 0;
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(0.97);
   pointer-events: none;
   transition:
-    opacity 90ms ease-out,
-    transform 90ms ease-out,
-    max-height 220ms var(--ease-out),
-    margin-top 220ms var(--ease-out);
-}
-
-.shell.collapsed nav.side .side-footer-status {
-  display: none;
+    opacity 100ms ease-out,
+    transform 130ms ease-out;
 }
 
 .shell.collapsed nav.side .nav-group-label {
   opacity: 0;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   pointer-events: none;
   height: 0;
   padding-top: 0;
   padding-bottom: 0;
   transition:
-    opacity 90ms ease-out,
-    transform 90ms ease-out,
-    height 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    padding 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.shell.collapsed nav.side {
-  padding: 11px 12px 10px;
-}
-
-.shell.collapsed nav.side .side-top-pod {
-  padding: 0 0 11px 0;
-  gap: 0;
-}
-
-.shell.collapsed nav.side .side-brand {
-  justify-content: center;
-  padding: 0;
-  min-height: 32px;
-  gap: 0;
-}
-
-.shell.collapsed nav.side a {
-  min-width: 0;
-  width: 40px;
-  height: 36px;
-  margin-inline: auto;
-  justify-content: center;
-  padding: 0;
-  gap: 0;
-}
-
-.shell.collapsed nav.side .side-footer-bar {
-  justify-content: center;
-  padding: 2px 0 0;
-  gap: 0;
+    opacity 100ms ease-out,
+    transform 120ms ease-out,
+    height 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    padding 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 nav.side a {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 34px;
+  justify-content: flex-start;
+  gap: 10px;
+  height: 36px;
   width: 100%;
-  padding: 0 var(--nav-pad-x, 11px);
+  padding: 0 13px;
   border-radius: 10px;
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -464,11 +444,16 @@ nav.side a {
   white-space: nowrap;
   position: relative;
   overflow: hidden;
-  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    color 150ms ease,
+    transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .side-footer a {
-  --nav-pad-x: 10px;
+  padding: 0 13px;
 }
 
 @media (hover: hover) and (pointer: fine) {

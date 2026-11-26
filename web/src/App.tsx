@@ -139,8 +139,9 @@ export function App() {
           <div className="side-top-row">
             <AppSidebarBrand name="Switchyard" tag="STUDIO" markSize={24} />
           </div>
-          <div className="side-board-box mt-1 space-y-2">
-            {activeBoard && (
+          <div className="side-board-collapse">
+            <div className="side-board-box space-y-2 pt-2.5">
+              {activeBoard && (
               <Menu
                 align="start"
                 trigger={
@@ -209,6 +210,7 @@ export function App() {
               <Plus className="size-3.5" />
               <span>Compose task</span>
             </button>
+            </div>
           </div>
         </div>
 
@@ -252,7 +254,7 @@ export function App() {
           <div className="side-footer-bar">
             <button
               type="button"
-              className="btn ghost icon sm shrink-0"
+              className="btn ghost icon size-8 shrink-0"
               onClick={() => {
                 const isDark = document.documentElement.classList.toggle("dark");
                 localStorage.setItem("switchyard.dark", isDark ? "1" : "");
