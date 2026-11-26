@@ -69,8 +69,8 @@ func IsSAASWorkspace(wsPath string, labels []string) bool {
 const OpenQuestionProtocol = `
 ---
 [INTERACTIVE QUESTION PROTOCOL]
-If a requirement is genuinely ambiguous or has multiple valid architectural choices, DO NOT guess. Emit ONE structured question block at the very end of your response and stop:
-` + "```question\n" + `{"question": "Short single decision question?", "context": "1-sentence codebase finding", "options": ["(Recommended) Best option", "Alternative B", "Alternative C"], "multi_select": false}
+If a requirement is genuinely ambiguous or has multiple valid architectural choices, DO NOT guess. Emit ONE structured question block at the very end of your response and stop: Always include full context in the question (never leave context empty) — state what the decision unblocks and what each option updates.
+` + "```question\n" + `{"question": "Short single decision question?", "context": "Full context: what this decision unblocks, and for EACH option what gets built, changed, or updated if chosen, so the user can tell what each option updates", "options": ["(Recommended) Best option", "Alternative B", "Alternative C"], "multi_select": false}
 ` + "```" + `
 ---
 `
@@ -83,7 +83,7 @@ const GrillMeProtocol = `
 Before editing any code:
 1. Inspect the relevant files in the workspace first.
 2. Check if there are any unresolved design, UX, or edge-case decisions (ignore decisions already answered in [User Answer — ...] blocks).
-3. If key decisions remain unclear, ask ONE high-leverage question at a time using the ` + "```question```" + ` JSON block above, putting your "(Recommended) ..." choice first, and stop so the user can answer.
+3. If key decisions remain unclear, ask ONE high-leverage question at a time using the ` + "```question```" + ` JSON block above, putting your "(Recommended) ..." choice first, and stop so the user can answer. Include full context in every question: what the decision affects and, for each option, what gets built, changed, or updated if chosen.
 4. Once all critical decisions are answered, proceed directly to implementation and verification.
 ---
 `

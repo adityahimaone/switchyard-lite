@@ -140,7 +140,7 @@ func registerTrackerDispatchQuestionTools(s *sdk.Server, b Backend) {
 		return "/api/v1/tasks/" + esc(in.ID) + "/worktree", nil
 	})
 
-	tool(s, b, "ask_task_question", "Post an interactive Grill-Me / clarification question with selectable choices onto a Kanban card", "POST", func(in struct {
+	tool(s, b, "ask_task_question", "Post an interactive Grill-Me / clarification question with selectable choices onto a Kanban card. Context is REQUIRED: include full context (what this decision unblocks and, for EACH option, what gets built, changed, or updated if chosen) so the user can tell what each option updates before picking one.", "POST", func(in struct {
 		ID          string   `json:"id"`
 		Question    string   `json:"question"`
 		Options     []string `json:"options,omitempty"`
