@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Migrate workspace + executor-adjacent config into switchyard-lite.
+"""Migrate workspace + executor-adjacent config into switchyard-studio.
 
 1. Seeds dispatch_workspaces from the live node-agent registry (GET /api/nodes).
 2. Fills tasks.workspace from the old board.json default_workdir when empty.
 
 Idempotent (path is UNIQUE). usage:
-  NODE_AGENT_TOKEN=... migrate-workspaces.py --dst data/switchyard-lite.db \
+  NODE_AGENT_TOKEN=... migrate-workspaces.py --dst data/switchyard-studio.db \
       --nodes http://127.0.0.1:8788 --old ~/.hermes/kanban/boards [--dry-run]
 """
 import argparse, hashlib, json, os, sqlite3, sys, time, urllib.request

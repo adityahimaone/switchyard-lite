@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
 )
 
 func TestWave2MCPRegistryAndTerminalExec(t *testing.T) {

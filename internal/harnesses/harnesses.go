@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
-// SpawnSpec mirrors node-agent's generic transport.SpawnSpec so switchyard-lite
+// SpawnSpec mirrors node-agent's generic transport.SpawnSpec so switchyard-studio
 // owns CLI flag construction while node-agent stays a pure process runtime.
 type SpawnSpec struct {
 	Argv     []string          `json:"argv"`

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/logs"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/logs"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 func init() {

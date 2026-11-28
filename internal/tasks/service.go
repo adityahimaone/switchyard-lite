@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
 )
 
 const (

@@ -53,7 +53,7 @@ func esc(s string) string { return url.PathEscape(s) }
 
 // NewServer builds an MCP server whose tools proxy to the REST API through b.
 func NewServer(b Backend) *sdk.Server {
-	s := sdk.NewServer(&sdk.Implementation{Name: "switchyard-lite", Version: "0.1.0"}, nil)
+	s := sdk.NewServer(&sdk.Implementation{Name: "switchyard-studio", Version: "0.1.0"}, nil)
 
 	tool(s, b, "list_boards", "List boards", "GET", func(empty) (string, any) { return "/api/v1/boards", nil })
 	tool(s, b, "create_board", "Create a board", "POST", func(in struct {

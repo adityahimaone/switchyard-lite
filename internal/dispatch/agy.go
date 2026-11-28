@@ -15,10 +15,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/catalog"
-	"github.com/adityahimaone/switchyard-lite/internal/models"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/catalog"
+	"github.com/adityahimaone/switchyard-studio/internal/models"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 // AgyAuthFunc mirrors models.AgyAuthRunner for dependency injection in tests.
@@ -528,7 +528,7 @@ func (d *Dispatcher) executeRemoteShellAgy(ctx context.Context, t tasks.Task, bo
 			req := Request{
 				TaskID:        t.ID,
 				Title:         t.Title,
-				Board:         firstNonEmpty(boardName, "switchyard-lite"),
+				Board:         firstNonEmpty(boardName, "switchyard-studio"),
 				Message:       "agy remote shell execution",
 				Workspace:     workspace,
 				Executor:      "shell",

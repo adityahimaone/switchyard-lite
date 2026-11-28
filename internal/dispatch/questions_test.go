@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 func TestDetectOpenQuestionFormats(t *testing.T) {

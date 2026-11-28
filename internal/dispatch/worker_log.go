@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 const maxWorkerLogBytes = 256 << 10
@@ -21,9 +21,9 @@ func DefaultWorkerLogDir() string {
 		return env
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		return filepath.Join(home, ".hermes", "switchyard-lite", "logs")
+		return filepath.Join(home, ".hermes", "switchyard-studio", "logs")
 	}
-	return filepath.Join(os.TempDir(), "switchyard-lite", "logs")
+	return filepath.Join(os.TempDir(), "switchyard-studio", "logs")
 }
 
 // WorkerLogDir returns the active directory for task worker logs.

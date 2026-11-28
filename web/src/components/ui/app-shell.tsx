@@ -6,7 +6,7 @@ import { BrandMark } from "./brand";
 import { Tip } from "./tooltip";
 
 /**
- * Switchyard Lite App / Dashboard Shell
+ * Switchyard Studio App / Dashboard Shell
  *
  * Implements the Floating Left Capsule Sidebar Dock + Double-Framed Porcelain Stage:
  *   - `AppShell`: Root 2-column viewport grid (`244px` expanded / `68px` collapsed) over soft cloud sky.
@@ -116,7 +116,7 @@ export interface AppSidebarBrandProps extends React.ComponentProps<"div"> {
 
 export function AppSidebarBrand({
   name = "Switchyard",
-  tag = "LITE",
+  tag = "STUDIO",
   markSize = 26,
   className,
   children,
@@ -137,7 +137,7 @@ export function AppSidebarBrand({
           </span>
           <h1>
             <span>{name}</span>
-            {tag && <span className="lite-badge">{tag}</span>}
+            {tag && <span className="studio-badge">{tag}</span>}
           </h1>
         </>
       )}

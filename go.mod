@@ -1,4 +1,4 @@
-module github.com/adityahimaone/switchyard-lite
+module github.com/adityahimaone/switchyard-studio
 
 go 1.26.5
 

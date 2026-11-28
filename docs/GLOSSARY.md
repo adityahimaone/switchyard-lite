@@ -2,7 +2,7 @@
 
 | Term | Definition |
 | --- | --- |
-| **Control Plane (`switchyard-lite`)** | Standalone Go + SQLite + React/Vite server owning boards, tasks, comments, attachments, MCP registry, harness adapters, and the Studio UI. |
+| **Control Plane (`switchyard-studio`)** | Standalone Go + SQLite + React/Vite server owning boards, tasks, comments, attachments, MCP registry, harness adapters, and the Studio UI. |
 | **Worker Runtime (`node-agent`)** | Harness-agnostic transport and execution daemon running on Mac, Windows, and Linux machines. Exposes Lane A (Control RPC) and Lane B (Job Stream + PTY + Preview Tunnel). |
 | **Lane A (Control RPC)** | Non-blocking RPC channel (`POST /api/rpc`) running up to 8 concurrent fast operations (`exec`, `stage_files`, `probe_bins`, `git`, `codegraph`) without waiting behind `busy=1` AI jobs. |
 | **Lane B (Job Stream)** | Long-running `SpawnSpec` execution lane with raw stdout/stderr chunking over gRPC/HTTP, SQLite journal persistence, and SSE push (`GET /api/events/{task_id}`). |

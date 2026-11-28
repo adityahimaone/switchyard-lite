@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/adityahimaone/switchyard-lite/internal/webui"
+	"github.com/adityahimaone/switchyard-studio/internal/webui"
 )
 
 func init() {

@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/catalog"
-	"github.com/adityahimaone/switchyard-lite/internal/models"
-	"github.com/adityahimaone/switchyard-lite/internal/nodes"
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/catalog"
+	"github.com/adityahimaone/switchyard-studio/internal/models"
+	"github.com/adityahimaone/switchyard-studio/internal/nodes"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 const (

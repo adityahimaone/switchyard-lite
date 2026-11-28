@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * render-board.mjs — Generates the 1500×1125 (3000×2250 @2x) 6-Panel Brand Kit Board
- * for Switchyard Lite directly from web/features/switchyard-lite/tokens.json and SVGs.
+ * for Switchyard Studio directly from web/features/switchyard-studio/tokens.json and SVGs.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 
 const root = process.cwd()
-const slug = 'switchyard-lite'
+const slug = 'switchyard-studio'
 const brandDir = path.join(root, 'web/public/brand', slug)
 const tokensPath = path.join(brandDir, 'tokens.json')
 const htmlOut = path.join(brandDir, 'brandkit.html')
@@ -171,7 +171,7 @@ const html = `<!doctype html>
   <div id="board">
     <div class="panel p-hero">
       <div class="p-hero__top">
-        <span class="mono">BRAND KIT · V6.0 · SWITCHYARD-LITE</span>
+        <span class="mono">BRAND KIT · V6.0 · SWITCHYARD-STUDIO</span>
         <span class="mono">PARAPET TURNOUT TRACK · 64 GRID</span>
       </div>
       <div class="p-hero__bottom">
@@ -221,7 +221,7 @@ const html = `<!doctype html>
         <span>SPACE GROTESK · JAKARTA · JETBRAINS</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <div><span class="mono" style="opacity:0.55;display:block;">DISPLAY · SPACE GROTESK 700</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:27px;letter-spacing:-0.03em;">Switchyard Lite · Aa 01</span></div>
+        <div><span class="mono" style="opacity:0.55;display:block;">DISPLAY · SPACE GROTESK 700</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:27px;letter-spacing:-0.03em;">Switchyard Studio · Aa 01</span></div>
         <div><span class="mono" style="opacity:0.55;display:block;">READING · PLUS JAKARTA SANS</span><span style="font-size:14.5px;color:#4A5878;">Porcelain capsule plates over an atmospheric periwinkle sky grid.</span></div>
         <div><span class="mono" style="opacity:0.55;display:block;">MONO · JETBRAINS MONO</span><span class="mono" style="font-size:12.5px;color:${accent};">sy/T-104 · 30 mins · ΔE_OK 0.061</span></div>
       </div>
@@ -251,7 +251,7 @@ const html = `<!doctype html>
         <li><b>Radius &amp; Specular Law.</b> Card 16px, Column/Sidebar 20px, Button 12px, Badge 999px + 1px top sheen.</li>
       </ul>
       <div style="display:flex;justify-content:space-between;opacity:0.45;" class="mono">
-        <span>SWITCHYARD LITE</span>
+        <span>SWITCHYARD STUDIO</span>
         <span>SUNNYSIDE ENGINE V6.0</span>
       </div>
     </div>

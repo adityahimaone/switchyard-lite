@@ -2100,7 +2100,7 @@ export function SettingsScreen({ logout }: { logout: () => void }) {
         {list.data === null ? (
           <p className="muted m-0 text-xs">
             Token management API is not available; create tokens with{" "}
-            <code>switchyard-lite token create</code>.
+            <code>switchyard-studio token create</code>.
           </p>
         ) : (
           <div className="space-y-3">

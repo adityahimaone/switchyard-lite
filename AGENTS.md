@@ -1,12 +1,12 @@
-# AGENTS.md — switchyard-lite
+# AGENTS.md — switchyard-studio
 
 ## Overview
 
-`switchyard-lite` is a standalone Go + SQLite + React/Vite control plane for coding agents.
+`switchyard-studio` is a standalone Go + SQLite + React/Vite control plane for coding agents.
 
 ## Package Map
 
-- `cmd/switchyard-lite` — CLI entrypoint (`serve`, `mcp`, `token create`).
+- `cmd/switchyard-studio` — CLI entrypoint (`serve`, `mcp`, `token create`).
 - `internal/store` — Single SQLite database (`modernc.org/sqlite`, WAL mode) + embedded schemas (`schema.sql`, `schema_dispatch.sql`, `schema_pipeline.sql`).
 - `internal/tasks` — Boards, tasks, comments, dependency DAG with cycle detection, execution modes (`managed`, `tracker`), interactive `task_questions`, status machine (`backlog`, `todo`, `blocked`, `in_progress`, `review`, `done`, `failed`), and append-only `events`.
 - `internal/dispatch` — Atomic task claims (skipping `tracker` cards), lease renewal/reaping, per-task git worktrees (`sy/<task-id>`), `dsh`/`commandcode` session continuity, `DetectOpenQuestion`, `ResumeWithAnswer`, and `node-agent` HTTP client (`POST /api/dispatch`, `GET /api/results/{id}`).

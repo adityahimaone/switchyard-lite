@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
 )
 
 func gitDo(t *testing.T, dir string, args ...string) string {

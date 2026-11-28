@@ -1,17 +1,17 @@
 # Switchyard Autonomous Studio V2 — 3-Wave Architecture Specification
 
 > **Status**: Wave 1 Implemented · Waves 2 & 3 Specified  
-> **Repositories**: `switchyard-lite` (Control Plane + Studio UI) · `node-agent` (Harness-Agnostic Dual-Lane Transport & Worker Runtime)
+> **Repositories**: `switchyard-studio` (Control Plane + Studio UI) · `node-agent` (Harness-Agnostic Dual-Lane Transport & Worker Runtime)
 
 ---
 
 ## 1. Executive Summary
 
-Switchyard Autonomous Studio V2 transforms `switchyard-lite` and `node-agent` from a polling-based single-lane task dispatcher into a **real-time, harness-agnostic autonomous engineering studio**.
+Switchyard Autonomous Studio V2 transforms `switchyard-studio` and `node-agent` from a polling-based single-lane task dispatcher into a **real-time, harness-agnostic autonomous engineering studio**.
 
 Core architectural principles:
 1. **`node-agent` is a pure transport & runtime** — it never hardcodes harness CLI flags or prompt logic; it executes generic `SpawnSpec` processes, streams stdout/stderr over gRPC/SSE, and serves non-blocking Control RPCs (`exec`, `stage_files`, `probe_bins`).
-2. **Big-3 Pluggable Harnesses (`agy`, `dsh`, `commandcode`/`cmd`)** — `switchyard-lite/internal/harnesses` owns CLI argument construction, NDJSON/stream-json unwrapping, per-harness session tracking (`harness_sessions`), and cross-harness handoff summaries.
+2. **Big-3 Pluggable Harnesses (`agy`, `dsh`, `commandcode`/`cmd`)** — `switchyard-studio/internal/harnesses` owns CLI argument construction, NDJSON/stream-json unwrapping, per-harness session tracking (`harness_sessions`), and cross-harness handoff summaries.
 3. **First-Class Interactive `waiting_input` & Grill-Me** — open questions pause tasks in a dedicated `waiting_input` column (never `review` or `failed`) with inline recommended choices, optional mid-card model/harness switching, and an explicit `Grill-Me First` interview toggle.
 4. **Phase-1 Streamlined Surface** — `Pipelines` / `meta7` / `design-thinking` are hidden from the UI by default (gated behind `switchyard.pipelines.enabled=1`) while backend routes remain intact for Phase 2.
 
@@ -21,7 +21,7 @@ Core architectural principles:
 
 ```mermaid
 flowchart LR
-  UI["Switchyard Studio UI<br/>(Kanban · Drawer · Flow Map)"] <-->|REST + SSE| CP["switchyard-lite<br/>(Control Plane · SQLite)"]
+  UI["Switchyard Studio UI<br/>(Kanban · Drawer · Flow Map)"] <-->|REST + SSE| CP["switchyard-studio<br/>(Control Plane · SQLite)"]
   CP <-->|"Lane A: POST /api/rpc<br/>(exec · stage_files · probe_bins)"| NA["node-agent server<br/>(:8788 HTTP · :8789 gRPC · SQLite Journal)"]
   CP <-->|"Lane B: POST /api/dispatch<br/>GET /api/events/{task_id} (SSE)"| NA
   NA <-->|"Bidirectional gRPC Stream<br/>(Auto-reconnect + HTTP fallback)"| W["Worker Agent<br/>(Mac · Windows · Linux)"]
@@ -98,7 +98,7 @@ flowchart LR
 ## 4. Database Schema Additions (Wave 1)
 
 ```sql
--- switchyard-lite (tasks table)
+-- switchyard-studio (tasks table)
 ALTER TABLE tasks ADD COLUMN grill_me INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE tasks ADD COLUMN harness_sessions TEXT NOT NULL DEFAULT '{}';
 

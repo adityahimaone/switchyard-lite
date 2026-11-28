@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/dispatch"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 func doJSONReq(t *testing.T, h http.Handler, tok, method, path string, body any) *httptest.ResponseRecorder {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
 )
 
 var rank = map[string]int{"read": 1, "write": 2, "admin": 3}

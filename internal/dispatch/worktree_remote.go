@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 // prepareWorktree isolates a task in sy/<task-id>, on this host when the repo

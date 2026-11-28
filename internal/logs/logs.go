@@ -82,9 +82,9 @@ func Sources() []Source {
 		out = append(out, Source{Key: s.key, Label: s.label, Available: err == nil && !st.IsDir()})
 	}
 	if _, err := exec.LookPath("journalctl"); err == nil {
-		out = append(out, Source{Key: "service", Label: "switchyard-lite.service", Available: true})
+		out = append(out, Source{Key: "service", Label: "switchyard-studio.service", Available: true})
 	} else {
-		out = append(out, Source{Key: "service", Label: "switchyard-lite.service", Available: false, Hint: "journalctl is not available on this host"})
+		out = append(out, Source{Key: "service", Label: "switchyard-studio.service", Available: false, Hint: "journalctl is not available on this host"})
 	}
 	return out
 }
@@ -119,14 +119,14 @@ func Read(key, query string, tail int) (Tail, error) {
 }
 
 func readService(query string, tail int) (Tail, error) {
-	t := Tail{File: "service", Label: "switchyard-lite.service", Tail: tail, Lines: []string{}, Kind: "journal"}
+	t := Tail{File: "service", Label: "switchyard-studio.service", Tail: tail, Lines: []string{}, Kind: "journal"}
 	if _, err := exec.LookPath("journalctl"); err != nil {
 		t.Hint = "journalctl is not available on this host."
 		return t, nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "journalctl", "-u", "switchyard-lite.service", "-n", fmt.Sprint(tail), "--no-pager", "--output=short-iso")
+	cmd := exec.CommandContext(ctx, "journalctl", "-u", "switchyard-studio.service", "-n", fmt.Sprint(tail), "--no-pager", "--output=short-iso")
 	b, err := cmd.CombinedOutput()
 	if err != nil && len(b) == 0 {
 		t.Hint = "Could not read the service journal: " + firstLine(err.Error())

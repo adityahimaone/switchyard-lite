@@ -1,4 +1,4 @@
-// Package mcp exposes the switchyard-lite REST API as MCP tools.
+// Package mcp exposes the switchyard-studio REST API as MCP tools.
 package mcp
 
 import (

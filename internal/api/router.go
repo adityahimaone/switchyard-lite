@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 type API struct {

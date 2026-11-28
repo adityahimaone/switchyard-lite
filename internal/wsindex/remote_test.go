@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 func gitRun(t *testing.T, dir string, args ...string) string {

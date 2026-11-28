@@ -756,7 +756,7 @@ function WorkspaceSheet({
                 id="ws-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Mac Dev · switchyard-lite"
+                placeholder="Mac Dev · switchyard-studio"
               />
             </div>
 

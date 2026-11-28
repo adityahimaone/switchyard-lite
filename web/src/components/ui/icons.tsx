@@ -1,5 +1,5 @@
 /**
- * Switchyard Lite icon set.
+ * Switchyard Studio icon set.
  *
  * Icons are divided into two categories:
  * 1. Default UI primitives (Arrow, dropdown Menu, X/Close, Edit) from `lucide-react`

@@ -19,7 +19,7 @@ const TAILS = ["100", "200", "500", "1000"] as const;
 
 const FALLBACK_SOURCES: LogSource[] = [
   { key: "activity", label: "Live Activity Stream", available: true },
-  { key: "service", label: "switchyard-lite.service", available: false, hint: "journalctl is not available on this host" },
+  { key: "service", label: "switchyard-studio.service", available: false, hint: "journalctl is not available on this host" },
 ];
 
 function lineTone(line: string) {

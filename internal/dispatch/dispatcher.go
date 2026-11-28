@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/harnesses"
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/harnesses"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 // Config tunes the dispatcher.

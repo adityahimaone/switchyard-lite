@@ -5,7 +5,7 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 /**
- * Switchyard Lite Base Button Primitive
+ * Switchyard Studio Base Button Primitive
  *
  * Built directly from the 3 concept references:
  *   - `prism` / `gradient`: Concept 1 ("Ask AI" & "Book a Call") — warm coral -> orchid -> royal cobalt capsule

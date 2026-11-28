@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/dispatch"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 var ErrNoWorktree = errors.New("task has no git worktree")

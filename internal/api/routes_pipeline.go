@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/pipeline"
+	"github.com/adityahimaone/switchyard-studio/internal/pipeline"
 )
 
 func init() {

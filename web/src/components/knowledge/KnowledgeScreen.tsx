@@ -437,7 +437,7 @@ export function KnowledgeScreen({
                 rows={12}
                 value={draft.content}
                 onChange={(e) => setDraft((p) => ({ ...p, content: e.target.value }))}
-                placeholder={"# Section Heading\n\nExplain conventions, MCP recipes, or runbooks...\n\n```bash\nswitchyard-lite mcp\n```"}
+                placeholder={"# Section Heading\n\nExplain conventions, MCP recipes, or runbooks...\n\n```bash\nswitchyard-studio mcp\n```"}
               />
             </div>
 

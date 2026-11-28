@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 func init() {

@@ -2,7 +2,7 @@
 
 build: web
 	@mkdir -p bin
-	go build -o bin/switchyard-lite ./cmd/switchyard-lite
+	go build -o bin/switchyard-studio ./cmd/switchyard-studio
 
 web:
 	pnpm -C web install --frozen-lockfile
@@ -23,4 +23,4 @@ ship-fast:
 	SHIP_SKIP_TESTS=1 ./scripts/ship.sh
 
 dev:
-	go run ./cmd/switchyard-lite serve
+	go run ./cmd/switchyard-studio serve

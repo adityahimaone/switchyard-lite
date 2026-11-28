@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/adityahimaone/switchyard-lite/internal/mcp"
+	"github.com/adityahimaone/switchyard-studio/internal/mcp"
 )
 
 func init() {

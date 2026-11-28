@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 func TestOpenQuestionMovesTaskToWaitingInputAndResumesWithHandoff(t *testing.T) {

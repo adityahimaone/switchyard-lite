@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# One-command deploy for switchyard-lite (like in kanban-board).
+# One-command deploy for switchyard-studio (like in kanban-board).
 #
 # Usage:
 #   make ship          # verify + build + deploy
@@ -14,14 +14,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 SHIP_HOST="${SHIP_HOST:-vps}"
-SHIP_APP_DIR="${SHIP_APP_DIR:-apps/switchyard-lite}"
+SHIP_APP_DIR="${SHIP_APP_DIR:-apps/switchyard-studio}"
 SHIP_SKIP_TESTS="${SHIP_SKIP_TESTS:-0}"
 SHIP_PORT="${SHIP_PORT:-8791}"
-SHIP_SERVICE="${SHIP_SERVICE:-switchyard-lite}"
+SHIP_SERVICE="${SHIP_SERVICE:-switchyard-studio}"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
 STAGE="$ROOT/.ship"
-BIN="$STAGE/switchyard-lite"
+BIN="$STAGE/switchyard-studio"
 
 say() { printf '\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf '\033[31m==> %s\033[0m\n' "$*" >&2; exit 1; }
@@ -69,14 +69,14 @@ pnpm -C web build
 say "Build linux/amd64 binary with embedded webui"
 mkdir -p "$STAGE"
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -trimpath -ldflags="-s -w" -o "$BIN" ./cmd/switchyard-lite
+  go build -trimpath -ldflags="-s -w" -o "$BIN" ./cmd/switchyard-studio
 
 BIN_SHA="$(shasum -a 256 "$BIN" | awk '{print $1}')"
 printf '    binary %s (%s)\n' "$BIN_SHA" "$(du -h "$BIN" | cut -f1)"
 
 # --- 4. upload --------------------------------------------------------------
 say "Upload binary"
-scp -q -o BatchMode=yes "$BIN" "$SHIP_HOST:/tmp/switchyard-lite.$STAMP"
+scp -q -o BatchMode=yes "$BIN" "$SHIP_HOST:/tmp/switchyard-studio.$STAMP"
 
 # --- 5. remote swap + health check + rollback ------------------------------
 say "Swap, restart, health check"
@@ -91,21 +91,21 @@ git fetch -q origin main 2>/dev/null || true
 git merge --ff-only -q origin/main 2>/dev/null || true
 echo "    source $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
-echo "$SHA  /tmp/switchyard-lite.$STAMP" | sha256sum -c - >/dev/null \
+echo "$SHA  /tmp/switchyard-studio.$STAMP" | sha256sum -c - >/dev/null \
   || { echo "uploaded binary does not match the local build checksum"; exit 3; }
 
-BK="$HOME/backups/switchyard-lite-$STAMP"
+BK="$HOME/backups/switchyard-studio-$STAMP"
 mkdir -p "$BK"
-if [ -f bin/switchyard-lite ]; then
-  cp -a bin/switchyard-lite "$BK/switchyard-lite"
-  echo "    backup $BK/switchyard-lite"
+if [ -f bin/switchyard-studio ]; then
+  cp -a bin/switchyard-studio "$BK/switchyard-studio"
+  echo "    backup $BK/switchyard-studio"
 fi
 
 mkdir -p bin
-chmod 755 "/tmp/switchyard-lite.$STAMP"
-cp "/tmp/switchyard-lite.$STAMP" bin/switchyard-lite.new
-chmod 755 bin/switchyard-lite.new
-mv -f bin/switchyard-lite.new bin/switchyard-lite
+chmod 755 "/tmp/switchyard-studio.$STAMP"
+cp "/tmp/switchyard-studio.$STAMP" bin/switchyard-studio.new
+chmod 755 bin/switchyard-studio.new
+mv -f bin/switchyard-studio.new bin/switchyard-studio
 
 # Restart service
 sudo systemctl restart "$SERVICE"
@@ -119,14 +119,14 @@ done
 
 if [ "$code" != "200" ]; then
   echo "    health check failed (HTTP ${code:-none}) — rolling back" >&2
-  if [ -f "$BK/switchyard-lite" ]; then
-    cp -a "$BK/switchyard-lite" bin/switchyard-lite
+  if [ -f "$BK/switchyard-studio" ]; then
+    cp -a "$BK/switchyard-studio" bin/switchyard-studio
     sudo systemctl restart "$SERVICE" || true
   fi
   exit 5
 fi
 
-rm -f "/tmp/switchyard-lite.$STAMP"
+rm -f "/tmp/switchyard-studio.$STAMP"
 echo "    live sha=$SHA"
 echo "    health OK (HTTP 200)"
 REMOTE

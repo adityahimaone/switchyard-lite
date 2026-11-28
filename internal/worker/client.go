@@ -254,7 +254,7 @@ func (c *Client) Shell(ctx context.Context, workspace, command string) (string, 
 	}
 	id := c.nextID()
 	body, err := json.Marshal(shellRequest{
-		TaskID: id, Board: "switchyard-lite", Message: "workspace metadata probe",
+		TaskID: id, Board: "switchyard-studio", Message: "workspace metadata probe",
 		Workspace: workspace, Executor: "shell", Command: command,
 		ExecutionMode: "direct", NoRTK: true, TimeoutS: 60,
 	})

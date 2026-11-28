@@ -287,7 +287,7 @@ nav.side h1 {
   transition: opacity 150ms var(--ease-out) 35ms, transform 150ms var(--ease-out) 35ms;
 }
 
-.lite-badge {
+.studio-badge {
   font-family: var(--mono);
   font-size: 9.5px;
   font-weight: 700;

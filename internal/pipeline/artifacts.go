@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 // ArtifactFile represents a generated meta7 workspace file mirrored for UI inspection

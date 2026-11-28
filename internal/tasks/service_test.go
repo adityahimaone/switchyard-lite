@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/adityahimaone/switchyard-lite/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
 )
 
 func newSvc(t *testing.T) (*Service, Board) {

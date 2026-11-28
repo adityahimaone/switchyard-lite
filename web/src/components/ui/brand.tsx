@@ -34,7 +34,7 @@ export function BrandMark({
 
 export function BrandLockup({
   size = 26,
-  suffix = "LITE",
+  suffix = "STUDIO",
   className,
 }: {
   size?: number;

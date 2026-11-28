@@ -1,0 +1,77 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/adityahimaone/switchyard-studio/internal/api"
+	"github.com/adityahimaone/switchyard-studio/internal/dispatch"
+	"github.com/adityahimaone/switchyard-studio/internal/mcp"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("usage: switchyard-studio serve|token create [flags]")
+		os.Exit(2)
+	}
+	switch os.Args[1] {
+	case "serve":
+		fs := flag.NewFlagSet("serve", flag.ExitOnError)
+		addr := fs.String("addr", ":8790", "listen address")
+		db := fs.String("db", "switchyard-studio.db", "sqlite path")
+		_ = fs.Parse(os.Args[2:])
+		s, err := store.Open(*db)
+		if err != nil {
+			log.Fatal(err)
+		}
+		a := api.New(s)
+		disp, err := dispatch.New(s, dispatch.ConfigFromEnv())
+		if err != nil {
+			log.Fatal(err)
+		}
+		api.UseDispatcher(a, disp)
+		// ponytail: dispatch is opt-in; without SWITCHYARD_DISPATCH=1 the loop never
+		// claims or runs tasks (prevents migrations/imports from auto-firing on workers).
+		// Always run the lease reaper so expired claims (including from a previous PID
+		// after restart) are reclaimed even when auto-dispatch is disabled.
+		if os.Getenv("SWITCHYARD_DISPATCH") == "1" {
+			go disp.Run(context.Background())
+		} else {
+			go disp.RunReaper(context.Background())
+		}
+		log.Printf("listening on %s", *addr)
+		log.Fatal(http.ListenAndServe(*addr, a.Handler()))
+	case "mcp":
+		url, tok := os.Getenv("SWITCHYARD_URL"), os.Getenv("SWITCHYARD_TOKEN")
+		if url == "" || tok == "" {
+			log.Fatal("SWITCHYARD_URL and SWITCHYARD_TOKEN are required")
+		}
+		if err := mcp.NewServer(mcp.NewHTTPBackend(url, tok)).Run(context.Background(), &sdk.StdioTransport{}); err != nil {
+			log.Fatal(err)
+		}
+	case "token":
+		fs := flag.NewFlagSet("token", flag.ExitOnError)
+		db := fs.String("db", "switchyard-studio.db", "sqlite path")
+		name := fs.String("name", "agent", "token name")
+		scope := fs.String("scope", "write", "read|write|admin")
+		_ = fs.Parse(os.Args[3:])
+		s, err := store.Open(*db)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tok, err := api.CreateToken(s, *name, *scope)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(tok)
+	default:
+		fmt.Println("unknown command")
+		os.Exit(2)
+	}
+}

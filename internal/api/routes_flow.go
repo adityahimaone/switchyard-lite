@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/nodes"
+	"github.com/adityahimaone/switchyard-studio/internal/nodes"
 )
 
 // flowRetention is how long a finished task stays in the live default window.

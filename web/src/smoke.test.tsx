@@ -303,8 +303,8 @@ test("task dialog uses the searchable workspace picker with no inline path creat
         JSON.stringify([
           {
             id: "ws_1",
-            name: "Switchyard Lite",
-            path: "/Users/dev/switchyard-lite",
+            name: "Switchyard Studio",
+            path: "/Users/dev/switchyard-studio",
             host: "dev@box",
             os: "linux",
             kind: "ssh",
@@ -399,11 +399,11 @@ test("empty model catalog surfaces the upstream reason", () => {
   expect(cat.source).toBe("pending");
 });
 
-test("switchyard-lite brandkit base components (Button, Select, Pill, AppShell, BrandMark) render cleanly", () => {
+test("switchyard-studio brandkit base components (Button, Select, Pill, AppShell, BrandMark) render cleanly", () => {
   const { container } = render(
     <AppShell defaultCollapsed={false}>
       <AppSidebar>
-        <AppSidebarBrand name="Switchyard" tag="LITE" />
+        <AppSidebarBrand name="Switchyard" tag="STUDIO" />
         <AppSidebarGroup label="Work">
           <AppSidebarItem href="/board" active badge={4}>
             Board
@@ -663,7 +663,7 @@ test("sidebar toggle and Cmd+B collapse/expand AppShell and expose badge dot", (
       <AppSidebar>
         <div className="side-top-pod">
           <div className="side-top-row">
-            <AppSidebarBrand name="Switchyard" tag="LITE" />
+            <AppSidebarBrand name="Switchyard" tag="STUDIO" />
             <AppSidebarToggle />
           </div>
         </div>
@@ -1181,7 +1181,7 @@ test("Wave 2 & 3 Studio: InboxScreen grouped triage, WorkflowTree dot-grid, Term
     status: "waiting_input" as const,
     executor: "dsh",
     model: "deepseek-v4.1-flash",
-    workspace: "/Users/dev/switchyard-lite",
+    workspace: "/Users/dev/switchyard-studio",
     branch: "main",
     paths: ["web/src/App.tsx"],
     skills: ["frontend-design"],

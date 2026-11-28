@@ -17,7 +17,7 @@ func TestIsSAASWorkspaceFromPathAndLabels(t *testing.T) {
 		{"posix baktiku path", "/srv/www/baktiku-portal", nil, true},
 		{"saas label", "/srv/ordinary-app", []string{"saas"}, true},
 		{"work label", "/srv/ordinary-app", []string{"Work"}, true},
-		{"ordinary workspace", "/Users/dev/switchyard-lite", nil, false},
+		{"ordinary workspace", "/Users/dev/switchyard-studio", nil, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestAugmentPromptIsIdempotent(t *testing.T) {
 }
 
 func TestAugmentPromptSkipsGuidelinesForOrdinaryWorkspace(t *testing.T) {
-	got := AugmentPrompt("Fix it", "/Users/dev/switchyard-lite", nil, []string{"web/src/App.tsx"}, nil)
+	got := AugmentPrompt("Fix it", "/Users/dev/switchyard-studio", nil, []string{"web/src/App.tsx"}, nil)
 	if !strings.Contains(got, "- @web/src/App.tsx") {
 		t.Fatalf("file reference missing: %s", got)
 	}

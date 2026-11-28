@@ -42,7 +42,7 @@ export interface SearchSelectProps {
 }
 
 /**
- * Switchyard Lite Tactile Capsule SearchSelect Picker
+ * Switchyard Studio Tactile Capsule SearchSelect Picker
  *
  * Uses a `999px` porcelain capsule trigger (`rounded-full`) and opens a `20px`
  * frosted porcelain popover plate with a `999px` recessed well search trough

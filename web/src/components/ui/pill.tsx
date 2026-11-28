@@ -4,7 +4,7 @@ import { ChevronsUpDown, Filter, Search, Sparkles, X } from "@/components/ui/ico
 import { cn } from "@/lib/utils";
 
 /**
- * Switchyard Lite Tactile Capsule & Pill Kit
+ * Switchyard Studio Tactile Capsule & Pill Kit
  *
  * Implements the tactile pill vocabulary from Concept 1 & Concept 2:
  *   - `Pill`: Base capsule container (`plate`, `well`, `prism`, `obsidian`, `mint`, `cobalt`, `dashed`).

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 // FileMatch mirrors kanban-board's /files/search result.

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/adityahimaone/switchyard-lite/internal/skills"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/skills"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 // stageTaskContext stages uploaded attachments, selected SKILL.md bundles, and

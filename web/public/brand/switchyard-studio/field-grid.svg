@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Switchyard Studio architectural survey grid field">
+  <defs>
+    <pattern id="switchyard-studio-subgrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0F172A" stroke-width="0.5" stroke-opacity="0.06"/>
+    </pattern>
+    <pattern id="switchyard-studio-majgrid" width="200" height="200" patternUnits="userSpaceOnUse">
+      <rect width="200" height="200" fill="url(#switchyard-studio-subgrid)"/>
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#0F172A" stroke-width="1" stroke-opacity="0.12"/>
+      <path d="M -6 0 L 6 0 M 0 -6 L 0 6" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-opacity="0.55"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="#EEF2FF"/>
+  <rect width="1600" height="1000" fill="url(#switchyard-studio-majgrid)"/>
+  <line x1="0" y1="200" x2="1600" y2="200" stroke="#2563EB" stroke-width="1" stroke-opacity="0.35"/>
+</svg>

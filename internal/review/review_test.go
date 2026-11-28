@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
-	"github.com/adityahimaone/switchyard-lite/internal/review"
-	"github.com/adityahimaone/switchyard-lite/internal/store"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/dispatch"
+	"github.com/adityahimaone/switchyard-studio/internal/review"
+	"github.com/adityahimaone/switchyard-studio/internal/store"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 func gitCmd(t *testing.T, dir string, args ...string) {

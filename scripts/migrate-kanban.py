@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Migrate Hermes kanban per-board SQLite DBs into switchyard-lite.
+"""Migrate Hermes kanban per-board SQLite DBs into switchyard-studio.
 
 Idempotent: board ids derive from board name, task ids from old ids.
 
-usage: migrate-kanban.py --src ~/.hermes/kanban/boards --dst data/switchyard-lite.db \
+usage: migrate-kanban.py --src ~/.hermes/kanban/boards --dst data/switchyard-studio.db \
        [--boards f8-saas,f8-bisadaya] [--dry-run]
 """
 import argparse, hashlib, os, sqlite3, sys, time
 
-# old Hermes status -> switchyard-lite status machine
+# old Hermes status -> switchyard-studio status machine
 STATUS = {
     "triage": "todo",
     "todo": "todo",

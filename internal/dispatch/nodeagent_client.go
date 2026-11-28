@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/harnesses"
+	"github.com/adityahimaone/switchyard-studio/internal/harnesses"
 )
 
 // Request mirrors kanban NodeDispatchRequest (shared subset, same JSON keys).

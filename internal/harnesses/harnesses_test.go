@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
 )
 
 func TestBuildSpawnSpecBig3(t *testing.T) {

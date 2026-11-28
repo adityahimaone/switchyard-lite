@@ -1,4 +1,4 @@
-# switchyard-lite
+# switchyard-studio
 
 Standalone agent task control plane — Kanban board, single dispatcher with atomic claim/leases, review gate with per-task git worktrees, interactive open questions with session continuity, dual task execution modes (managed vs passive tracker), 67 MCP tools with full control-plane parity, a 3-column Knowledge Center, and a deterministic autonomous pipeline engine (`design-thinking` + `meta7`).
 
@@ -62,13 +62,13 @@ flowchart LR
 make build
 
 # Create an admin API token for agents / MCP
-./bin/switchyard-lite token create --name admin --scope admin
+./bin/switchyard-studio token create --name admin --scope admin
 
 # Start the control plane on :8790
 SWITCHYARD_ADMIN_PASSWORD=secret \
 NODE_AGENT_URL=http://127.0.0.1:8788 \
 NODE_AGENT_TOKEN=your-node-agent-token \
-./bin/switchyard-lite serve --addr :8790 --db switchyard-lite.db
+./bin/switchyard-studio serve --addr :8790 --db switchyard-studio.db
 ```
 
 Access the web interface at **`http://localhost:8790`**.
@@ -79,7 +79,7 @@ Access the web interface at **`http://localhost:8790`**.
 
 | Feature | `managed` Mode (Default) | `tracker` Mode (Passive Monitor) |
 |---|---|---|
-| **Dispatcher Lifecycle** | Claimed and dispatched by `switchyard-lite` | Skipped by background dispatcher (`Tick` & `Claim`) |
+| **Dispatcher Lifecycle** | Claimed and dispatched by `switchyard-studio` | Skipped by background dispatcher (`Tick` & `Claim`) |
 | **Worker Execution** | Run on `node-agent` with worktree isolation | Executed externally by `dsh`, `commandcode`, Antigravity, etc. |
 | **Status Updates** | Managed state machine (Review gate before Done) | Direct updates via `complete_tracked_task` / `report_task_progress` |
 | **Retry Support** | `retry_task` / `POST /tasks/{id}/retry` re-queues & dispatches | External caller drives retry lifecycle |
@@ -140,15 +140,15 @@ When agents need human decisions mid-task, Switchyard captures them and presents
 
 ## MCP Server Setup
 
-Connect Claude Code, `dsh`, `commandcode`, Antigravity, or Cursor to `switchyard-lite`:
+Connect Claude Code, `dsh`, `commandcode`, Antigravity, or Cursor to `switchyard-studio`:
 
 ### Stdio Transport
 
 ```json
 {
   "mcpServers": {
-    "switchyard-lite": {
-      "command": "switchyard-lite",
+    "switchyard-studio": {
+      "command": "switchyard-studio",
       "args": ["mcp"],
       "env": {
         "SWITCHYARD_URL": "http://127.0.0.1:8790",
@@ -164,7 +164,7 @@ Connect Claude Code, `dsh`, `commandcode`, Antigravity, or Cursor to `switchyard
 ```json
 {
   "mcpServers": {
-    "switchyard-lite": {
+    "switchyard-studio": {
       "type": "http",
       "url": "http://127.0.0.1:8790/mcp",
       "headers": {
@@ -198,7 +198,7 @@ Connect Claude Code, `dsh`, `commandcode`, Antigravity, or Cursor to `switchyard
 
 ## Autonomous Design-Thinking & meta7 Pipelines
 
-Switchyard-Lite supports deterministic DAG orchestrations via built-in templates (`design-thinking.yaml` and `meta7.yaml`):
+Switchyard Studio supports deterministic DAG orchestrations via built-in templates (`design-thinking.yaml` and `meta7.yaml`):
 
 - **7-Stage Coordinator**: `explore` → `cross_examine` → `synthesize` → `design` → `verify` → `review` → `impl` + `gate_band`.
 - **Waves & Dependency Gates**: Stage $N+1$ remains blocked until all dependent nodes in stage $N$ reach `done` or `evolved`.

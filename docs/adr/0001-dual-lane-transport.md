@@ -8,9 +8,9 @@ Previously, `node-agent` serialized all commands through a single job queue (`bu
 
 ## Decision
 1. Split `node-agent` into **Lane A (Control RPC)** (`POST /api/rpc`, 8-goroutine semaphore, 15s default timeout) and **Lane B (Job Stream)** (`SpawnSpec` + SSE `GET /api/events/{task_id}` + SQLite WAL journal).
-2. Move all harness CLI flag building, NDJSON unwrapping, and cross-harness handoff generation into `switchyard-lite/internal/harnesses`.
+2. Move all harness CLI flag building, NDJSON unwrapping, and cross-harness handoff generation into `switchyard-studio/internal/harnesses`.
 3. Add gRPC auto-reconnect with heartbeat model/health parity and HTTP poll/reply fallback so workers stay resilient across sleep/wake and tailnet switches.
 
 ## Consequences
 - Workspace inspection, git switching, file staging, and CodeGraph queries stay sub-second even while a worker runs an AI job.
-- Updating `agy`, `dsh`, or `commandcode` flags requires only updating `switchyard-lite`.
+- Updating `agy`, `dsh`, or `commandcode` flags requires only updating `switchyard-studio`.

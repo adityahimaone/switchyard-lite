@@ -106,7 +106,7 @@ export function Login({ onDone }: { onDone: () => void }) {
     <main className="login-stage">
       <div className="login-frame">
         {/* ------------------------------------------------------------ hero */}
-        <section className="login-hero" aria-label="About Switchyard Lite">
+        <section className="login-hero" aria-label="About Switchyard Studio">
           <span className="inline-flex items-center gap-2 rounded-full border border-line/70 bg-surface/55 px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.08em] text-ink-2 uppercase backdrop-blur-md">
             <span className="relative flex size-1.5">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />
@@ -152,7 +152,7 @@ export function Login({ onDone }: { onDone: () => void }) {
                   <BrandMark size={24} />
                 </span>
                 <div className="min-w-0">
-                  <p className="m-0 text-[13px] leading-tight font-semibold text-ink">Switchyard Lite</p>
+                  <p className="m-0 text-[13px] leading-tight font-semibold text-ink">Switchyard Studio</p>
                   <p className="m-0 font-mono text-[9.5px] tracking-[0.1em] text-ink-4 uppercase">
                     Control plane access
                   </p>
@@ -304,7 +304,7 @@ export function Login({ onDone }: { onDone: () => void }) {
                 <span className={cn("size-1.5 rounded-full", enabled ? "bg-success" : "bg-line-strong")} />
                 {enabled ? "Password login available" : "Token access only"}
               </span>
-              <span className="font-mono text-[9px] tracking-[0.08em] text-ink-4 uppercase">switchyard-lite</span>
+              <span className="font-mono text-[9px] tracking-[0.08em] text-ink-4 uppercase">switchyard-studio</span>
             </div>
           </div>
         </div>

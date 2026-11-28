@@ -1,14 +1,14 @@
-# Switchyard Lite — Brand Identity & Tactile Capsule Design System (`v2.0`)
+# Switchyard Studio — Brand Identity & Tactile Capsule Design System (`v2.0`)
 
 > **Style Contract #15:** Atmospheric Cloud Sky & Tactile Pill Telemetry (`Glass & Light + Tactile Capsule Plates`)
-> **Declarative Source of Truth:** `brand/switchyard-lite.brand.json`
-> **Token Stylesheet:** `web/src/tokens.css` & `web/public/brand/switchyard-lite/switchyard-lite-tokens.css`
+> **Declarative Source of Truth:** `brand/switchyard-studio.brand.json`
+> **Token Stylesheet:** `web/src/tokens.css` & `web/public/brand/switchyard-studio/switchyard-studio-tokens.css`
 
 ---
 
 ## 1. Brand Premise & Visual Direction
 
-**Switchyard Lite** is a standalone Go + SQLite + React/Vite control plane for coding agents. Based on the three concept references:
+**Switchyard Studio** is a standalone Go + SQLite + React/Vite control plane for coding agents. Based on the three concept references:
 1. **Concept 1 (Tactile Pill & Capsule Micro-UI Kit):** Every interactive trigger—`Ask AI` prism gradient capsule, `Ella M. ×` porcelain avatar pill, `Upload` dashed drop-zone pill, `Filter · 2 | ×` tabular count capsule, 3-way recessed well toggle, `30 mins ⌄ [Book a Call]` compound action stepper, `● Online` mint pill, `◌ In progress` spinning dashed ring pill, and `Search [🔍]` recessed trough—shares a `999px` capsule silhouette with top specular inner highlights (`--lift-inset`).
 2. **Concept 2 (Atmospheric Blueprint Sky & Double-Framed Stage):** Cool periwinkle-cloud sky canvas (`#F1F4FB`) with subtle `32px` blueprint hairlines, floating capsule navbar, tilted status stack (`Done`, `Need Review`, `In Progress`, `New Request`), and a double-bezel stage frame.
 3. **Concept 3 (Glossy Obsidian Pill & Colored-Bar Kanban Shell):** Deep obsidian pill CTAs (`--grad-obsidian`) paired with crisp white Kanban columns topped by status-coded signal bars.
@@ -56,8 +56,8 @@
 
 ## 4. Mark & 6-Mark Companion Cast
 
-- **Primary Mark ("The Parallel Turnout Switch"):** Constructed on a `64×64` grid (`web/public/brand/switchyard-lite/logo-mark.svg`). Lower through-track (`M10 38 H54 V50 H10 Z`) + upper turnout track (`M10 20 H25 L38 7 H54 V19 H42 L29 32 H10 Z`) separated by a `6-unit` air gap, with a coral lock dot (`cx=50, cy=29, r=3.5`).
-- **Compact Favicon (`< 24px`):** Dedicated simplified geometry (`web/public/brand/switchyard-lite/logo-compact.svg`) automatically swapped by `<BrandMark size={16} />` in `web/src/components/ui/brand.tsx`.
+- **Primary Mark ("The Parallel Turnout Switch"):** Constructed on a `64×64` grid (`web/public/brand/switchyard-studio/logo-mark.svg`). Lower through-track (`M10 38 H54 V50 H10 Z`) + upper turnout track (`M10 20 H25 L38 7 H54 V19 H42 L29 32 H10 Z`) separated by a `6-unit` air gap, with a coral lock dot (`cx=50, cy=29, r=3.5`).
+- **Compact Favicon (`< 24px`):** Dedicated simplified geometry (`web/public/brand/switchyard-studio/logo-compact.svg`) automatically swapped by `<BrandMark size={16} />` in `web/src/components/ui/brand.tsx`.
 - **6-Mark Companion Cast:** `cast-turnout.svg`, `cast-capsule.svg`, `cast-worktree.svg`, `cast-lease.svg`, `cast-diff.svg`, `cast-dag.svg`.
 
 ---

@@ -4,7 +4,7 @@
 // ~/.hermes/workspaces.json (kanban-board's source of truth) together with the
 // live node report. That file carries the authoritative machine metadata —
 // os, host, labels and a human name — which the local dispatch_workspaces
-// table may lack. switchyard-lite used to import just the paths and prefix
+// table may lack. switchyard-studio used to import just the paths and prefix
 // every name with "mac: ", so a Windows checkout such as
 // D:\xampp\htdocs\portal-hadirr showed up as "mac: portal-hadirr".
 //

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
 )
 
 // State is everything the create-task composer needs to know about a

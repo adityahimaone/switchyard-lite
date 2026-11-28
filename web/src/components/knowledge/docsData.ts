@@ -32,12 +32,12 @@ export interface BuiltinDocArticle {
 export const BUILTIN_DOCS: BuiltinDocArticle[] = [
   {
     slug: "overview",
-    title: "Switchyard-Lite Control Plane",
+    title: "Switchyard Studio Control Plane",
     subtitle: "Go + SQLite WAL + React/Vite autonomous task & agent orchestration.",
     category: "Core Architecture",
     badge: "Architecture",
     summary:
-      "Switchyard-Lite coordinates coding agents across isolated git worktrees, passive external MCP mirrors, deterministic pipelines (including meta7), interactive card clarification questions, and a review gate backed by a single SQLite database.",
+      "Switchyard Studio coordinates coding agents across isolated git worktrees, passive external MCP mirrors, deterministic pipelines (including meta7), interactive card clarification questions, and a review gate backed by a single SQLite database.",
     sections: [
       {
         id: "system-pillars",
@@ -227,7 +227,7 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
     category: "MCP & API Reference",
     badge: "MCP",
     summary:
-      "Switchyard-Lite bundles both a local stdio MCP server (`switchyard-lite mcp`) and an authenticated Streamable HTTP endpoint (`POST/GET /mcp`). All 67 tools proxy straight through Switchyard's token-scoped REST handlers.",
+      "Switchyard Studio bundles both a local stdio MCP server (`switchyard-studio mcp`) and an authenticated Streamable HTTP endpoint (`POST/GET /mcp`). All 67 tools proxy straight through Switchyard's token-scoped REST handlers.",
     sections: [
       {
         id: "stdio-setup",
@@ -239,7 +239,7 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
           label: "Create Token & Stdio MCP Config",
           lang: "json",
           snippet:
-            "// Terminal: switchyard-lite token create --name local-agent --scope write\n{\n  \"mcpServers\": {\n    \"switchyard-lite\": {\n      \"command\": \"switchyard-lite\",\n      \"args\": [\"mcp\"],\n      \"env\": {\n        \"SWITCHYARD_URL\": \"http://127.0.0.1:8090\",\n        \"SWITCHYARD_TOKEN\": \"syl_...\"\n      }\n    }\n  }\n}",
+            "// Terminal: switchyard-studio token create --name local-agent --scope write\n{\n  \"mcpServers\": {\n    \"switchyard-studio\": {\n      \"command\": \"switchyard-studio\",\n      \"args\": [\"mcp\"],\n      \"env\": {\n        \"SWITCHYARD_URL\": \"http://127.0.0.1:8090\",\n        \"SWITCHYARD_TOKEN\": \"syl_...\"\n      }\n    }\n  }\n}",
         },
       },
       {
@@ -249,7 +249,7 @@ export const BUILTIN_DOCS: BuiltinDocArticle[] = [
           label: "HTTP Transport Config",
           lang: "json",
           snippet:
-            "{\n  \"mcpServers\": {\n    \"switchyard-lite\": {\n      \"type\": \"http\",\n      \"url\": \"http://127.0.0.1:8090/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer syl_...\"\n      }\n    }\n  }\n}",
+            "{\n  \"mcpServers\": {\n    \"switchyard-studio\": {\n      \"type\": \"http\",\n      \"url\": \"http://127.0.0.1:8090/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer syl_...\"\n      }\n    }\n  }\n}",
         },
         callout: {
           tone: "warn",

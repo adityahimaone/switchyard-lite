@@ -14,15 +14,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adityahimaone/switchyard-lite/internal/catalog"
-	"github.com/adityahimaone/switchyard-lite/internal/dispatch"
-	"github.com/adityahimaone/switchyard-lite/internal/models"
-	"github.com/adityahimaone/switchyard-lite/internal/nodes"
-	"github.com/adityahimaone/switchyard-lite/internal/review"
-	"github.com/adityahimaone/switchyard-lite/internal/skills"
-	"github.com/adityahimaone/switchyard-lite/internal/tasks"
-	"github.com/adityahimaone/switchyard-lite/internal/worker"
-	"github.com/adityahimaone/switchyard-lite/internal/wsindex"
+	"github.com/adityahimaone/switchyard-studio/internal/catalog"
+	"github.com/adityahimaone/switchyard-studio/internal/dispatch"
+	"github.com/adityahimaone/switchyard-studio/internal/models"
+	"github.com/adityahimaone/switchyard-studio/internal/nodes"
+	"github.com/adityahimaone/switchyard-studio/internal/review"
+	"github.com/adityahimaone/switchyard-studio/internal/skills"
+	"github.com/adityahimaone/switchyard-studio/internal/tasks"
+	"github.com/adityahimaone/switchyard-studio/internal/worker"
+	"github.com/adityahimaone/switchyard-studio/internal/wsindex"
 )
 
 type dispatchDeps struct {
